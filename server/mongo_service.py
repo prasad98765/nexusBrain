@@ -41,10 +41,11 @@ class MongoService:
         if self.use_fallback:
             # Use PostgreSQL fallback
             from .models import db
+            from sqlalchemy import text
             try:
                 result = db.session.execute(
-                    "SELECT * FROM business_info WHERE user_id = %s AND workspace_id = %s",
-                    (user_id, workspace_id)
+                    text("SELECT * FROM business_info WHERE user_id = :user_id AND workspace_id = :workspace_id"),
+                    {'user_id': user_id, 'workspace_id': workspace_id}
                 ).fetchone()
                 
                 if result:
@@ -78,17 +79,25 @@ class MongoService:
         if self.use_fallback:
             # Use PostgreSQL fallback
             from .models import db
+            from sqlalchemy import text
             try:
                 # Insert or update business info
-                db.session.execute("""
+                db.session.execute(text("""
                     INSERT INTO business_info (user_id, workspace_id, business_name, business_type, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                    VALUES (:user_id, :workspace_id, :business_name, :business_type, :created_at, :updated_at)
                     ON CONFLICT (user_id, workspace_id)
                     DO UPDATE SET 
                         business_name = EXCLUDED.business_name,
                         business_type = EXCLUDED.business_type,
                         updated_at = EXCLUDED.updated_at
-                """, (user_id, workspace_id, business_name, business_type, datetime.utcnow(), datetime.utcnow()))
+                """), {
+                    'user_id': user_id, 
+                    'workspace_id': workspace_id, 
+                    'business_name': business_name, 
+                    'business_type': business_type, 
+                    'created_at': datetime.utcnow(), 
+                    'updated_at': datetime.utcnow()
+                })
                 
                 db.session.commit()
                 return True
