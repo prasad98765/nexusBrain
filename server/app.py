@@ -1,0 +1,57 @@
+import os
+import logging
+from flask import Flask
+from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
+from flask_session import Session
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Initialize extensions
+db = SQLAlchemy()
+
+def create_app():
+    app = Flask(__name__)
+    
+    # Configuration
+    app.config['SECRET_KEY'] = os.getenv('SESSION_SECRET', 'dev-secret-key')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
+    # Session configuration for PostgreSQL
+    app.config['SESSION_TYPE'] = 'sqlalchemy'
+    app.config['SESSION_SQLALCHEMY'] = db
+    app.config['SESSION_SQLALCHEMY_TABLE'] = 'flask_sessions'
+    app.config['SESSION_PERMANENT'] = False
+    app.config['SESSION_USE_SIGNER'] = True
+    app.config['SESSION_KEY_PREFIX'] = 'nexus:'
+    app.config['PERMANENT_SESSION_LIFETIME'] = 7 * 24 * 60 * 60  # 7 days
+    
+    # Initialize extensions with app
+    db.init_app(app)
+    CORS(app, origins=['http://localhost:3000', 'http://localhost:5000'], 
+         supports_credentials=True)
+    Session(app)
+    
+    # Configure logging
+    logging.basicConfig(level=logging.INFO)
+    
+    # Register blueprints
+    from .routes import auth_bp, workspace_bp, conversation_bp, message_bp, static_bp
+    app.register_blueprint(auth_bp, url_prefix='/api')
+    app.register_blueprint(workspace_bp, url_prefix='/api')
+    app.register_blueprint(conversation_bp, url_prefix='/api')
+    app.register_blueprint(message_bp, url_prefix='/api')
+    app.register_blueprint(static_bp)
+    
+    # Create tables
+    with app.app_context():
+        db.create_all()
+    
+    return app
+
+if __name__ == '__main__':
+    app = create_app()
+    app.run(debug=True, host='0.0.0.0', port=5000)

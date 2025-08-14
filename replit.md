@@ -1,6 +1,8 @@
 # Overview
 
-This is a multi-tenant AI chat platform built with React, Express, and TypeScript. The application provides workspace-based organization where users can create conversations and interact with AI assistants. It features real-time chat interfaces, user authentication through Replit Auth, and a modern UI built with shadcn/ui components.
+This is a multi-tenant Nexus AI chat platform built with React TypeScript frontend and Python Flask backend. The application provides workspace-based organization where users can create conversations and interact with AI assistants. It features real-time chat interfaces, user authentication through Replit Auth, PostgreSQL database storage, and a modern UI built with shadcn/ui components.
+
+**Last Updated**: August 14, 2025 - Successfully converted backend from Express.js to Python Flask per user request.
 
 # User Preferences
 
@@ -16,40 +18,57 @@ Preferred communication style: Simple, everyday language.
 - **Layout**: Three-panel layout with collapsible sidebar, main chat area, and right sidebar for conversation metadata
 
 ## Backend Architecture
-- **Server**: Express.js with TypeScript running in ESM mode
-- **API Design**: RESTful API with structured error handling and request logging middleware
-- **Authentication**: Replit OpenID Connect (OIDC) authentication with Passport.js
-- **Session Management**: Express sessions stored in PostgreSQL with connect-pg-simple
-- **Storage Pattern**: Repository pattern with interface-based storage abstraction for testability
+- **Server**: Python Flask with development server running on port 5000
+- **API Design**: RESTful API using Flask Blueprint organization with structured error handling
+- **Authentication**: Replit OpenID Connect (OIDC) authentication with Flask-Session
+- **Session Management**: Flask sessions stored in PostgreSQL using Flask-Session SQLAlchemy
+- **Database ORM**: SQLAlchemy with Flask-SQLAlchemy for database operations and models
+- **Storage Pattern**: Direct SQLAlchemy models with multi-tenant workspace isolation
 
 ## Database Architecture
-- **ORM**: Drizzle ORM with PostgreSQL dialect for type-safe database operations
-- **Schema**: Multi-tenant design with workspaces, users, conversations, and messages
-- **Migrations**: Drizzle Kit for schema migrations and database management
-- **Relations**: Proper foreign key relationships between users, workspaces, conversations, and messages
+- **Database**: PostgreSQL with connection via DATABASE_URL environment variable
+- **ORM**: SQLAlchemy with Flask-SQLAlchemy for database operations and model definitions
+- **Schema**: Multi-tenant design with Users, Workspaces, WorkspaceMembers, Conversations, and Messages models
+- **Migrations**: SQLAlchemy model-based schema management with db.create_all()
+- **Relations**: Foreign key relationships between users, workspaces, conversations, and messages
+- **Sessions**: Flask sessions stored in PostgreSQL using flask_sessions table
 
 ## Authentication & Authorization
-- **Provider**: Replit OIDC for seamless integration with Replit environment
-- **Sessions**: Server-side sessions with PostgreSQL storage for security
-- **Middleware**: Authentication middleware protecting API routes
-- **Multi-tenancy**: Workspace-based access control with user membership management
+- **Provider**: Replit OIDC with manual OAuth flow implementation (simplified for development)
+- **Sessions**: Flask-Session with PostgreSQL storage using flask_sessions table
+- **Middleware**: Flask decorators for route protection (@require_auth)
+- **Multi-tenancy**: Workspace-based access control with WorkspaceMember model for membership management
+- **Development**: Currently using mock authentication for local development
 
 # External Dependencies
 
+## Backend - Python Flask
+- **Flask**: Lightweight WSGI web application framework
+- **Flask-SQLAlchemy**: Flask integration for SQLAlchemy ORM
+- **Flask-Session**: Server-side session support with PostgreSQL storage
+- **Flask-CORS**: Cross-Origin Resource Sharing handling
+- **psycopg2-binary**: PostgreSQL adapter for Python
+
 ## Database
-- **PostgreSQL**: Primary database using Neon serverless PostgreSQL with connection pooling
-- **Drizzle ORM**: Type-safe database queries and schema management
+- **PostgreSQL**: Primary database using environment DATABASE_URL
+- **SQLAlchemy**: Python SQL toolkit and Object-Relational Mapping
 
 ## Authentication
-- **Replit Auth**: OIDC-based authentication integrated with Replit platform
-- **OpenID Client**: For handling OIDC authentication flow
+- **Replit Auth**: OIDC-based authentication (currently simplified for development)
+- **Authlib**: OAuth and OpenID Connect library for Python
+
+## Frontend - React TypeScript
+- **React**: JavaScript library for building user interfaces
+- **TypeScript**: Static type checking for JavaScript
+- **Vite**: Fast build tool with HMR and development server
+- **Wouter**: Minimalist routing for React
 
 ## UI & Styling
 - **Tailwind CSS**: Utility-first CSS framework with custom design tokens
 - **Radix UI**: Headless UI components for accessibility and customization
 - **Lucide React**: Modern icon library for consistent iconography
+- **shadcn/ui**: Component library built on Radix UI primitives
 
 ## Development Tools
 - **Vite**: Fast build tool with HMR and development server
-- **TypeScript**: Static typing for both frontend and backend
 - **ESBuild**: Fast bundling for production builds
