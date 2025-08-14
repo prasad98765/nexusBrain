@@ -6,6 +6,7 @@ from .auth_utils import (
     require_auth, require_verified_user
 )
 from .email_service import send_verification_email, send_welcome_email
+from .mongo_service import mongo_service, BUSINESS_TYPES
 from datetime import datetime
 import os
 import re
@@ -396,6 +397,78 @@ def get_user():
 def logout():
     """Logout user (JWT tokens are stateless, so this is informational)"""
     return jsonify({'message': 'Logged out successfully'}), 200
+
+# Business Information Routes
+@auth_bp.route('/business-info', methods=['GET'])
+@require_auth
+def get_business_info():
+    """Get business information for current user and workspace"""
+    try:
+        user_id = request.user.get('user_id')
+        workspace_id = request.user.get('workspace_id')
+        
+        if not workspace_id:
+            return jsonify({'message': 'No workspace found'}), 400
+        
+        business_info = mongo_service.get_business_info(user_id, workspace_id)
+        
+        if business_info:
+            # Remove MongoDB _id field for JSON serialization
+            business_info.pop('_id', None)
+            return jsonify(business_info), 200
+        else:
+            return jsonify({'exists': False}), 200
+        
+    except Exception as e:
+        print(f"Get business info error: {e}")
+        return jsonify({'message': 'Internal server error'}), 500
+
+@auth_bp.route('/business-info', methods=['POST'])
+@require_auth
+def save_business_info():
+    """Save business information for current user and workspace"""
+    try:
+        user_id = request.user.get('user_id')
+        workspace_id = request.user.get('workspace_id')
+        
+        if not workspace_id:
+            return jsonify({'message': 'No workspace found'}), 400
+        
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data or 'business_name' not in data or 'business_type' not in data:
+            return jsonify({'message': 'Business name and type are required'}), 400
+        
+        business_name = data['business_name'].strip()
+        business_type = data['business_type'].strip()
+        
+        if not business_name:
+            return jsonify({'message': 'Business name cannot be empty'}), 400
+        
+        if business_type not in BUSINESS_TYPES:
+            return jsonify({'message': 'Invalid business type'}), 400
+        
+        # Save to MongoDB
+        success = mongo_service.save_business_info(user_id, workspace_id, business_name, business_type)
+        
+        if success:
+            return jsonify({
+                'message': 'Business information saved successfully',
+                'business_name': business_name,
+                'business_type': business_type
+            }), 200
+        else:
+            return jsonify({'message': 'Failed to save business information'}), 500
+        
+    except Exception as e:
+        print(f"Save business info error: {e}")
+        return jsonify({'message': 'Internal server error'}), 500
+
+@auth_bp.route('/business-types', methods=['GET'])
+def get_business_types():
+    """Get list of available business types"""
+    return jsonify({'business_types': BUSINESS_TYPES}), 200
 
 # Workspace routes
 @workspace_bp.route('/workspaces', methods=['GET'])

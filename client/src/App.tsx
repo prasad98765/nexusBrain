@@ -5,14 +5,46 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState } from "react";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import Home from "@/pages/home";
+import BusinessInfoPage from "@/pages/business-info";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, token } = useAuth();
+  const [businessInfoRequired, setBusinessInfoRequired] = useState<boolean | null>(null);
 
-  if (isLoading) {
+  // Check if business info is required for authenticated users
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      const checkBusinessInfo = async () => {
+        try {
+          const response = await fetch('/api/business-info', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setBusinessInfoRequired(data.exists === false);
+          } else {
+            setBusinessInfoRequired(false);
+          }
+        } catch (error) {
+          console.error('Failed to check business info:', error);
+          setBusinessInfoRequired(false);
+        }
+      };
+
+      checkBusinessInfo();
+    } else {
+      setBusinessInfoRequired(null);
+    }
+  }, [isAuthenticated, token]);
+
+  if (isLoading || (isAuthenticated && businessInfoRequired === null)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="flex flex-col items-center space-y-4">
@@ -28,12 +60,20 @@ function Router() {
 
   return (
     <Switch>
-      {isAuthenticated ? (
-        <Route path="/" component={Home} />
-      ) : (
+      {!isAuthenticated ? (
         <>
           <Route path="/auth" component={AuthPage} />
           <Route path="/" component={() => { window.location.href = '/auth'; return null; }} />
+        </>
+      ) : businessInfoRequired ? (
+        <>
+          <Route path="/" component={BusinessInfoPage} />
+          <Route path="/business-info" component={BusinessInfoPage} />
+        </>
+      ) : (
+        <>
+          <Route path="/" component={Home} />
+          <Route path="/business-info" component={BusinessInfoPage} />
         </>
       )}
       <Route component={NotFound} />

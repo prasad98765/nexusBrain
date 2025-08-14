@@ -50,6 +50,10 @@ def create_app():
     app.register_blueprint(message_bp, url_prefix='/api')
     app.register_blueprint(static_bp)
     
+    # Initialize MongoDB connection
+    from .mongo_service import mongo_service
+    mongo_service.connect()
+    
     # Create tables
     with app.app_context():
         db.create_all()
