@@ -6,10 +6,15 @@ class User(db.Model):
     __tablename__ = 'users'
     
     id = db.Column(db.String, primary_key=True, default=lambda: str(uuid4()))
-    email = db.Column(db.String, unique=True)
-    first_name = db.Column(db.String)
+    email = db.Column(db.String, unique=True, nullable=False)
+    first_name = db.Column(db.String, nullable=False)
     last_name = db.Column(db.String)
+    password_hash = db.Column(db.String(128))  # Null for OAuth users
     profile_image_url = db.Column(db.String)
+    is_verified = db.Column(db.Boolean, default=False)
+    verification_token = db.Column(db.String(100))
+    auth_provider = db.Column(db.String(20), default='local')  # 'local' or 'google'
+    google_id = db.Column(db.String(100), unique=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -66,7 +71,7 @@ class Message(db.Model):
     tokens = db.Column(db.String)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# Session table for Flask-Session - using extend_existing to avoid conflicts
+# Session table for Flask-Session
 class FlaskSession(db.Model):
     __tablename__ = 'flask_sessions'
     __table_args__ = {'extend_existing': True}

@@ -1,8 +1,14 @@
 from flask import Blueprint, request, jsonify, session, redirect, url_for, send_from_directory, current_app
 from .models import User, Workspace, WorkspaceMember, Conversation, Message, db
-from .auth import require_auth, update_session, upsert_user
+from .auth_utils import (
+    generate_password_hash, check_password_hash, generate_jwt_token, 
+    decode_jwt_token, generate_verification_token, verify_google_token,
+    require_auth, require_verified_user
+)
+from .email_service import send_verification_email, send_welcome_email
 from datetime import datetime
 import os
+import re
 
 # Create blueprints
 auth_bp = Blueprint('auth', __name__)
@@ -27,81 +33,376 @@ def serve_static(path=''):
         # Fallback error message
         return jsonify({'message': f'Frontend error: {str(e)}. Static dir: {os.path.join(os.getcwd(), "dist/public")}'}), 404
 
-# Auth routes
-@auth_bp.route('/login')
-def login():
-    # Simple redirect to Replit OAuth for now
-    client_id = os.getenv('REPL_ID', '')
-    issuer_url = os.getenv('ISSUER_URL', 'https://replit.com/oidc')
-    redirect_uri = url_for('auth.callback', _external=True)
-    
-    auth_url = f"{issuer_url}/auth?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope=openid%20email%20profile%20offline_access"
-    return redirect(auth_url)
+# Utility function for email validation
+def is_valid_email(email):
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
 
-@auth_bp.route('/callback')
-def callback():
+# Auth routes
+@auth_bp.route('/signup', methods=['POST'])
+def signup():
+    """Standard email/password signup with email verification"""
     try:
-        # For now, create a mock session for development
-        # This should be replaced with proper OAuth token exchange
-        mock_claims = {
-            'sub': 'mock_user_123',
-            'email': 'user@example.com',
-            'first_name': 'Test',
-            'last_name': 'User',
-            'profile_image_url': None
-        }
+        data = request.get_json()
         
-        # Store mock session info
-        session['access_token'] = 'mock_token'
-        session['refresh_token'] = 'mock_refresh'
-        session['expires_at'] = datetime.utcnow().timestamp() + 3600
-        session['user'] = mock_claims
+        # Validate required fields
+        if not all(k in data for k in ['first_name', 'email', 'password']):
+            return jsonify({'message': 'Missing required fields: first_name, email, password'}), 400
         
-        # Create or update user
-        upsert_user(mock_claims)
+        first_name = data['first_name'].strip()
+        email = data['email'].lower().strip()
+        password = data['password']
+        last_name = data.get('last_name', '').strip()
         
-        return redirect('/')
+        # Validate input
+        if len(first_name) < 2:
+            return jsonify({'message': 'First name must be at least 2 characters'}), 400
+        if not is_valid_email(email):
+            return jsonify({'message': 'Invalid email format'}), 400
+        if len(password) < 6:
+            return jsonify({'message': 'Password must be at least 6 characters'}), 400
+        
+        # Check if user already exists
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            return jsonify({'message': 'User with this email already exists'}), 409
+        
+        # Create new user
+        verification_token = generate_verification_token()
+        password_hash = generate_password_hash(password)
+        
+        user = User(
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            password_hash=password_hash,
+            verification_token=verification_token,
+            auth_provider='local',
+            is_verified=False
+        )
+        
+        db.session.add(user)
+        db.session.flush()  # Get the user ID
+        
+        # Create default workspace for user
+        default_workspace = Workspace(
+            name=f"{first_name}'s Workspace",
+            description="Your personal AI workspace",
+            owner_id=user.id
+        )
+        db.session.add(default_workspace)
+        db.session.flush()  # Get the workspace ID
+        
+        # Add user as workspace owner
+        workspace_member = WorkspaceMember(
+            workspace_id=default_workspace.id,
+            user_id=user.id,
+            role='owner'
+        )
+        db.session.add(workspace_member)
+        db.session.commit()
+        
+        # Send verification email
+        send_verification_email(user.email, user.first_name, verification_token)
+        
+        return jsonify({
+            'message': 'Account created successfully! Please check your email to verify your account.',
+            'user_id': user.id,
+            'verification_required': True
+        }), 201
         
     except Exception as e:
-        print(f"Auth error: {e}")
-        return redirect('/api/login')
+        db.session.rollback()
+        print(f"Signup error: {e}")
+        return jsonify({'message': 'Internal server error'}), 500
 
-@auth_bp.route('/logout')
-def logout():
-    session.clear()
-    # Construct logout URL
-    logout_url = f"{os.getenv('ISSUER_URL', 'https://replit.com/oidc')}/logout"
-    redirect_uri = request.host_url
-    return redirect(f"{logout_url}?client_id={os.getenv('REPL_ID')}&post_logout_redirect_uri={redirect_uri}")
+@auth_bp.route('/google-signup', methods=['POST'])
+def google_signup():
+    """Google OAuth signup - bypasses email verification"""
+    try:
+        data = request.get_json()
+        
+        if 'google_token' not in data:
+            return jsonify({'message': 'Google token is required'}), 400
+        
+        # Verify Google token and get user info
+        google_user = verify_google_token(data['google_token'])
+        
+        # Check if user already exists
+        existing_user = User.query.filter_by(email=google_user['email']).first()
+        if existing_user:
+            if existing_user.auth_provider == 'google':
+                # Generate JWT token with default workspace
+                default_workspace = Workspace.query.filter_by(owner_id=existing_user.id).first()
+                workspace_id = default_workspace.id if default_workspace else None
+                
+                token = generate_jwt_token(existing_user.id, existing_user.email, workspace_id)
+                return jsonify({
+                    'message': 'Login successful',
+                    'token': token,
+                    'user': {
+                        'id': existing_user.id,
+                        'email': existing_user.email,
+                        'first_name': existing_user.first_name,
+                        'last_name': existing_user.last_name,
+                        'profile_image_url': existing_user.profile_image_url,
+                        'workspace_id': workspace_id
+                    }
+                }), 200
+            else:
+                return jsonify({'message': 'Email already registered with password. Please use regular login.'}), 409
+        
+        # Create new user with Google OAuth
+        user = User(
+            email=google_user['email'],
+            first_name=google_user['first_name'],
+            last_name=google_user['last_name'],
+            google_id=google_user['google_id'],
+            profile_image_url=google_user['profile_image_url'],
+            auth_provider='google',
+            is_verified=True  # Google users are auto-verified
+        )
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        # Create default workspace
+        default_workspace = Workspace(
+            name=f"{user.first_name}'s Workspace",
+            description="Your personal AI workspace",
+            owner_id=user.id
+        )
+        db.session.add(default_workspace)
+        
+        # Add user as workspace owner
+        workspace_member = WorkspaceMember(
+            workspace_id=default_workspace.id,
+            user_id=user.id,
+            role='owner'
+        )
+        db.session.add(workspace_member)
+        db.session.commit()
+        
+        # Generate JWT token
+        token = generate_jwt_token(user.id, user.email, default_workspace.id)
+        
+        # Send welcome email
+        send_welcome_email(user.email, user.first_name)
+        
+        return jsonify({
+            'message': 'Account created successfully!',
+            'token': token,
+            'user': {
+                'id': user.id,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'profile_image_url': user.profile_image_url,
+                'workspace_id': default_workspace.id
+            }
+        }), 201
+        
+    except ValueError as e:
+        return jsonify({'message': str(e)}), 400
+    except Exception as e:
+        db.session.rollback()
+        print(f"Google signup error: {e}")
+        return jsonify({'message': 'Internal server error'}), 500
 
-@auth_bp.route('/auth/user')
+@auth_bp.route('/login', methods=['POST'])
+def login():
+    """Standard email/password login with verification check"""
+    try:
+        data = request.get_json()
+        
+        if not all(k in data for k in ['email', 'password']):
+            return jsonify({'message': 'Email and password are required'}), 400
+        
+        email = data['email'].lower().strip()
+        password = data['password']
+        
+        # Find user by email
+        user = User.query.filter_by(email=email, auth_provider='local').first()
+        if not user or not check_password_hash(user.password_hash, password):
+            return jsonify({'message': 'Invalid email or password'}), 401
+        
+        # Check if email is verified
+        if not user.is_verified:
+            return jsonify({
+                'message': 'Please verify your email address before logging in',
+                'verification_required': True
+            }), 403
+        
+        # Get user's default workspace
+        default_workspace = Workspace.query.filter_by(owner_id=user.id).first()
+        workspace_id = default_workspace.id if default_workspace else None
+        
+        # Generate JWT token
+        token = generate_jwt_token(user.id, user.email, workspace_id)
+        
+        return jsonify({
+            'message': 'Login successful',
+            'token': token,
+            'user': {
+                'id': user.id,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'profile_image_url': user.profile_image_url,
+                'workspace_id': workspace_id
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Login error: {e}")
+        return jsonify({'message': 'Internal server error'}), 500
+
+@auth_bp.route('/google-login', methods=['POST'])
+def google_login():
+    """Google OAuth login"""
+    try:
+        data = request.get_json()
+        
+        if 'google_token' not in data:
+            return jsonify({'message': 'Google token is required'}), 400
+        
+        # Verify Google token and get user info
+        google_user = verify_google_token(data['google_token'])
+        
+        # Find user by Google ID or email
+        user = User.query.filter_by(google_id=google_user['google_id']).first()
+        if not user:
+            user = User.query.filter_by(email=google_user['email'], auth_provider='google').first()
+        
+        if not user:
+            return jsonify({'message': 'No account found. Please sign up first.'}), 404
+        
+        # Update user info from Google if needed
+        user.profile_image_url = google_user.get('profile_image_url', user.profile_image_url)
+        db.session.commit()
+        
+        # Get user's default workspace
+        default_workspace = Workspace.query.filter_by(owner_id=user.id).first()
+        workspace_id = default_workspace.id if default_workspace else None
+        
+        # Generate JWT token
+        token = generate_jwt_token(user.id, user.email, workspace_id)
+        
+        return jsonify({
+            'message': 'Login successful',
+            'token': token,
+            'user': {
+                'id': user.id,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'profile_image_url': user.profile_image_url,
+                'workspace_id': workspace_id
+            }
+        }), 200
+        
+    except ValueError as e:
+        return jsonify({'message': str(e)}), 400
+    except Exception as e:
+        print(f"Google login error: {e}")
+        return jsonify({'message': 'Internal server error'}), 500
+
+@auth_bp.route('/verify-email/<token>')
+def verify_email(token):
+    """Verify email address using token"""
+    try:
+        user = User.query.filter_by(verification_token=token).first()
+        
+        if not user:
+            return jsonify({'message': 'Invalid verification token'}), 400
+        
+        if user.is_verified:
+            return jsonify({'message': 'Email already verified'}), 200
+        
+        # Verify the user
+        user.is_verified = True
+        user.verification_token = None
+        db.session.commit()
+        
+        # Send welcome email
+        send_welcome_email(user.email, user.first_name)
+        
+        return jsonify({'message': 'Email verified successfully! You can now log in.'}), 200
+        
+    except Exception as e:
+        print(f"Email verification error: {e}")
+        return jsonify({'message': 'Internal server error'}), 500
+
+@auth_bp.route('/resend-verification', methods=['POST'])
+def resend_verification():
+    """Resend verification email"""
+    try:
+        data = request.get_json()
+        
+        if 'email' not in data:
+            return jsonify({'message': 'Email is required'}), 400
+        
+        email = data['email'].lower().strip()
+        user = User.query.filter_by(email=email, auth_provider='local').first()
+        
+        if not user:
+            return jsonify({'message': 'User not found'}), 404
+        
+        if user.is_verified:
+            return jsonify({'message': 'Email already verified'}), 200
+        
+        # Generate new verification token
+        user.verification_token = generate_verification_token()
+        db.session.commit()
+        
+        # Send verification email
+        send_verification_email(user.email, user.first_name, user.verification_token)
+        
+        return jsonify({'message': 'Verification email sent successfully'}), 200
+        
+    except Exception as e:
+        print(f"Resend verification error: {e}")
+        return jsonify({'message': 'Internal server error'}), 500
+
+@auth_bp.route('/user')
 @require_auth
 def get_user():
+    """Get current user info from JWT token"""
     try:
-        user_id = session['user']['sub']
-        user = User.query.filter_by(id=user_id).first()
+        user_id = request.user.get('user_id')
+        user = User.query.get(user_id)
+        
         if not user:
             return jsonify({'message': 'User not found'}), 404
         
         return jsonify({
             'id': user.id,
             'email': user.email,
-            'firstName': user.first_name,
-            'lastName': user.last_name,
-            'profileImageUrl': user.profile_image_url,
-            'createdAt': user.created_at.isoformat() if user.created_at else None,
-            'updatedAt': user.updated_at.isoformat() if user.updated_at else None
-        })
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'profile_image_url': user.profile_image_url,
+            'is_verified': user.is_verified,
+            'auth_provider': user.auth_provider,
+            'created_at': user.created_at.isoformat(),
+            'updated_at': user.updated_at.isoformat()
+        }), 200
+        
     except Exception as e:
         print(f"Get user error: {e}")
-        return jsonify({'message': 'Failed to fetch user'}), 500
+        return jsonify({'message': 'Internal server error'}), 500
+
+@auth_bp.route('/logout', methods=['POST'])
+@require_auth
+def logout():
+    """Logout user (JWT tokens are stateless, so this is informational)"""
+    return jsonify({'message': 'Logged out successfully'}), 200
 
 # Workspace routes
 @workspace_bp.route('/workspaces', methods=['GET'])
 @require_auth
 def get_workspaces():
     try:
-        user_id = session['user']['sub']
+        user_id = request.user.get('user_id')
         
         # Get workspaces where user is a member
         workspaces = db.session.query(Workspace)\
@@ -121,28 +422,28 @@ def get_workspaces():
                 'id': workspace.id,
                 'name': workspace.name,
                 'description': workspace.description,
-                'ownerId': workspace.owner_id,
-                'createdAt': workspace.created_at.isoformat() if workspace.created_at else None,
-                'updatedAt': workspace.updated_at.isoformat() if workspace.updated_at else None,
+                'owner_id': workspace.owner_id,
+                'created_at': workspace.created_at.isoformat() if workspace.created_at else None,
+                'updated_at': workspace.updated_at.isoformat() if workspace.updated_at else None,
                 'owner': {
                     'id': workspace.owner.id,
                     'email': workspace.owner.email,
-                    'firstName': workspace.owner.first_name,
-                    'lastName': workspace.owner.last_name,
-                    'profileImageUrl': workspace.owner.profile_image_url
+                    'first_name': workspace.owner.first_name,
+                    'last_name': workspace.owner.last_name,
+                    'profile_image_url': workspace.owner.profile_image_url
                 },
                 'members': [{
                     'id': member.id,
-                    'workspaceId': member.workspace_id,
-                    'userId': member.user_id,
+                    'workspace_id': member.workspace_id,
+                    'user_id': member.user_id,
                     'role': member.role,
-                    'joinedAt': member.joined_at.isoformat() if member.joined_at else None,
+                    'joined_at': member.joined_at.isoformat() if member.joined_at else None,
                     'user': {
                         'id': user.id,
                         'email': user.email,
-                        'firstName': user.first_name,
-                        'lastName': user.last_name,
-                        'profileImageUrl': user.profile_image_url
+                        'first_name': user.first_name,
+                        'last_name': user.last_name,
+                        'profile_image_url': user.profile_image_url
                     }
                 } for member, user in members]
             }
@@ -158,12 +459,15 @@ def get_workspaces():
 @require_auth
 def create_workspace():
     try:
-        user_id = session['user']['sub']
+        user_id = request.user.get('user_id')
         data = request.get_json()
+        
+        if not data or not data.get('name'):
+            return jsonify({'message': 'Workspace name is required'}), 400
         
         workspace = Workspace(
             name=data['name'],
-            description=data.get('description'),
+            description=data.get('description', ''),
             owner_id=user_id
         )
         db.session.add(workspace)

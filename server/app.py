@@ -20,6 +20,10 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
+    # Google OAuth configuration
+    os.environ['GOOGLE_CLIENT_ID'] = '721339353722-aqnl6orqhu784lo1csncj24rbh28b9n6.apps.googleusercontent.com'
+    os.environ['GOOGLE_CLIENT_SECRET'] = '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'
+    
     # Session configuration for PostgreSQL
     app.config['SESSION_TYPE'] = 'sqlalchemy'
     app.config['SESSION_SQLALCHEMY'] = db
