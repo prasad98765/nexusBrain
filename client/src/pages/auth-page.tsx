@@ -25,12 +25,12 @@ interface FormErrors {
 
 const NexusLogo = () => (
   <div className="flex items-center justify-center gap-3 mb-8">
-    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/25">
       <span className="text-white font-bold text-xl">N</span>
     </div>
     <div className="text-center">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Nexus AI Hub</h1>
-      <p className="text-sm text-gray-600 dark:text-gray-400">Your AI-Powered Workspace</p>
+      <h1 className="text-2xl font-bold text-slate-100">Nexus AI Hub</h1>
+      <p className="text-sm text-slate-400">Build Intelligent AI Agents That Connect Everything</p>
     </div>
   </div>
 );

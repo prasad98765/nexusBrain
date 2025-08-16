@@ -10,7 +10,7 @@ def send_verification_email(user_email: str, user_name: str, verification_token:
     """Send email verification link using SendGrid"""
     
     try:
-        sg = SendGridAPIClient(api_key="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")
+        sg = SendGridAPIClient(api_key=os.getenv('SENDGRID_API_KEY'))
         
         # Create verification URL
         verification_url = url_for('auth.verify_email', token=verification_token, _external=True)
@@ -106,7 +106,7 @@ def send_welcome_email(user_email: str, user_name: str):
     """Send welcome email after successful verification"""
     
     try:
-        sg = SendGridAPIClient(api_key="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")
+        sg = SendGridAPIClient(api_key=os.getenv('SENDGRID_API_KEY'))
         frontend_host = os.getenv("FRONTEND_HOST", "http://localhost:5174/")
 
         html_content = f"""
@@ -177,4 +177,115 @@ def send_welcome_email(user_email: str, user_name: str):
         
     except Exception as e:
         logger.error(f"Failed to send welcome email to {user_email}: {str(e)}")
+        return False
+
+def send_password_reset_email(user_email: str, user_name: str, reset_token: str):
+    """Send password reset email using SendGrid"""
+    
+    try:
+        sg = SendGridAPIClient(api_key=os.getenv('SENDGRID_API_KEY'))
+        
+        # Create reset URL
+        reset_url = url_for('auth.reset_password_form', token=reset_token, _external=True)
+        
+        # Create email content with Nexus AI Hub branding
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Reset Your Password - Nexus AI Hub</title>
+        </head>
+        <body style="font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #e2e8f0; max-width: 600px; margin: 0 auto; padding: 20px; background: #0f172a;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <div style="display: inline-flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);">
+                        <span style="color: white; font-weight: bold; font-size: 24px;">N</span>
+                    </div>
+                    <h1 style="color: #f1f5f9; margin: 0; font-size: 28px; font-weight: 700;">Nexus AI Hub</h1>
+                </div>
+                <p style="color: #94a3b8; margin: 0; font-size: 16px;">Your AI-Powered Workspace</p>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); padding: 40px; border-radius: 16px; border: 1px solid #334155; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);">
+                <h2 style="color: #f1f5f9; margin-bottom: 24px; font-size: 24px; font-weight: 600;">Reset Your Password</h2>
+                
+                <p style="color: #cbd5e1; font-size: 16px; margin-bottom: 20px;">Hi {user_name},</p>
+                
+                <p style="color: #cbd5e1; font-size: 16px;">We received a request to reset your password for your Nexus AI Hub account. Click the button below to create a new password:</p>
+                
+                <div style="text-align: center; margin: 32px 0;">
+                    <a href="{reset_url}" 
+                       style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); 
+                              color: white; 
+                              padding: 16px 32px; 
+                              text-decoration: none; 
+                              border-radius: 12px; 
+                              font-weight: 600; 
+                              font-size: 16px;
+                              display: inline-block;
+                              box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+                              transition: all 0.3s ease;">
+                        Reset Password
+                    </a>
+                </div>
+                
+                <p style="color: #94a3b8; font-size: 14px; margin-top: 25px; padding: 16px; background: rgba(15, 23, 42, 0.5); border-radius: 8px; border-left: 3px solid #f59e0b;">
+                    ⚠️ This link will expire in 1 hour for security reasons.
+                </p>
+                
+                <p style="color: #94a3b8; font-size: 14px; margin-top: 20px;">
+                    If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
+                </p>
+                
+                <p style="color: #94a3b8; font-size: 14px; margin-top: 20px;">
+                    If the button above doesn't work, copy and paste this link into your browser:
+                    <br>
+                    <a href="{reset_url}" style="color: #6366f1; word-break: break-all; text-decoration: underline;">{reset_url}</a>
+                </p>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #334155;">
+                <p style="color: #64748b; font-size: 12px; margin: 0;">
+                    © 2025 Nexus AI Hub. All rights reserved.
+                </p>
+                <p style="color: #64748b; font-size: 12px; margin: 8px 0 0 0;">
+                    Build Intelligent AI Agents That Connect Everything
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Plain text version
+        text_content = f"""
+        Reset Your Password - Nexus AI Hub
+        
+        Hi {user_name},
+        
+        We received a request to reset your password for your Nexus AI Hub account.
+        
+        Click this link to create a new password (expires in 1 hour):
+        {reset_url}
+        
+        If you didn't request a password reset, you can safely ignore this email.
+        
+        © 2025 Nexus AI Hub. All rights reserved.
+        """
+        
+        message = Mail(
+            from_email=Email("support@nexusaihub.co.in", "Nexus AI Hub"),
+            to_emails=To(user_email),
+            subject="Reset Your Password - Nexus AI Hub",
+            html_content=Content("text/html", html_content),
+            plain_text_content=Content("text/plain", text_content)
+        )
+        
+        response = sg.send(message)
+        logger.info(f"Password reset email sent to {user_email}, status code: {response.status_code}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to send password reset email to {user_email}: {str(e)}")
         return False

@@ -1,8 +1,8 @@
 # Overview
 
-This is a multi-tenant Nexus AI chat platform built with React TypeScript frontend and Python Flask backend. The application provides workspace-based organization where users can create conversations and interact with AI assistants. It features real-time chat interfaces, user authentication through Replit Auth, PostgreSQL database storage, and a modern UI built with shadcn/ui components.
+This is a comprehensive multi-tenant Nexus AI platform built with React TypeScript frontend and Python Flask backend. The application provides workspace-based organization where users can create conversations and interact with AI assistants. It features dark-themed UI matching Nexus AI Hub branding, comprehensive authentication with forgot password functionality, business information collection for user onboarding, email verification with HTML templates, Google OAuth integration, PostgreSQL database storage with MongoDB fallback support, and a modern UI built with shadcn/ui components.
 
-**Last Updated**: August 14, 2025 - Successfully converted backend from Express.js to Python Flask per user request.
+**Last Updated**: August 16, 2025 - Implemented comprehensive forgot password functionality with HTML email templates, dark theme matching Nexus AI Hub design, and enhanced Google OAuth business information collection flow.
 
 # User Preferences
 
@@ -34,11 +34,14 @@ Preferred communication style: Simple, everyday language.
 - **Sessions**: Flask sessions stored in PostgreSQL using flask_sessions table
 
 ## Authentication & Authorization
-- **Provider**: Replit OIDC with manual OAuth flow implementation (simplified for development)
-- **Sessions**: Flask-Session with PostgreSQL storage using flask_sessions table
-- **Middleware**: Flask decorators for route protection (@require_auth)
-- **Multi-tenancy**: Workspace-based access control with WorkspaceMember model for membership management
-- **Development**: Currently using mock authentication for local development
+- **JWT Authentication**: Secure JWT tokens with 48-hour expiry for session management
+- **Multi-Provider Auth**: Local email/password authentication and Google OAuth integration
+- **Password Security**: bcrypt hashing with secure password reset functionality via email
+- **Email Verification**: HTML email templates with SendGrid integration for account verification
+- **Forgot Password**: Complete password reset flow with time-limited tokens and HTML email templates
+- **Business Information Collection**: Post-login onboarding flow for collecting business name and type
+- **Multi-tenancy**: Workspace-based access control with automatic workspace creation for new users
+- **Route Protection**: Flask decorators (@require_auth) for secure API endpoint protection
 
 # External Dependencies
 
@@ -64,10 +67,12 @@ Preferred communication style: Simple, everyday language.
 - **Wouter**: Minimalist routing for React
 
 ## UI & Styling
-- **Tailwind CSS**: Utility-first CSS framework with custom design tokens
+- **Dark Theme**: Comprehensive dark theme matching Nexus AI Hub branding with slate color palette
+- **Tailwind CSS**: Utility-first CSS framework with custom design tokens and dark theme variables
 - **Radix UI**: Headless UI components for accessibility and customization
 - **Lucide React**: Modern icon library for consistent iconography
-- **shadcn/ui**: Component library built on Radix UI primitives
+- **shadcn/ui**: Component library built on Radix UI primitives with dark theme customization
+- **Responsive Design**: Mobile-first responsive layout with gradient backgrounds and modern aesthetics
 
 ## Development Tools
 - **Vite**: Fast build tool with HMR and development server

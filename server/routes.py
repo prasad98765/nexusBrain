@@ -2,15 +2,15 @@ from flask import Blueprint, request, jsonify, session, redirect, url_for, send_
 from .models import User, Workspace, WorkspaceMember, Conversation, Message, db
 from .auth_utils import (
     generate_password_hash, check_password_hash, generate_jwt_token, 
-    decode_jwt_token, generate_verification_token, verify_google_token,
+    decode_jwt_token, generate_verification_token, generate_reset_token, verify_google_token,
     require_auth, require_verified_user
 )
-from .email_service import send_verification_email, send_welcome_email
+from .email_service import send_verification_email, send_welcome_email, send_password_reset_email
 from .mongo_service import mongo_service, BUSINESS_TYPES
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import re
-from flask import render_template
+
 
 
 # Create blueprints
@@ -499,6 +499,187 @@ def save_business_info():
 def get_business_types():
     """Get list of available business types"""
     return jsonify({'business_types': BUSINESS_TYPES}), 200
+
+# Password Reset Routes
+@auth_bp.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    """Send password reset email"""
+    try:
+        data = request.get_json()
+        
+        if 'email' not in data:
+            return jsonify({'message': 'Email is required'}), 400
+        
+        email = data['email'].lower().strip()
+        user = User.query.filter_by(email=email, auth_provider='local').first()
+        
+        if not user:
+            return jsonify({'message': 'If an account with this email exists, a reset link will be sent.'}), 200
+        
+        # Generate reset token and expiry (1 hour)
+        reset_token = generate_reset_token()
+        reset_expiry = datetime.utcnow() + timedelta(hours=1)
+        
+        user.reset_token = reset_token
+        user.reset_token_expiry = reset_expiry
+        db.session.commit()
+        
+        # Send reset email
+        send_password_reset_email(user.email, user.first_name, reset_token)
+        
+        return jsonify({'message': 'If an account with this email exists, a reset link will be sent.'}), 200
+        
+    except Exception as e:
+        print(f"Forgot password error: {e}")
+        return jsonify({'message': 'Internal server error'}), 500
+
+@auth_bp.route('/reset-password/<token>', methods=['GET'])
+def reset_password_form(token):
+    """Show password reset form"""
+    try:
+        user = User.query.filter_by(reset_token=token).first()
+        
+        if not user or not user.reset_token_expiry or user.reset_token_expiry < datetime.utcnow():
+            return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Invalid Reset Link - Nexus AI Hub</title>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body { font-family: 'Inter', Arial, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 20px; }
+                    .container { max-width: 400px; margin: 100px auto; text-align: center; background: #1e293b; padding: 40px; border-radius: 16px; border: 1px solid #334155; }
+                    .logo { width: 48px; height: 48px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+                    h1 { color: #f1f5f9; margin: 0 0 10px 0; font-size: 24px; }
+                    p { color: #94a3b8; margin: 10px 0; }
+                    a { color: #6366f1; text-decoration: none; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="logo"><span style="color: white; font-weight: bold; font-size: 24px;">N</span></div>
+                    <h1>Invalid Reset Link</h1>
+                    <p>This password reset link is invalid or has expired.</p>
+                    <p><a href="/auth">Request a new reset link</a></p>
+                </div>
+            </body>
+            </html>
+            """, 400
+        
+        # Return password reset form
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Reset Password - Nexus AI Hub</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{ font-family: 'Inter', Arial, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 20px; }}
+                .container {{ max-width: 400px; margin: 50px auto; background: #1e293b; padding: 40px; border-radius: 16px; border: 1px solid #334155; }}
+                .logo {{ width: 48px; height: 48px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; }}
+                h1 {{ color: #f1f5f9; text-align: center; margin: 0 0 30px 0; font-size: 24px; }}
+                input {{ width: 100%; padding: 12px; border: 1px solid #334155; border-radius: 8px; background: #0f172a; color: #e2e8f0; margin-bottom: 16px; box-sizing: border-box; }}
+                button {{ width: 100%; padding: 12px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }}
+                button:hover {{ opacity: 0.9; }}
+                .message {{ margin-top: 16px; padding: 12px; border-radius: 8px; }}
+                .error {{ background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #fecaca; }}
+                .success {{ background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e; color: #bbf7d0; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="logo"><span style="color: white; font-weight: bold; font-size: 24px;">N</span></div>
+                <h1>Reset Your Password</h1>
+                <form id="resetForm">
+                    <input type="password" id="password" placeholder="New Password" required minlength="6">
+                    <input type="password" id="confirmPassword" placeholder="Confirm Password" required minlength="6">
+                    <button type="submit">Reset Password</button>
+                </form>
+                <div id="message" class="message" style="display: none;"></div>
+            </div>
+            
+            <script>
+                document.getElementById('resetForm').addEventListener('submit', async (e) => {{
+                    e.preventDefault();
+                    
+                    const password = document.getElementById('password').value;
+                    const confirmPassword = document.getElementById('confirmPassword').value;
+                    const messageDiv = document.getElementById('message');
+                    
+                    if (password !== confirmPassword) {{
+                        messageDiv.className = 'message error';
+                        messageDiv.textContent = 'Passwords do not match';
+                        messageDiv.style.display = 'block';
+                        return;
+                    }}
+                    
+                    try {{
+                        const response = await fetch('/api/reset-password', {{
+                            method: 'POST',
+                            headers: {{ 'Content-Type': 'application/json' }},
+                            body: JSON.stringify({{ token: '{token}', password: password }})
+                        }});
+                        
+                        const data = await response.json();
+                        
+                        if (response.ok) {{
+                            messageDiv.className = 'message success';
+                            messageDiv.textContent = data.message;
+                            messageDiv.style.display = 'block';
+                            setTimeout(() => window.location.href = '/auth', 2000);
+                        }} else {{
+                            messageDiv.className = 'message error';
+                            messageDiv.textContent = data.message;
+                            messageDiv.style.display = 'block';
+                        }}
+                    }} catch (error) {{
+                        messageDiv.className = 'message error';
+                        messageDiv.textContent = 'An error occurred. Please try again.';
+                        messageDiv.style.display = 'block';
+                    }}
+                }});
+            </script>
+        </body>
+        </html>
+        """
+        
+    except Exception as e:
+        print(f"Reset password form error: {e}")
+        return jsonify({'message': 'Internal server error'}), 500
+
+@auth_bp.route('/reset-password', methods=['POST'])
+def reset_password():
+    """Reset password with token"""
+    try:
+        data = request.get_json()
+        
+        if 'token' not in data or 'password' not in data:
+            return jsonify({'message': 'Token and password are required'}), 400
+        
+        token = data['token']
+        new_password = data['password']
+        
+        if len(new_password) < 6:
+            return jsonify({'message': 'Password must be at least 6 characters long'}), 400
+        
+        user = User.query.filter_by(reset_token=token).first()
+        
+        if not user or not user.reset_token_expiry or user.reset_token_expiry < datetime.utcnow():
+            return jsonify({'message': 'Invalid or expired reset token'}), 400
+        
+        # Update password and clear reset token
+        user.password_hash = generate_password_hash(new_password)
+        user.reset_token = None
+        user.reset_token_expiry = None
+        db.session.commit()
+        
+        return jsonify({'message': 'Password reset successfully! You can now log in with your new password.'}), 200
+        
+    except Exception as e:
+        print(f"Reset password error: {e}")
+        return jsonify({'message': 'Internal server error'}), 500
 
 # Workspace routes
 @workspace_bp.route('/workspaces', methods=['GET'])

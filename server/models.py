@@ -13,6 +13,8 @@ class User(db.Model):
     profile_image_url = db.Column(db.String)
     is_verified = db.Column(db.Boolean, default=False)
     verification_token = db.Column(db.String(100))
+    reset_token = db.Column(db.String(100), nullable=True)
+    reset_token_expiry = db.Column(db.DateTime, nullable=True)
     auth_provider = db.Column(db.String(20), default='local')  # 'local' or 'google'
     google_id = db.Column(db.String(100), unique=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

@@ -10,6 +10,7 @@ import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import Home from "@/pages/home";
 import BusinessInfoPage from "@/pages/business-info";
+import ForgotPasswordPage from "@/pages/forgot-password";
 
 function Router() {
   const { isAuthenticated, isLoading, token } = useAuth();
@@ -63,6 +64,7 @@ function Router() {
       {!isAuthenticated ? (
         <>
           <Route path="/auth" component={AuthPage} />
+          <Route path="/forgot-password" component={ForgotPasswordPage} />
           <Route path="/" component={() => { window.location.href = '/auth'; return null; }} />
         </>
       ) : businessInfoRequired ? (

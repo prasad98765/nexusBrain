@@ -48,6 +48,11 @@ def generate_verification_token() -> str:
     alphabet = string.ascii_letters + string.digits
     return ''.join(secrets.choice(alphabet) for _ in range(32))
 
+def generate_reset_token() -> str:
+    """Generate a random password reset token"""
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(32))
+
 def verify_google_token(token: str) -> dict:
     """Verify Google OAuth token and return user info"""
     try:
