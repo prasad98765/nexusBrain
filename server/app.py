@@ -17,7 +17,7 @@ def create_app():
     
     # Configuration
     app.config['SECRET_KEY'] = os.getenv('SESSION_SECRET', 'dev-secret-key')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+    app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql+psycopg://prasad:YourStrongPass123!@localhost:5433/nexusdb"
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
     # Google OAuth configuration

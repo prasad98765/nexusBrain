@@ -10,7 +10,7 @@ def send_verification_email(user_email: str, user_name: str, verification_token:
     """Send email verification link using SendGrid"""
     
     try:
-        sg = SendGridAPIClient(api_key=os.environ.get('SENDGRID_API_KEY'))
+        sg = SendGridAPIClient(api_key="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")
         
         # Create verification URL
         verification_url = url_for('auth.verify_email', token=verification_token, _external=True)
@@ -87,7 +87,7 @@ def send_verification_email(user_email: str, user_name: str, verification_token:
         """
         
         message = Mail(
-            from_email=Email("noreply@nexusaihub.com", "Nexus AI Hub"),
+            from_email=Email("support@nexusaihub.co.in", "Nexus AI Hub"),
             to_emails=To(user_email),
             subject="Verify Your Email - Welcome to Nexus AI Hub",
             html_content=Content("text/html", html_content),
@@ -106,8 +106,9 @@ def send_welcome_email(user_email: str, user_name: str):
     """Send welcome email after successful verification"""
     
     try:
-        sg = SendGridAPIClient(api_key=os.environ.get('SENDGRID_API_KEY'))
-        
+        sg = SendGridAPIClient(api_key="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")
+        frontend_host = os.getenv("FRONTEND_HOST", "http://localhost:5174/")
+
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -140,7 +141,7 @@ def send_welcome_email(user_email: str, user_name: str):
                 </ul>
                 
                 <div style="text-align: center; margin: 30px 0;">
-                    <a href="/" 
+                    <a href="{frontend_host}" 
                        style="background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); 
                               color: white; 
                               padding: 12px 30px; 
@@ -164,7 +165,7 @@ def send_welcome_email(user_email: str, user_name: str):
         """
         
         message = Mail(
-            from_email=Email("noreply@nexusaihub.com", "Nexus AI Hub"),
+            from_email=Email("support@nexusaihub.co.in", "Nexus AI Hub"),
             to_emails=To(user_email),
             subject="🎉 Welcome to Nexus AI Hub - You're All Set!",
             html_content=Content("text/html", html_content)

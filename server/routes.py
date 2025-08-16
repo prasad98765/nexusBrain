@@ -10,6 +10,8 @@ from .mongo_service import mongo_service, BUSINESS_TYPES
 from datetime import datetime
 import os
 import re
+from flask import render_template
+
 
 # Create blueprints
 auth_bp = Blueprint('auth', __name__)
@@ -174,6 +176,7 @@ def google_signup():
             owner_id=user.id
         )
         db.session.add(default_workspace)
+        db.session.flush()  # <-- Add this line to assign an ID to default_workspace
         
         # Add user as workspace owner
         workspace_member = WorkspaceMember(
@@ -182,6 +185,27 @@ def google_signup():
             role='owner'
         )
         db.session.add(workspace_member)
+        db.session.commit()
+
+        from datetime import datetime
+        from sqlalchemy import text
+
+        db.session.execute(
+            text("""
+                INSERT INTO business_info (user_id, workspace_id, business_name, business_type, created_at, updated_at)
+                VALUES (:user_id, :workspace_id, :business_name, :business_type, :created_at, :updated_at)
+                ON CONFLICT (user_id, workspace_id)
+                DO NOTHING
+            """),
+            {
+                'user_id': user.id,
+                'workspace_id': default_workspace.id,
+                'business_name': f"{user.first_name}'s Business",
+                'business_type': 'Other',  # or pick a default type
+                'created_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            }
+        )
         db.session.commit()
         
         # Generate JWT token
@@ -273,8 +297,14 @@ def google_login():
         # Find user by Google ID or email
         user = User.query.filter_by(google_id=google_user['google_id']).first()
         if not user:
-            user = User.query.filter_by(email=google_user['email'], auth_provider='google').first()
+            user = User.query.filter_by(email=google_user['email']).first()
         
+            # If found and Google ID is missing, link Google ID
+            if user and not user.google_id:
+                user.google_id = google_user['google_id']
+                user.auth_provider = 'google'  # Optionally update auth provider
+                db.session.commit()      
+
         if not user:
             return jsonify({'message': 'No account found. Please sign up first.'}), 404
         
@@ -327,8 +357,8 @@ def verify_email(token):
         
         # Send welcome email
         send_welcome_email(user.email, user.first_name)
-        
-        return jsonify({'message': 'Email verified successfully! You can now log in.'}), 200
+        frontend_host = os.getenv("FRONTEND_HOST", "http://localhost:5174/")
+        return render_template('email_verified.html', frontend_host=frontend_host)
         
     except Exception as e:
         print(f"Email verification error: {e}")

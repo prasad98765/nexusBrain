@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Nexus AI Hub - Email Verified</title>
+    <style>
+        body {
+            background: #f5f7fa;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .center-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .logo-box {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #7f5af0 0%, #3b82f6 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 18px;
+        }
+        .logo-box span {
+            color: #fff;
+            font-size: 2em;
+            font-weight: bold;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        .title {
+            font-size: 2em;
+            font-weight: bold;
+            color: #22223b;
+            margin-bottom: 6px;
+        }
+        .subtitle {
+            color: #6c6f7b;
+            font-size: 1.1em;
+            margin-bottom: 32px;
+        }
+        .verified {
+            color: #22c55e;
+            font-size: 1.3em;
+            margin-bottom: 24px;
+        }
+        .login-btn {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 12px 36px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .login-btn:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="center-box">
+        <div class="logo-box">
+            <span>N</span>
+        </div>
+        <div class="title">Nexus AI Hub</div>
+        <div class="subtitle">Your AI-Powered Workspace</div>
+        <div class="verified">✅ Your email has been verified!</div>
+        <a href="{{ frontend_host }}auth" class="login-btn">Login</a>
+    </div>
+</body>
+</html>

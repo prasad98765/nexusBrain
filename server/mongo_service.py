@@ -47,15 +47,14 @@ class MongoService:
                     text("SELECT * FROM business_info WHERE user_id = :user_id AND workspace_id = :workspace_id"),
                     {'user_id': user_id, 'workspace_id': workspace_id}
                 ).fetchone()
-                
                 if result:
                     return {
-                        'user_id': result[1],
-                        'workspace_id': result[2], 
-                        'business_name': result[3],
-                        'business_type': result[4],
-                        'created_at': result[5],
-                        'updated_at': result[6]
+                        'user_id': result[0],
+                        'workspace_id': result[1], 
+                        'business_name': result[2],
+                        'business_type': result[3],
+                        'created_at': result[4],
+                        'updated_at': result[5]
                     }
                 return None
             except Exception as e:

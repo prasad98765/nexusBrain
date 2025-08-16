@@ -80,3 +80,12 @@ class FlaskSession(db.Model):
     session_id = db.Column(db.String(255), unique=True, nullable=False)
     data = db.Column(db.LargeBinary)
     expiry = db.Column(db.DateTime)
+
+class BusinessInfo(db.Model):
+    __tablename__ = 'business_info'
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), primary_key=True)
+    workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), primary_key=True)
+    business_name = db.Column(db.String(255), nullable=False)
+    business_type = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -234,7 +234,7 @@ export default function AuthPage() {
         <Card className="shadow-2xl border-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm">
           <CardHeader className="text-center pb-2">
             <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
-              Welcome Back
+              Welcome
             </CardTitle>
             <CardDescription className="text-gray-600 dark:text-gray-400">
               Sign in to your account or create a new one
