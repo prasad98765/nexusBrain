@@ -10,7 +10,7 @@ from .mongo_service import mongo_service, BUSINESS_TYPES
 from datetime import datetime, timedelta
 import os
 import re
-
+from flask import render_template
 
 
 # Create blueprints

@@ -10,7 +10,7 @@ def send_verification_email(user_email: str, user_name: str, verification_token:
     """Send email verification link using SendGrid"""
     
     try:
-        sg = SendGridAPIClient(api_key=os.getenv('SENDGRID_API_KEY'))
+        sg = SendGridAPIClient(api_key="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")
         
         # Create verification URL
         verification_url = url_for('auth.verify_email', token=verification_token, _external=True)
@@ -106,7 +106,7 @@ def send_welcome_email(user_email: str, user_name: str):
     """Send welcome email after successful verification"""
     
     try:
-        sg = SendGridAPIClient(api_key=os.getenv('SENDGRID_API_KEY'))
+        sg = SendGridAPIClient(api_key="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")
         frontend_host = os.getenv("FRONTEND_HOST", "http://localhost:5174/")
 
         html_content = f"""
@@ -183,7 +183,7 @@ def send_password_reset_email(user_email: str, user_name: str, reset_token: str)
     """Send password reset email using SendGrid"""
     
     try:
-        sg = SendGridAPIClient(api_key=os.getenv('SENDGRID_API_KEY'))
+        sg = SendGridAPIClient(api_key=os.getenv('SENDGRID_API_KEY',"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"))
         
         # Create reset URL
         reset_url = url_for('auth.reset_password_form', token=reset_token, _external=True)

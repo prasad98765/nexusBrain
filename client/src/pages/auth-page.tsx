@@ -80,7 +80,7 @@ export default function AuthPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // Clear error for this field
     if (errors[name as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
@@ -207,7 +207,7 @@ export default function AuthPage() {
 
   const handleResendVerification = async () => {
     setLoading(true);
-    
+
     try {
       const response = await fetch('/api/resend-verification', {
         method: 'POST',
@@ -227,27 +227,26 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         <NexusLogo />
-        
-        <Card className="shadow-2xl border-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm">
-          <CardHeader className="text-center pb-2">
-            <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
-              Welcome
-            </CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">
+
+        <Card className="shadow-xl bg-slate-800/90 border-slate-700 backdrop-blur-sm">
+          <CardHeader className="space-y-2 text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Mail className="h-6 w-6 text-indigo-500" />
+              <CardTitle className="text-xl text-slate-100">Welcome</CardTitle>
+            </div>
+            <CardDescription className="text-slate-400">
               Sign in to your account or create a new one
             </CardDescription>
           </CardHeader>
-          
           <CardContent>
             {message && (
-              <Alert className={`mb-4 ${
-                message.type === 'success' ? 'border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200' :
+              <Alert className={`mb-4 ${message.type === 'success' ? 'border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200' :
                 message.type === 'info' ? 'border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200' :
-                'border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200'
-              }`}>
+                  'border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200'
+                }`}>
                 {message.type === 'success' ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                 <AlertDescription className="ml-2">
                   {message.text}
@@ -278,13 +277,13 @@ export default function AuthPage() {
                 </CardContent>
               </Card>
             )}
-            
+
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="login" className="space-y-4">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
@@ -300,13 +299,13 @@ export default function AuthPage() {
                         placeholder="Enter your email"
                         value={formData.email}
                         onChange={handleInputChange}
-                        className={`pl-10 ${errors.email ? 'border-red-500' : ''}`}
+                        className={` pl-10 bg-slate-900 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500  ${errors.email ? 'border-red-500' : ''}`}
                         disabled={loading}
                       />
                     </div>
                     {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="login-password" className="text-sm font-medium">
                       Password
@@ -320,7 +319,7 @@ export default function AuthPage() {
                         placeholder="Enter your password"
                         value={formData.password}
                         onChange={handleInputChange}
-                        className={`pl-10 pr-10 ${errors.password ? 'border-red-500' : ''}`}
+                        className={`pl-10 bg-slate-900 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500  ${errors.password ? 'border-red-500' : ''}`}
                         disabled={loading}
                       />
                       <Button
@@ -336,9 +335,9 @@ export default function AuthPage() {
                     </div>
                     {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
                   </div>
-                  
-                  <Button 
-                    type="submit" 
+
+                  <Button
+                    type="submit"
                     className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
                     disabled={loading}
                   >
@@ -352,16 +351,17 @@ export default function AuthPage() {
                     )}
                   </Button>
                 </form>
-                
+
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-gray-300 dark:border-gray-700" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white dark:bg-gray-900 px-2 text-gray-500">Or continue with</span>
+                    <span className="bg-slate-900 px-2 text-slate-400">Or continue with</span>
                   </div>
+
                 </div>
-                
+
                 <GoogleLogin
                   onSuccess={handleGoogleSuccess}
                   onError={handleGoogleError}
@@ -371,7 +371,7 @@ export default function AuthPage() {
                   width="100%"
                 />
               </TabsContent>
-              
+
               <TabsContent value="signup" className="space-y-4">
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -388,13 +388,13 @@ export default function AuthPage() {
                           placeholder="First name"
                           value={formData.first_name}
                           onChange={handleInputChange}
-                          className={`pl-10 ${errors.first_name ? 'border-red-500' : ''}`}
+                          className={`pl-10 bg-slate-900 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500  ${errors.first_name ? 'border-red-500' : ''}`}
                           disabled={loading}
                         />
                       </div>
                       {errors.first_name && <p className="text-sm text-red-600">{errors.first_name}</p>}
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="signup-lastname" className="text-sm font-medium">
                         Last Name
@@ -407,10 +407,11 @@ export default function AuthPage() {
                         value={formData.last_name}
                         onChange={handleInputChange}
                         disabled={loading}
+                        className='pl-10 bg-slate-900 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500'
                       />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="signup-email" className="text-sm font-medium">
                       Email Address *
@@ -424,16 +425,16 @@ export default function AuthPage() {
                         placeholder="Enter your email"
                         value={formData.email}
                         onChange={handleInputChange}
-                        className={`pl-10 ${errors.email ? 'border-red-500' : ''}`}
+                        className={`pl-10 bg-slate-900 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500  ${errors.email ? 'border-red-500' : ''}`}
                         disabled={loading}
                       />
                     </div>
                     {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="signup-password" className="text-sm font-medium">
-                      Password * 
+                      Password *
                       <span className="text-xs text-gray-500 ml-1">(min. 6 characters)</span>
                     </Label>
                     <div className="relative">
@@ -445,7 +446,7 @@ export default function AuthPage() {
                         placeholder="Create a password"
                         value={formData.password}
                         onChange={handleInputChange}
-                        className={`pl-10 pr-10 ${errors.password ? 'border-red-500' : ''}`}
+                        className={`pl-10 bg-slate-900 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500  ${errors.password ? 'border-red-500' : ''}`}
                         disabled={loading}
                       />
                       <Button
@@ -461,10 +462,10 @@ export default function AuthPage() {
                     </div>
                     {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
                   </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700"
+
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium py-2.5 transition-all duration-200"
                     disabled={loading}
                   >
                     {loading ? (
@@ -477,30 +478,34 @@ export default function AuthPage() {
                     )}
                   </Button>
                 </form>
-                
+
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-gray-300 dark:border-gray-700" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white dark:bg-gray-900 px-2 text-gray-500">Or sign up with</span>
+                    <span className="bg-slate-900 px-2 text-slate-400">Or continue with</span>
+                  </div>
+
+                </div>
+                <div className="w-full rounded-lg p-1" >
+                  <div className="bg-slate-900 rounded-lg p-0.5" style={{ backgroundColor: "#9333ea" }}>
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={handleGoogleError}
+                      useOneTap={false}
+                      theme="outline"
+                      size="large"
+                      text="signup_with"
+                      width="100%"
+                    />
                   </div>
                 </div>
-                
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  useOneTap={false}
-                  theme="outline"
-                  size="large"
-                  text="signup_with"
-                  width="100%"
-                />
               </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
-        
+
         <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
           <p>© 2025 Nexus AI Hub. All rights reserved.</p>
         </div>

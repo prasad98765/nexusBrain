@@ -10,12 +10,12 @@ import { Loader2, Building, CheckCircle } from 'lucide-react';
 
 const NexusLogo = () => (
   <div className="flex items-center justify-center gap-3 mb-8">
-    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
       <span className="text-white font-bold text-xl">N</span>
     </div>
     <div className="text-center">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Nexus AI Hub</h1>
-      <p className="text-sm text-gray-600 dark:text-gray-400">Your AI-Powered Workspace</p>
+      <h1 className="text-2xl font-bold text-slate-100">Nexus AI Hub</h1>
+      <p className="text-sm text-slate-400">Your AI-Powered Workspace</p>
     </div>
   </div>
 );
@@ -50,12 +50,12 @@ export default function BusinessInfoPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!businessName.trim()) {
       setMessage({ type: 'error', text: 'Please enter your business name' });
       return;
     }
-    
+
     if (!businessType) {
       setMessage({ type: 'error', text: 'Please select your business type' });
       return;
@@ -104,31 +104,33 @@ export default function BusinessInfoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         <NexusLogo />
 
-        <Card className="shadow-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm">
+        <Card className="shadow-xl bg-slate-800/90 border-slate-700 backdrop-blur-sm">
+
+
           <CardHeader className="space-y-2 text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <Building className="h-6 w-6 text-blue-500" />
-              <CardTitle className="text-xl">Complete Your Setup</CardTitle>
+              <CardTitle className="text-xl text-slate-100">Complete Your Setup</CardTitle>
             </div>
-            <CardDescription>
+            <CardDescription className="text-slate-400">
               Tell us about your business to personalize your AI workspace experience
             </CardDescription>
           </CardHeader>
 
+
           <CardContent>
             {message && (
-              <Alert className={`mb-4 ${message.type === 'error' ? 'border-red-500 bg-red-50 dark:bg-red-950' : 
-                message.type === 'success' ? 'border-green-500 bg-green-50 dark:bg-green-950' : 
-                'border-blue-500 bg-blue-50 dark:bg-blue-950'}`}>
+              <Alert className={`mb-4 ${message.type === 'error' ? 'border-red-500 bg-red-50 dark:bg-red-950' :
+                message.type === 'success' ? 'border-green-500 bg-green-50 dark:bg-green-950' :
+                  'border-blue-500 bg-blue-50 dark:bg-blue-950'}`}>
                 {message.type === 'success' && <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />}
                 <AlertDescription className={
                   message.type === 'error' ? 'text-red-800 dark:text-red-200' :
-                  message.type === 'success' ? 'text-green-800 dark:text-green-200' :
-                  'text-blue-800 dark:text-blue-200'
+                    message.type === 'success' ? 'text-green-800 dark:text-green-200' :
+                      'text-blue-800 dark:text-blue-200'
                 }>
                   {message.text}
                 </AlertDescription>
@@ -144,7 +146,7 @@ export default function BusinessInfoPage() {
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
                   placeholder="e.g., Acme Corporation"
-                  className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                  className="bg-slate-900 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500"
                   disabled={loading}
                 />
               </div>
@@ -156,9 +158,9 @@ export default function BusinessInfoPage() {
                     <Loader2 className="h-4 w-4 animate-spin" />
                   </div>
                 ) : (
-                  <Select value={businessType} onValueChange={setBusinessType} disabled={loading}>
+                  <Select  value={businessType} onValueChange={setBusinessType} disabled={loading}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select your business type" />
+                      <SelectValue className='bg-slate-900 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500' placeholder="Select your business type" />
                     </SelectTrigger>
                     <SelectContent>
                       {businessTypes.map((type) => (
@@ -173,7 +175,7 @@ export default function BusinessInfoPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2.5 transition-all duration-200"
+                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium py-2.5 transition-all duration-200"
                 disabled={loading || loadingTypes}
               >
                 {loading ? (
