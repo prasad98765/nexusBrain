@@ -1,171 +1,166 @@
-import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, User, Sparkles } from "lucide-react";
+import React from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { MessageSquare, Users, Settings, LogOut, Menu, Phone, Mail, Bell, User } from 'lucide-react';
 
 export default function Home() {
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
     window.location.href = '/auth';
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center animate-pulse">
-            <span className="text-white font-bold text-xl">N</span>
-          </div>
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          <p className="text-gray-600">Loading Nexus AI Hub...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      {/* Header */}
-      <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">N</span>
+    <div className="min-h-screen bg-slate-900 text-slate-100">
+      {/* Top Navigation Bar - Full Width */}
+      <header className="w-full bg-slate-800/90 backdrop-blur-sm border-b border-slate-700">
+        <div className="w-full px-6">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">⚡</span>
+                </div>
+                <span className="text-xl font-bold text-slate-100">Nexus AI Hub</span>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Nexus AI Hub</h1>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Your AI-Powered Workspace</p>
-              </div>
+              
+              {/* Navigation Links */}
+              <nav className="hidden md:flex items-center gap-6">
+                <a href="#" className="text-slate-300 hover:text-slate-100 transition-colors">AI Tools</a>
+                <a href="#" className="text-slate-300 hover:text-slate-100 transition-colors">About</a>
+                <a href="#" className="text-slate-300 hover:text-slate-100 transition-colors">Features</a>
+                <a href="#" className="text-slate-300 hover:text-slate-100 transition-colors">How It Works</a>
+                <a href="#" className="text-slate-300 hover:text-slate-100 transition-colors">Contact</a>
+              </nav>
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                <User className="h-4 w-4" />
-                <span>Welcome, {user?.first_name || 'User'}!</span>
+              <div className="hidden md:flex items-center gap-3">
+                <span className="text-sm text-slate-300">
+                  Welcome, {user?.first_name || 'User'}!
+                </span>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-indigo-500 text-indigo-400 hover:bg-indigo-500 hover:text-white"
+                >
+                  Get Started
+                </Button>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLogout}
-                className="flex items-center gap-2"
-              >
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
-                Logout
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-4 py-2 rounded-full text-sm font-medium mb-6">
-            <Sparkles className="h-4 w-4" />
-            Authentication System Complete
+      <div className="flex">
+        {/* Left Sidebar */}
+        <aside className="w-16 bg-slate-800/50 border-r border-slate-700 min-h-screen flex flex-col items-center py-6 gap-6">
+          <button className="p-3 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors">
+            <Menu className="h-5 w-5 text-slate-300" />
+          </button>
+          
+          <div className="flex flex-col gap-4">
+            <button className="p-3 rounded-lg hover:bg-slate-700 transition-colors group">
+              <MessageSquare className="h-5 w-5 text-slate-400 group-hover:text-slate-200" />
+            </button>
+            <button className="p-3 rounded-lg hover:bg-slate-700 transition-colors group">
+              <Users className="h-5 w-5 text-slate-400 group-hover:text-slate-200" />
+            </button>
+            <button className="p-3 rounded-lg hover:bg-slate-700 transition-colors group">
+              <Phone className="h-5 w-5 text-slate-400 group-hover:text-slate-200" />
+            </button>
+            <button className="p-3 rounded-lg hover:bg-slate-700 transition-colors group">
+              <Mail className="h-5 w-5 text-slate-400 group-hover:text-slate-200" />
+            </button>
+            <button className="p-3 rounded-lg hover:bg-slate-700 transition-colors group">
+              <Bell className="h-5 w-5 text-slate-400 group-hover:text-slate-200" />
+            </button>
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Welcome to Nexus AI Hub
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Your comprehensive authentication system is now active with JWT tokens, email verification, 
-            Google OAuth, and secure user management.
-          </p>
-        </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* User Profile */}
-          <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5 text-blue-500" />
-                User Profile
-              </CardTitle>
-              <CardDescription>Your account information</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm">
-                <div><strong>Name:</strong> {user?.first_name} {user?.last_name}</div>
-                <div><strong>Email:</strong> {user?.email}</div>
-                <div><strong>Provider:</strong> {user?.auth_provider}</div>
-                <div><strong>Verified:</strong> {user?.is_verified ? '✓ Yes' : '✗ No'}</div>
-                <div><strong>Joined:</strong> {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</div>
+          <div className="mt-auto flex flex-col gap-4">
+            <button className="p-3 rounded-lg hover:bg-slate-700 transition-colors group">
+              <Settings className="h-5 w-5 text-slate-400 group-hover:text-slate-200" />
+            </button>
+            <button className="p-3 rounded-lg hover:bg-slate-700 transition-colors group">
+              <User className="h-5 w-5 text-slate-400 group-hover:text-slate-200" />
+            </button>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col items-center justify-center px-8 py-16 relative">
+          {/* Hero Section */}
+          <div className="max-w-4xl mx-auto text-center space-y-8 z-10">
+            <div className="space-y-6">
+              <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
+                <span className="text-white">Build Intelligent</span><br />
+                <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                  AI Agents
+                </span><br />
+                <span className="text-white">That <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Connect Everything</span></span>
+              </h1>
+              
+              <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                Where all your AI, tools, and data converge. Create powerful agents with drag-and-drop simplicity, integrate 
+                any third-party service, and deploy everywhere.
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Button 
+                size="lg" 
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium px-8 py-3 text-lg"
+              >
+                Start Building Now →
+              </Button>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="border-slate-600 text-slate-300 hover:bg-slate-800 px-8 py-3 text-lg"
+              >
+                Watch Interactive Demo
+              </Button>
+            </div>
+          </div>
+
+          {/* Feature Icons */}
+          <div className="mt-20 flex justify-center items-center gap-16 z-10">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center">
+                <div className="w-6 h-6 bg-gradient-to-br from-blue-400 to-blue-600 rounded"></div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Authentication Features */}
-          <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-green-500" />
-                Features Active
-              </CardTitle>
-              <CardDescription>Authentication system capabilities</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  JWT Token Authentication
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  Email Verification
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  Google OAuth Signup/Login
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  Password Security (bcrypt)
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  SendGrid Email Service
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  Multi-tenant Workspaces
+              <span className="text-sm text-slate-400">No-Code</span>
+            </div>
+            
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center">
+                <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-orange-500 rounded flex items-center justify-center">
+                  <span className="text-xs text-white font-bold">⚡</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Next Steps */}
-          <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-purple-500" />
-                System Ready
-              </CardTitle>
-              <CardDescription>What's been implemented</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm">
-                <div>✅ JWT tokens with 48hr expiry</div>
-                <div>✅ Email/password signup</div>
-                <div>✅ Google OAuth integration</div>
-                <div>✅ Email verification flow</div>
-                <div>✅ PostgreSQL user storage</div>
-                <div>✅ Workspace auto-creation</div>
-                <div>✅ Beautiful auth UI</div>
-                <div>✅ Nexus AI Hub branding</div>
+              <span className="text-sm text-slate-400">Instant Deploy</span>
+            </div>
+            
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center">
+                <div className="w-6 h-6 bg-gradient-to-br from-red-400 to-pink-500 rounded-full"></div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <span className="text-sm text-slate-400">Zero Code</span>
+            </div>
+          </div>
 
-        <div className="mt-12 text-center">
-          <p className="text-gray-600 dark:text-gray-400">
-            Your comprehensive authentication system is now complete and ready for use!
-          </p>
-        </div>
-      </main>
+          {/* Background Effects */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
