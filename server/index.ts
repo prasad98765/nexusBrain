@@ -1,35 +1,68 @@
-// Temporary Node.js wrapper to start Python Flask server
-import { spawn } from 'child_process';
-import { createServer } from 'http';
-import fs from 'fs';
-import path from 'path';
+import express from "express";
+import session from "express-session";
+import ConnectPgSimple from "connect-pg-simple";
+import { neon } from "@neondatabase/serverless";
+import { WebSocketServer } from "ws";
+import { createServer } from "http";
+import { authRoutes } from "./routes.js";
 
-console.log('Starting Python Flask server...');
+const app = express();
+const server = createServer(app);
 
-// Check if Python is available
-const pythonProcess = spawn('python', ['run.py'], {
-  stdio: 'inherit',
-  cwd: process.cwd()
+// WebSocket server for real-time features
+const wss = new WebSocketServer({ server });
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Session configuration
+const PgSession = ConnectPgSimple(session);
+const pgPool = neon(process.env.DATABASE_URL!);
+
+app.use(
+  session({
+    store: new PgSession({
+      pool: pgPool as any,
+      tableName: "session",
+    }),
+    secret: process.env.SESSION_SECRET || "dev-secret-key",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    },
+  })
+);
+
+// API Routes
+app.use("/api", authRoutes);
+
+// WebSocket connection handling
+wss.on("connection", (ws) => {
+  console.log("New WebSocket connection");
+
+  ws.on("message", (message) => {
+    try {
+      const data = JSON.parse(message.toString());
+      console.log("Received message:", data);
+      
+      // Echo message back (you can implement your own logic here)
+      ws.send(JSON.stringify({ type: "echo", data }));
+    } catch (error) {
+      console.error("Invalid JSON message:", error);
+    }
+  });
+
+  ws.on("close", () => {
+    console.log("WebSocket connection closed");
+  });
 });
 
-pythonProcess.on('error', (error) => {
-  console.error('Failed to start Python server:', error.message);
-  console.log('Make sure Python is installed and run.py exists');
-  process.exit(1);
-});
+const PORT = parseInt(process.env.PORT || "5000", 10);
 
-pythonProcess.on('close', (code) => {
-  console.log(`Python server exited with code ${code}`);
-  process.exit(code || 0);
-});
-
-// Handle shutdown gracefully
-process.on('SIGINT', () => {
-  console.log('\nShutting down...');
-  pythonProcess.kill('SIGINT');
-});
-
-process.on('SIGTERM', () => {
-  console.log('\nShutting down...');
-  pythonProcess.kill('SIGTERM');
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
 });
