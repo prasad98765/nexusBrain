@@ -1,8 +1,8 @@
 # Overview
 
-This is a comprehensive multi-tenant Nexus AI platform built with React TypeScript frontend and Python Flask backend. The application provides workspace-based organization where users can create conversations and interact with AI assistants. It features dark-themed UI matching Nexus AI Hub branding, comprehensive authentication with forgot password functionality, business information collection for user onboarding, email verification with HTML templates, Google OAuth integration, PostgreSQL database storage with MongoDB fallback support, and a modern UI built with shadcn/ui components.
+This is a comprehensive multi-tenant Nexus AI platform built with React TypeScript frontend and Python Flask backend. The application provides workspace-based organization where users can create conversations and interact with AI assistants. It features dark-themed UI matching Nexus AI Hub branding, comprehensive authentication with forgot password functionality, business information collection for user onboarding, email verification with HTML templates, Google OAuth integration, PostgreSQL database storage with MongoDB fallback support, static landing pages recreated from nexusaihub.co.in, and a modern UI built with shadcn/ui components.
 
-**Last Updated**: August 16, 2025 - Implemented comprehensive forgot password functionality with HTML email templates, dark theme matching Nexus AI Hub design, and enhanced Google OAuth business information collection flow.
+**Last Updated**: August 17, 2025 - Added comprehensive static landing pages (`/landing-page` and `/landing-page/hub`) recreated from nexusaihub.co.in website with complete feature showcase, AI tools directory, and proper routing integration.
 
 # User Preferences
 
@@ -12,10 +12,11 @@ Preferred communication style: Simple, everyday language.
 
 ## Frontend Architecture
 - **Framework**: React 18 with TypeScript and Vite for fast development
-- **Routing**: Wouter for lightweight client-side routing
+- **Routing**: Wouter for lightweight client-side routing with static landing page routes
 - **State Management**: TanStack Query for server state management with optimistic updates
 - **UI Components**: shadcn/ui component library with Radix UI primitives and Tailwind CSS
 - **Layout**: Three-panel layout with collapsible sidebar, main chat area, and right sidebar for conversation metadata
+- **Landing Pages**: Static marketing pages recreated from nexusaihub.co.in with comprehensive feature showcase
 
 ## Backend Architecture
 - **Server**: Python Flask with development server running on port 5000
@@ -73,6 +74,7 @@ Preferred communication style: Simple, everyday language.
 - **Lucide React**: Modern icon library for consistent iconography
 - **shadcn/ui**: Component library built on Radix UI primitives with dark theme customization
 - **Responsive Design**: Mobile-first responsive layout with gradient backgrounds and modern aesthetics
+- **Landing Pages**: Static marketing pages with hero sections, feature showcases, AI tools directory, and contact sections
 
 ## Development Tools
 - **Vite**: Fast build tool with HMR and development server
