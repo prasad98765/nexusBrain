@@ -13,13 +13,13 @@ export default function LandingPage() {
     <div className="min-h-screen bg-slate-900 text-slate-100">
       {/* Navigation */}
       <header className="w-full bg-slate-800/90 backdrop-blur-sm border-b border-slate-700">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center animate-pulse">
                 <span className="text-white font-bold text-sm">⚡</span>
               </div>
-              <span className="text-xl font-bold text-slate-100">Nexus AI Hub</span>
+              <span className="text-lg sm:text-xl font-bold text-slate-100">Nexus AI Hub</span>
             </div>
             
             <nav className="hidden md:flex items-center gap-6">
@@ -32,7 +32,7 @@ export default function LandingPage() {
             
             <Button 
               onClick={handleGetStarted}
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white"
+              className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-sm sm:text-base px-4 sm:px-6 transform hover:scale-105 transition-all duration-300"
             >
               Get Started
             </Button>
@@ -41,56 +41,56 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-6 py-20">
+      <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 py-20">
         <div className="max-w-5xl mx-auto text-center space-y-8 z-10">
-          <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold leading-tight animate-fade-in-up">
             <span className="text-white">Build Intelligent</span><br />
-            <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent animate-pulse-glow">
               AI Agents
             </span><br />
-            <span className="text-white">That <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Connect Everything</span></span>
+            <span className="text-white">That <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-pulse-glow">Connect Everything</span></span>
           </h1>
           
-          <p className="text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-lg sm:text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed animate-fade-in-up animation-delay-300">
             Where all your AI, tools, and data converge. Create powerful agents with drag-and-drop simplicity, integrate 
             any third-party service, and deploy everywhere.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up animation-delay-600">
             <Button 
               size="lg" 
               onClick={handleGetStarted}
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium px-8 py-4 text-lg"
+              className="w-full sm:w-auto bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg transform hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/25"
             >
               Start Building Now →
             </Button>
             <Button 
               variant="outline" 
               size="lg" 
-              className="border-slate-600 text-slate-300 hover:bg-slate-800 px-8 py-4 text-lg"
+              className="w-full sm:w-auto border-slate-600 text-slate-300 hover:bg-slate-800 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg transform hover:scale-105 transition-all duration-300"
             >
               Watch Interactive Demo
             </Button>
           </div>
 
           {/* Feature Icons */}
-          <div className="mt-20 flex justify-center items-center gap-16">
-            <div className="flex flex-col items-center gap-3 text-center">
-              <div className="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center">
+          <div className="mt-16 sm:mt-20 flex flex-col sm:flex-row justify-center items-center gap-8 sm:gap-16 animate-fade-in-up animation-delay-900">
+            <div className="flex flex-col items-center gap-3 text-center group">
+              <div className="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 animate-float">
                 <span className="text-2xl">∞</span>
               </div>
               <span className="text-sm text-slate-400">Integrations</span>
             </div>
             
-            <div className="flex flex-col items-center gap-3 text-center">
-              <div className="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3 text-center group">
+              <div className="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 animate-float animation-delay-200">
                 <span className="text-2xl">⚡</span>
               </div>
               <span className="text-sm text-slate-400">Instant Deploy</span>
             </div>
             
-            <div className="flex flex-col items-center gap-3 text-center">
-              <div className="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3 text-center group">
+              <div className="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 animate-float animation-delay-400">
                 <span className="text-2xl">🎯</span>
               </div>
               <span className="text-sm text-slate-400">Zero Code</span>
@@ -98,53 +98,59 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Background Effects */}
+        {/* Animated Background Effects */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/4 left-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse-slow"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow animation-delay-1000"></div>
+          
+          {/* Floating Stars */}
+          <div className="absolute top-10 left-10 w-1 h-1 bg-indigo-400 rounded-full animate-twinkle"></div>
+          <div className="absolute top-20 right-20 w-1 h-1 bg-purple-400 rounded-full animate-twinkle animation-delay-500"></div>
+          <div className="absolute bottom-32 left-20 w-1 h-1 bg-blue-400 rounded-full animate-twinkle animation-delay-1000"></div>
+          <div className="absolute bottom-20 right-32 w-1 h-1 bg-indigo-300 rounded-full animate-twinkle animation-delay-1500"></div>
         </div>
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-20 px-6 bg-slate-800/50">
+      <section id="about" className="py-16 sm:py-20 px-4 sm:px-6 bg-slate-800/50">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-6">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-6 animate-fade-in-up">
               About <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Nexus AI Hub</span>
             </h2>
-            <p className="text-lg text-slate-400 max-w-4xl mx-auto">
+            <p className="text-base sm:text-lg text-slate-400 max-w-4xl mx-auto animate-fade-in-up animation-delay-300">
               We're revolutionizing how businesses interact with AI by creating the world's first truly integrated AI ecosystem 
               where every tool, every data source, and every AI capability works together in perfect harmony.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-slate-800/60 p-8 rounded-xl border border-slate-700">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mb-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            <div className="bg-slate-800/60 p-6 sm:p-8 rounded-xl border border-slate-700 hover:border-slate-600 transform hover:scale-105 transition-all duration-300 animate-slide-in-left">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mb-6 animate-bounce-subtle">
                 <span className="text-2xl">🔗</span>
               </div>
-              <h3 className="text-xl font-bold mb-4">Nexus</h3>
-              <p className="text-slate-400">
+              <h3 className="text-lg sm:text-xl font-bold mb-4">Nexus</h3>
+              <p className="text-sm sm:text-base text-slate-400">
                 The central connection point where all your tools, data, and AI systems unite seamlessly.
               </p>
             </div>
 
-            <div className="bg-slate-800/60 p-8 rounded-xl border border-slate-700">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mb-6">
+            <div className="bg-slate-800/60 p-6 sm:p-8 rounded-xl border border-slate-700 hover:border-slate-600 transform hover:scale-105 transition-all duration-300 animate-slide-in-up animation-delay-300">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mb-6 animate-bounce-subtle animation-delay-200">
                 <span className="text-2xl">🧠</span>
               </div>
-              <h3 className="text-xl font-bold mb-4">AI</h3>
-              <p className="text-slate-400">
+              <h3 className="text-lg sm:text-xl font-bold mb-4">AI</h3>
+              <p className="text-sm sm:text-base text-slate-400">
                 Intelligent agents that learn, adapt, and execute complex tasks with human-like reasoning.
               </p>
             </div>
 
-            <div className="bg-slate-800/60 p-8 rounded-xl border border-slate-700">
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center mb-6">
+            <div className="bg-slate-800/60 p-6 sm:p-8 rounded-xl border border-slate-700 hover:border-slate-600 transform hover:scale-105 transition-all duration-300 animate-slide-in-right animation-delay-600 sm:col-span-2 lg:col-span-1">
+              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center mb-6 animate-bounce-subtle animation-delay-400">
                 <span className="text-2xl">🌐</span>
               </div>
-              <h3 className="text-xl font-bold mb-4">Hub</h3>
-              <p className="text-slate-400">
+              <h3 className="text-lg sm:text-xl font-bold mb-4">Hub</h3>
+              <p className="text-sm sm:text-base text-slate-400">
                 Your command center for building, managing, and deploying AI solutions across all platforms.
               </p>
             </div>
@@ -173,63 +179,63 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="bg-slate-800/30 p-6 rounded-xl border border-slate-700">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mb-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            <div className="bg-slate-800/30 p-4 sm:p-6 rounded-xl border border-slate-700 hover:border-slate-600 transform hover:scale-105 transition-all duration-300 animate-fade-in-up">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mb-4 animate-bounce-subtle">
                 <span className="text-xl">👆</span>
               </div>
-              <h3 className="text-lg font-bold mb-3">Drag & Drop Builder</h3>
-              <p className="text-slate-400 text-sm">
+              <h3 className="text-base sm:text-lg font-bold mb-3">Drag & Drop Builder</h3>
+              <p className="text-slate-400 text-xs sm:text-sm">
                 Create sophisticated AI agents with our intuitive visual interface. No coding required - just drag, drop, and deploy.
               </p>
             </div>
 
-            <div className="bg-slate-800/30 p-6 rounded-xl border border-slate-700">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mb-4">
+            <div className="bg-slate-800/30 p-4 sm:p-6 rounded-xl border border-slate-700 hover:border-slate-600 transform hover:scale-105 transition-all duration-300 animate-fade-in-up animation-delay-200">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mb-4 animate-bounce-subtle animation-delay-100">
                 <span className="text-xl">🔗</span>
               </div>
-              <h3 className="text-lg font-bold mb-3">Universal Integrations</h3>
-              <p className="text-slate-400 text-sm">
+              <h3 className="text-base sm:text-lg font-bold mb-3">Universal Integrations</h3>
+              <p className="text-slate-400 text-xs sm:text-sm">
                 Connect any third-party tool, API, or service. From CRM systems to social media platforms - if it has an API, we can connect it.
               </p>
             </div>
 
-            <div className="bg-slate-800/30 p-6 rounded-xl border border-slate-700">
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center mb-4">
+            <div className="bg-slate-800/30 p-4 sm:p-6 rounded-xl border border-slate-700 hover:border-slate-600 transform hover:scale-105 transition-all duration-300 animate-fade-in-up animation-delay-400">
+              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center mb-4 animate-bounce-subtle animation-delay-200">
                 <span className="text-xl">📱</span>
               </div>
-              <h3 className="text-lg font-bold mb-3">Multi-Platform Deploy</h3>
-              <p className="text-slate-400 text-sm">
+              <h3 className="text-base sm:text-lg font-bold mb-3">Multi-Platform Deploy</h3>
+              <p className="text-slate-400 text-xs sm:text-sm">
                 Deploy your AI agents instantly to web apps, mobile interfaces, WhatsApp bots, or any platform with our universal deployment system.
               </p>
             </div>
 
-            <div className="bg-slate-800/30 p-6 rounded-xl border border-slate-700">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center mb-4">
+            <div className="bg-slate-800/30 p-4 sm:p-6 rounded-xl border border-slate-700 hover:border-slate-600 transform hover:scale-105 transition-all duration-300 animate-fade-in-up animation-delay-600">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center mb-4 animate-bounce-subtle animation-delay-300">
                 <span className="text-xl">💬</span>
               </div>
-              <h3 className="text-lg font-bold mb-3">WhatsApp Integration</h3>
-              <p className="text-slate-400 text-sm">
+              <h3 className="text-base sm:text-lg font-bold mb-3">WhatsApp Integration</h3>
+              <p className="text-slate-400 text-xs sm:text-sm">
                 Launch your AI agents directly on WhatsApp for instant customer engagement and automated support workflows.
               </p>
             </div>
 
-            <div className="bg-slate-800/30 p-6 rounded-xl border border-slate-700">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center mb-4">
+            <div className="bg-slate-800/30 p-4 sm:p-6 rounded-xl border border-slate-700 hover:border-slate-600 transform hover:scale-105 transition-all duration-300 animate-fade-in-up animation-delay-800">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center mb-4 animate-bounce-subtle animation-delay-400">
                 <span className="text-xl">🔗</span>
               </div>
-              <h3 className="text-lg font-bold mb-3">Public Link Sharing</h3>
-              <p className="text-slate-400 text-sm">
+              <h3 className="text-base sm:text-lg font-bold mb-3">Public Link Sharing</h3>
+              <p className="text-slate-400 text-xs sm:text-sm">
                 Share your AI agents via simple public links. Perfect for customer support, lead generation, or internal team tools.
               </p>
             </div>
 
-            <div className="bg-slate-800/30 p-6 rounded-xl border border-slate-700">
-              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center mb-4">
+            <div className="bg-slate-800/30 p-4 sm:p-6 rounded-xl border border-slate-700 hover:border-slate-600 transform hover:scale-105 transition-all duration-300 animate-fade-in-up animation-delay-1000">
+              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center mb-4 animate-bounce-subtle animation-delay-500">
                 <span className="text-xl">📊</span>
               </div>
-              <h3 className="text-lg font-bold mb-3">Real-time Analytics</h3>
-              <p className="text-slate-400 text-sm">
+              <h3 className="text-base sm:text-lg font-bold mb-3">Real-time Analytics</h3>
+              <p className="text-slate-400 text-xs sm:text-sm">
                 Monitor your AI agents' performance with comprehensive analytics and insights to optimize engagement and effectiveness.
               </p>
             </div>
@@ -243,13 +249,13 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 onClick={handleGetStarted}
-                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-8 py-3"
+                className="w-full sm:w-auto bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-6 sm:px-8 py-3 transform hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/25"
               >
                 Start Free Trial
               </Button>
               <Button 
                 variant="outline" 
-                className="border-slate-600 text-slate-300 hover:bg-slate-800 px-8 py-3"
+                className="w-full sm:w-auto border-slate-600 text-slate-300 hover:bg-slate-800 px-6 sm:px-8 py-3 transform hover:scale-105 transition-all duration-300"
               >
                 Schedule Demo
               </Button>
