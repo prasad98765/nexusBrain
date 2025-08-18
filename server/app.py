@@ -49,7 +49,7 @@ def create_app():
     logging.basicConfig(level=logging.INFO)
     
     # Register blueprints
-    from .routes import auth_bp, workspace_bp, conversation_bp, message_bp, static_bp
+    from server.routes import auth_bp, workspace_bp, conversation_bp, message_bp, static_bp
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(workspace_bp, url_prefix='/api')
     app.register_blueprint(conversation_bp, url_prefix='/api')
@@ -57,7 +57,7 @@ def create_app():
     app.register_blueprint(static_bp)
     
     # Initialize MongoDB connection
-    from .mongo_service import mongo_service
+    from server.mongo_service import mongo_service
     mongo_service.connect()
     
     # Create tables
