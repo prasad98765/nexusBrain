@@ -17,7 +17,12 @@ def create_app():
     
     # Configuration
     app.config['SECRET_KEY'] = os.getenv('SESSION_SECRET', 'dev-secret-key')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL',"postgresql+psycopg://prasad:YourStrongPass123!@localhost:5433/nexusdb")
+    # Use the actual DATABASE_URL from environment with psycopg2
+    database_url = os.getenv('DATABASE_URL')
+    if database_url and database_url.startswith('postgresql://'):
+        # Convert postgresql:// to postgresql+psycopg2:// for SQLAlchemy
+        database_url = database_url.replace('postgresql://', 'postgresql+psycopg2://')
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
     # Google OAuth configuration
@@ -35,7 +40,8 @@ def create_app():
     
     # Initialize extensions with app
     db.init_app(app)
-    CORS(app, origins=['http://localhost:3000', 'http://localhost:5000'], 
+    # Update CORS to include Vite frontend port
+    CORS(app, origins=['http://localhost:3000', 'http://localhost:5000', 'http://localhost:5173'], 
          supports_credentials=True)
     Session(app)
     
