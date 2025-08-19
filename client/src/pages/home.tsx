@@ -192,7 +192,9 @@ export default function Home() {
               onSettingsClick={() => setActiveView('settings')}
             />
           ) : activeView === 'settings' ? (
-            <SettingsPage workspaceId={user?.workspaceId || 'default'} />
+            <div className="h-full">
+              <SettingsPage workspaceId={user?.workspaceId || 'default'} />
+            </div>
           ) : null}
         </main>
       </div>

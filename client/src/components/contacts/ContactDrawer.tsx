@@ -17,6 +17,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { X, Save } from 'lucide-react';
 import { Contact, CustomField, InsertContact } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
@@ -50,9 +51,11 @@ export default function ContactDrawer({
   const { data: customFields = [] } = useQuery<CustomField[]>({
     queryKey: ['/api/custom-fields', workspaceId],
     queryFn: async () => {
-      const response = await fetch(`/api/custom-fields?workspace_id=${workspaceId}`);
+      const response = await fetch(`/api/custom-fields?workspace_id=${workspaceId}&limit=1000`);
       if (!response.ok) throw new Error('Failed to fetch custom fields');
-      return response.json();
+      const data = await response.json();
+      // Handle both old and new API response formats
+      return Array.isArray(data) ? data : data.fields || [];
     },
   });
 
@@ -241,6 +244,17 @@ export default function ContactDrawer({
               </label>
             ))}
           </div>
+        );
+      
+      case 'multiselect':
+        return (
+          <MultiSelect
+            options={field.options || []}
+            value={Array.isArray(value) ? value : []}
+            onChange={(val) => handleCustomFieldChange(field.id, val)}
+            placeholder="Select options..."
+            className="bg-slate-700 border-slate-600"
+          />
         );
       
       default:
