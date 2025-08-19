@@ -96,6 +96,8 @@ class CustomField(db.Model):
     field_type = db.Column(db.String(50), nullable=False)  # string, number, date, dropdown, radio
     options = db.Column(db.JSON)  # For dropdown and radio types
     required = db.Column(db.Boolean, default=False)
+    show_in_form = db.Column(db.Boolean, default=True)
+    readonly = db.Column(db.Boolean, default=False)
     workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
