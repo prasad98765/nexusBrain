@@ -73,6 +73,35 @@ class Message(db.Model):
     tokens = db.Column(db.String)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class Contact(db.Model):
+    __tablename__ = 'contacts'
+    
+    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid4()))
+    name = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), nullable=False)
+    phone = db.Column(db.String(50))
+    workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
+    custom_fields = db.Column(db.JSON)  # Store custom field data as JSON
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    workspace = db.relationship('Workspace', backref='contacts', lazy=True)
+
+class CustomField(db.Model):
+    __tablename__ = 'custom_fields'
+    
+    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid4()))
+    name = db.Column(db.String(255), nullable=False)
+    field_type = db.Column(db.String(50), nullable=False)  # string, number, date, dropdown, radio
+    options = db.Column(db.JSON)  # For dropdown and radio types
+    required = db.Column(db.Boolean, default=False)
+    workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    workspace = db.relationship('Workspace', backref='custom_fields', lazy=True)
+
 # Session table for Flask-Session
 class FlaskSession(db.Model):
     __tablename__ = 'flask_sessions'

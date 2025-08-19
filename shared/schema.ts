@@ -68,6 +68,43 @@ export interface UpsertUser {
   profileImageUrl?: string;
 }
 
+// Contact Management Types
+export interface Contact {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  createdAt: string;
+  updatedAt: string;
+  workspaceId: string;
+  customFields?: Record<string, any>;
+}
+
+export interface CustomField {
+  id: string;
+  name: string;
+  type: 'string' | 'number' | 'date' | 'dropdown' | 'radio';
+  options?: string[]; // For dropdown and radio types
+  required: boolean;
+  workspaceId: string;
+}
+
+export interface InsertContact {
+  name: string;
+  email: string;
+  phone?: string;
+  workspaceId: string;
+  customFields?: Record<string, any>;
+}
+
+export interface ContactsResponse {
+  contacts: Contact[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 // Insert types for creating new records
 export interface InsertWorkspace {
   name: string;
