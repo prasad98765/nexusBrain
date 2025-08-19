@@ -180,7 +180,19 @@ def get_custom_fields(current_user):
         if not workspace_id:
             return jsonify({'error': 'workspace_id is required'}), 400
         
-        custom_fields = CustomField.query.filter_by(workspace_id=workspace_id).all()
+        # Get pagination parameters
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 10))
+        search = request.args.get('search', '')
+        
+        # Build query with search
+        query = CustomField.query.filter_by(workspace_id=workspace_id)
+        if search:
+            query = query.filter(CustomField.name.ilike(f'%{search}%'))
+        
+        # Apply pagination
+        custom_fields = query.offset((page - 1) * limit).limit(limit).all()
+        total_count = query.count()
         
         fields_data = []
         for field in custom_fields:
@@ -197,7 +209,12 @@ def get_custom_fields(current_user):
             }
             fields_data.append(field_dict)
         
-        return jsonify(fields_data)
+        return jsonify({
+            'fields': fields_data,
+            'total': total_count,
+            'page': page,
+            'totalPages': (total_count + limit - 1) // limit
+        })
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -216,7 +233,7 @@ def create_custom_field(current_user):
             return jsonify({'error': 'workspaceId is required'}), 400
         
         # Validate field type
-        valid_types = ['string', 'number', 'date', 'dropdown', 'radio']
+        valid_types = ['string', 'number', 'date', 'dropdown', 'radio', 'multiselect']
         if data['type'] not in valid_types:
             return jsonify({'error': f'Invalid field type. Must be one of: {valid_types}'}), 400
         

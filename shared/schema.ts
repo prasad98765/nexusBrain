@@ -83,8 +83,8 @@ export interface Contact {
 export interface CustomField {
   id: string;
   name: string;
-  type: 'string' | 'number' | 'date' | 'dropdown' | 'radio';
-  options?: string[]; // For dropdown and radio types
+  type: 'string' | 'number' | 'date' | 'dropdown' | 'radio' | 'multiselect';
+  options?: string[]; // For dropdown, radio, and multiselect types
   required: boolean;
   showInForm: boolean;
   readonly: boolean;

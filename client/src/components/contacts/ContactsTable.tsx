@@ -42,6 +42,7 @@ import {
 import { Contact, CustomField, ContactsResponse, InsertContact } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 import ContactDrawer from './ContactDrawer';
+import { MultiSelect } from '@/components/ui/multi-select';
 
 interface ContactsTableProps {
   workspaceId: string;
@@ -91,9 +92,11 @@ export default function ContactsTable({ workspaceId, onSettingsClick }: Contacts
   const { data: customFields = [] } = useQuery<CustomField[]>({
     queryKey: ['/api/custom-fields', workspaceId],
     queryFn: async () => {
-      const response = await fetch(`/api/custom-fields?workspace_id=${workspaceId}`);
+      const response = await fetch(`/api/custom-fields?workspace_id=${workspaceId}&limit=1000`);
       if (!response.ok) throw new Error('Failed to fetch custom fields');
-      return response.json();
+      const data = await response.json();
+      // Handle both old and new API response formats
+      return Array.isArray(data) ? data : data.fields || [];
     },
   });
 
