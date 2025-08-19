@@ -1,8 +1,8 @@
 # Overview
 
-This is a comprehensive multi-tenant Nexus AI platform built with React TypeScript frontend and Python Flask backend. The application provides workspace-based organization where users can create conversations and interact with AI assistants. It features dark-themed UI matching Nexus AI Hub branding, comprehensive authentication with forgot password functionality, business information collection for user onboarding, email verification with HTML templates, Google OAuth integration, PostgreSQL database storage with MongoDB fallback support, static landing pages recreated from nexusaihub.co.in, and a modern UI built with shadcn/ui components.
+This is a comprehensive multi-tenant Nexus AI platform built with React TypeScript frontend and Python Flask backend. The application provides workspace-based organization where users can create conversations and interact with AI assistants. It features dark-themed UI matching Nexus AI Hub branding, comprehensive authentication with forgot password functionality, business information collection for user onboarding, email verification with HTML templates, Google OAuth integration, PostgreSQL database storage with MongoDB fallback support, static landing pages recreated from nexusaihub.co.in, and a comprehensive contacts management system with custom properties.
 
-**Last Updated**: August 17, 2025 - Added comprehensive static landing pages (`/landing-page` and `/landing-page/hub`) recreated from nexusaihub.co.in website with complete feature showcase, AI tools directory, and proper routing integration.
+**Last Updated**: August 19, 2025 - Completed comprehensive custom contact properties system with settings page management, contact drawer for full editing, and enhanced table functionality with read-only field support.
 
 # User Preferences
 
@@ -17,6 +17,7 @@ Preferred communication style: Simple, everyday language.
 - **UI Components**: shadcn/ui component library with Radix UI primitives and Tailwind CSS
 - **Layout**: Three-panel layout with collapsible sidebar, main chat area, and right sidebar for conversation metadata
 - **Landing Pages**: Static marketing pages recreated from nexusaihub.co.in with comprehensive feature showcase
+- **Contacts System**: Advanced contacts management with custom properties, inline editing, and drawer-based full editing
 
 ## Backend Architecture
 - **Server**: Python Flask with development server running on port 5000
@@ -29,10 +30,11 @@ Preferred communication style: Simple, everyday language.
 ## Database Architecture
 - **Database**: PostgreSQL with connection via DATABASE_URL environment variable
 - **ORM**: SQLAlchemy with Flask-SQLAlchemy for database operations and model definitions
-- **Schema**: Multi-tenant design with Users, Workspaces, WorkspaceMembers, Conversations, and Messages models
+- **Schema**: Multi-tenant design with Users, Workspaces, WorkspaceMembers, Conversations, Messages, Contacts, and CustomFields models
 - **Migrations**: SQLAlchemy model-based schema management with db.create_all()
-- **Relations**: Foreign key relationships between users, workspaces, conversations, and messages
+- **Relations**: Foreign key relationships between users, workspaces, conversations, messages, contacts, and custom fields
 - **Sessions**: Flask sessions stored in PostgreSQL using flask_sessions table
+- **Custom Properties**: Flexible custom field system supporting string, number, date, dropdown, and radio field types with workspace isolation
 
 ## Authentication & Authorization
 - **JWT Authentication**: Secure JWT tokens with 48-hour expiry for session management

@@ -188,9 +188,12 @@ def get_custom_fields(current_user):
                 'id': field.id,
                 'name': field.name,
                 'type': field.field_type,
-                'options': field.options,
+                'options': field.options or [],
                 'required': field.required,
-                'workspaceId': field.workspace_id
+                'showInForm': field.show_in_form,
+                'readonly': field.readonly,
+                'workspaceId': field.workspace_id,
+                'createdAt': field.created_at.isoformat()
             }
             fields_data.append(field_dict)
         
@@ -223,6 +226,8 @@ def create_custom_field(current_user):
         custom_field.field_type = data['type']
         custom_field.options = data.get('options', [])
         custom_field.required = data.get('required', False)
+        custom_field.show_in_form = data.get('showInForm', True)
+        custom_field.readonly = data.get('readonly', False)
         custom_field.workspace_id = data['workspaceId']
         
         db.session.add(custom_field)
@@ -232,10 +237,67 @@ def create_custom_field(current_user):
             'id': custom_field.id,
             'name': custom_field.name,
             'type': custom_field.field_type,
-            'options': custom_field.options,
+            'options': custom_field.options or [],
             'required': custom_field.required,
-            'workspaceId': custom_field.workspace_id
+            'showInForm': custom_field.show_in_form,
+            'readonly': custom_field.readonly,
+            'workspaceId': custom_field.workspace_id,
+            'createdAt': custom_field.created_at.isoformat()
         }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+@contacts_bp.route('/custom-fields/<field_id>', methods=['PATCH'])
+@require_auth
+def update_custom_field(current_user, field_id):
+    """Update a custom field"""
+    try:
+        custom_field = CustomField.query.get_or_404(field_id)
+        data = request.get_json()
+        
+        # Update fields
+        if 'name' in data:
+            custom_field.name = data['name']
+        if 'type' in data:
+            custom_field.field_type = data['type']
+        if 'options' in data:
+            custom_field.options = data['options']
+        if 'required' in data:
+            custom_field.required = data['required']
+        if 'showInForm' in data:
+            custom_field.show_in_form = data['showInForm']
+        if 'readonly' in data:
+            custom_field.readonly = data['readonly']
+        
+        db.session.commit()
+        
+        return jsonify({
+            'id': custom_field.id,
+            'name': custom_field.name,
+            'type': custom_field.field_type,
+            'options': custom_field.options or [],
+            'required': custom_field.required,
+            'showInForm': custom_field.show_in_form,
+            'readonly': custom_field.readonly,
+            'workspaceId': custom_field.workspace_id,
+            'createdAt': custom_field.created_at.isoformat()
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@contacts_bp.route('/custom-fields/<field_id>', methods=['DELETE'])
+@require_auth
+def delete_custom_field(current_user, field_id):
+    """Delete a custom field"""
+    try:
+        custom_field = CustomField.query.get_or_404(field_id)
+        db.session.delete(custom_field)
+        db.session.commit()
+        
+        return jsonify({'message': 'Custom field deleted successfully'})
         
     except Exception as e:
         db.session.rollback()

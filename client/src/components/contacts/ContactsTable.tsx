@@ -41,9 +41,11 @@ import {
 } from 'lucide-react';
 import { Contact, CustomField, ContactsResponse, InsertContact } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
+import ContactDrawer from './ContactDrawer';
 
 interface ContactsTableProps {
   workspaceId: string;
+  onSettingsClick?: () => void;
 }
 
 interface EditingCell {
@@ -51,7 +53,7 @@ interface EditingCell {
   field: string;
 }
 
-export default function ContactsTable({ workspaceId }: ContactsTableProps) {
+export default function ContactsTable({ workspaceId, onSettingsClick }: ContactsTableProps) {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [search, setSearch] = useState('');
@@ -59,13 +61,11 @@ export default function ContactsTable({ workspaceId }: ContactsTableProps) {
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [editValue, setEditValue] = useState('');
   const [showFieldDialog, setShowFieldDialog] = useState(false);
-  const [showNewContactDialog, setShowNewContactDialog] = useState(false);
-  const [newContact, setNewContact] = useState<Partial<InsertContact>>({
-    name: '',
-    email: '',
-    phone: '',
-    customFields: {}
-  });
+  
+  // Contact drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [drawerMode, setDrawerMode] = useState<'create' | 'edit'>('create');
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -118,42 +118,46 @@ export default function ContactsTable({ workspaceId }: ContactsTableProps) {
     },
   });
 
-  // Create contact mutation
-  const createContactMutation = useMutation({
-    mutationFn: async (contact: InsertContact) => {
-      const response = await fetch('/api/contacts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...contact, workspaceId }),
-      });
-      if (!response.ok) throw new Error('Failed to create contact');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
-      setShowNewContactDialog(false);
-      setNewContact({ name: '', email: '', phone: '', customFields: {} });
-      toast({ title: 'Contact created successfully' });
-    },
-    onError: () => {
-      toast({ title: 'Failed to create contact', variant: 'destructive' });
-    },
-  });
+  // Handle contact creation/editing
+  const handleCreateContact = () => {
+    setSelectedContact(null);
+    setDrawerMode('create');
+    setDrawerOpen(true);
+  };
+
+  const handleEditContact = (contact: Contact) => {
+    setSelectedContact(contact);
+    setDrawerMode('edit');
+    setDrawerOpen(true);
+  };
+
+  // Define default and custom fields for table display
+  const defaultFields = [
+    { key: 'name', label: 'Name', type: 'string', readonly: false },
+    { key: 'email', label: 'Email', type: 'string', readonly: false },
+    { key: 'phone', label: 'Phone', type: 'string', readonly: false },
+    { key: 'createdAt', label: 'Created Date', type: 'date', readonly: true },
+    { key: 'updatedAt', label: 'Modified Date', type: 'date', readonly: true },
+  ];
 
   const allFields = [
-    { key: 'name', label: 'Name', type: 'string' },
-    { key: 'email', label: 'Email', type: 'string' },
-    { key: 'phone', label: 'Phone', type: 'string' },
-    { key: 'createdAt', label: 'Created Date', type: 'date' },
+    ...defaultFields,
     ...customFields.map(field => ({
       key: `custom_${field.id}`,
       label: field.name,
       type: field.type,
-      options: field.options
+      options: field.options,
+      readonly: field.readonly
     }))
   ];
 
   const handleCellEdit = (contactId: string, field: string, currentValue: any) => {
+    // Check if field is readonly
+    const fieldConfig = allFields.find(f => f.key === field);
+    if (fieldConfig?.readonly) {
+      return; // Don't allow editing readonly fields
+    }
+    
     setEditingCell({ contactId, field });
     setEditValue(currentValue || '');
   };
@@ -244,86 +248,26 @@ export default function ContactsTable({ workspaceId }: ContactsTableProps) {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={showNewContactDialog} onOpenChange={setShowNewContactDialog}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Contact
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-slate-800 border-slate-700">
-              <DialogHeader>
-                <DialogTitle className="text-slate-100">Add New Contact</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <Input
-                  placeholder="Name"
-                  value={newContact.name}
-                  onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
-                  className="bg-slate-700 border-slate-600 text-slate-100"
-                />
-                <Input
-                  placeholder="Email"
-                  type="email"
-                  value={newContact.email}
-                  onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                  className="bg-slate-700 border-slate-600 text-slate-100"
-                />
-                <Input
-                  placeholder="Phone"
-                  value={newContact.phone}
-                  onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                  className="bg-slate-700 border-slate-600 text-slate-100"
-                />
-                {customFields.map((field) => (
-                  <div key={field.id}>
-                    <Label className="text-slate-300">{field.name}</Label>
-                    {field.type === 'dropdown' ? (
-                      <Select
-                        value={newContact.customFields?.[field.id] || ''}
-                        onValueChange={(value) => 
-                          setNewContact({
-                            ...newContact,
-                            customFields: { ...newContact.customFields, [field.id]: value }
-                          })
-                        }
-                      >
-                        <SelectTrigger className="bg-slate-700 border-slate-600">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {field.options?.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
-                        value={newContact.customFields?.[field.id] || ''}
-                        onChange={(e) => 
-                          setNewContact({
-                            ...newContact,
-                            customFields: { ...newContact.customFields, [field.id]: e.target.value }
-                          })
-                        }
-                        className="bg-slate-700 border-slate-600 text-slate-100"
-                      />
-                    )}
-                  </div>
-                ))}
-                <Button
-                  onClick={() => createContactMutation.mutate(newContact as InsertContact)}
-                  disabled={!newContact.name || !newContact.email || createContactMutation.isPending}
-                  className="w-full"
-                >
-                  Create Contact
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button
+            size="sm"
+            onClick={handleCreateContact}
+            className="bg-indigo-600 hover:bg-indigo-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Contact
+          </Button>
+
+          {onSettingsClick && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onSettingsClick}
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </Button>
+          )}
         </div>
       </div>
 
@@ -417,11 +361,15 @@ export default function ContactsTable({ workspaceId }: ContactsTableProps) {
                           </div>
                         ) : (
                           <div 
-                            className="cursor-pointer hover:bg-slate-700 p-1 rounded flex items-center gap-2"
-                            onClick={() => handleCellEdit(contact.id, field.key, formatCellValue(contact, field))}
+                            className={`p-1 rounded flex items-center gap-2 ${
+                              field.readonly 
+                                ? 'text-slate-400 cursor-not-allowed' 
+                                : 'cursor-pointer hover:bg-slate-700'
+                            }`}
+                            onClick={() => !field.readonly && handleCellEdit(contact.id, field.key, formatCellValue(contact, field))}
                           >
                             <span>{formatCellValue(contact, field)}</span>
-                            <Edit2 className="h-3 w-3 opacity-0 group-hover:opacity-100" />
+                            {!field.readonly && <Edit2 className="h-3 w-3 opacity-0 group-hover:opacity-100" />}
                           </div>
                         )}
                       </TableCell>
@@ -430,7 +378,7 @@ export default function ContactsTable({ workspaceId }: ContactsTableProps) {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => handleCellEdit(contact.id, 'name', contact.name)}
+                      onClick={() => handleEditContact(contact)}
                     >
                       <Edit2 className="h-3 w-3" />
                     </Button>
@@ -471,6 +419,15 @@ export default function ContactsTable({ workspaceId }: ContactsTableProps) {
           </Button>
         </div>
       </div>
+
+      {/* Contact Drawer */}
+      <ContactDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        contact={selectedContact}
+        workspaceId={workspaceId}
+        mode={drawerMode}
+      />
     </div>
   );
 }

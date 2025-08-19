@@ -86,7 +86,10 @@ export interface CustomField {
   type: 'string' | 'number' | 'date' | 'dropdown' | 'radio';
   options?: string[]; // For dropdown and radio types
   required: boolean;
+  showInForm: boolean;
+  readonly: boolean;
   workspaceId: string;
+  createdAt: string;
 }
 
 export interface InsertContact {

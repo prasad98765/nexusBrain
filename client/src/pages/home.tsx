@@ -3,10 +3,11 @@ import { useAuth } from '../hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { MessageSquare, Users, Settings, LogOut, Menu, Phone, Mail, Bell, User } from 'lucide-react';
 import ContactsTable from '@/components/contacts/ContactsTable';
+import SettingsPage from '@/pages/settings-page';
 
 export default function Home() {
   const { user } = useAuth();
-  const [activeView, setActiveView] = useState<'dashboard' | 'contacts'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'contacts' | 'settings'>('dashboard');
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
@@ -98,8 +99,15 @@ export default function Home() {
           </div>
 
           <div className="mt-auto flex flex-col gap-4">
-            <button className="p-3 rounded-lg hover:bg-slate-700 transition-colors group">
-              <Settings className="h-5 w-5 text-slate-400 group-hover:text-slate-200" />
+            <button 
+              className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${
+                activeView === 'settings' ? 'bg-slate-700' : ''
+              }`}
+              onClick={() => setActiveView('settings')}
+            >
+              <Settings className={`h-5 w-5 ${
+                activeView === 'settings' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
+              }`} />
             </button>
             <button className="p-3 rounded-lg hover:bg-slate-700 transition-colors group">
               <User className="h-5 w-5 text-slate-400 group-hover:text-slate-200" />
@@ -179,7 +187,12 @@ export default function Home() {
               </div>
             </div>
           ) : activeView === 'contacts' ? (
-            <ContactsTable workspaceId={user?.workspaceId || 'default'} />
+            <ContactsTable 
+              workspaceId={user?.workspaceId || 'default'} 
+              onSettingsClick={() => setActiveView('settings')}
+            />
+          ) : activeView === 'settings' ? (
+            <SettingsPage workspaceId={user?.workspaceId || 'default'} />
           ) : null}
         </main>
       </div>
