@@ -50,10 +50,12 @@ def create_app():
     
     # Register blueprints
     from server.routes import auth_bp, workspace_bp, conversation_bp, message_bp, static_bp
+    from server.contacts_routes import contacts_bp
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(workspace_bp, url_prefix='/api')
     app.register_blueprint(conversation_bp, url_prefix='/api')
     app.register_blueprint(message_bp, url_prefix='/api')
+    app.register_blueprint(contacts_bp, url_prefix='/api')
     app.register_blueprint(static_bp)
     
     # Initialize MongoDB connection
