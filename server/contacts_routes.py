@@ -8,10 +8,10 @@ contacts_bp = Blueprint('contacts', __name__)
 
 @contacts_bp.route('/contacts', methods=['GET'])
 @require_auth
-def get_contacts(current_user):
+def get_contacts():
     """Get contacts with pagination, search, and filtering"""
     try:
-        workspace_id = request.args.get('workspace_id')
+        workspace_id = request.user.get('workspace_id')
         page = int(request.args.get('page', 1))
         limit = min(int(request.args.get('limit', 25)), 100)  # Max 100 per page
         search = request.args.get('search', '').strip()
@@ -71,7 +71,7 @@ def get_contacts(current_user):
 
 @contacts_bp.route('/contacts', methods=['POST'])
 @require_auth
-def create_contact(current_user):
+def create_contact():
     """Create a new contact"""
     try:
         data = request.get_json()
@@ -79,7 +79,10 @@ def create_contact(current_user):
         if not data.get('name') or not data.get('email'):
             return jsonify({'error': 'Name and email are required'}), 400
         
-        if not data.get('workspaceId'):
+        user_id = request.user.get('user_id')
+        workspace_id = request.user.get('workspace_id')
+        
+        if not workspace_id:
             return jsonify({'error': 'workspaceId is required'}), 400
         
         # Check if contact already exists
@@ -96,7 +99,7 @@ def create_contact(current_user):
         contact.name = data['name']
         contact.email = data['email']
         contact.phone = data.get('phone')
-        contact.workspace_id = data['workspaceId']
+        contact.workspace_id = workspace_id
         contact.custom_fields = data.get('customFields', {})
         
         db.session.add(contact)
@@ -119,7 +122,7 @@ def create_contact(current_user):
 
 @contacts_bp.route('/contacts/<contact_id>', methods=['PATCH'])
 @require_auth
-def update_contact(current_user, contact_id):
+def update_contact(contact_id):
     """Update a contact"""
     try:
         contact = Contact.query.get_or_404(contact_id)
@@ -157,7 +160,7 @@ def update_contact(current_user, contact_id):
 
 @contacts_bp.route('/contacts/<contact_id>', methods=['DELETE'])
 @require_auth
-def delete_contact(current_user, contact_id):
+def delete_contact(contact_id):
     """Delete a contact"""
     try:
         contact = Contact.query.get_or_404(contact_id)
@@ -172,10 +175,10 @@ def delete_contact(current_user, contact_id):
 
 @contacts_bp.route('/custom-fields', methods=['GET'])
 @require_auth
-def get_custom_fields(current_user):
+def get_custom_fields():
     """Get custom fields for a workspace"""
     try:
-        workspace_id = request.args.get('workspace_id')
+        workspace_id = request.user.get('workspace_id')
         
         if not workspace_id:
             return jsonify({'error': 'workspace_id is required'}), 400
@@ -227,15 +230,16 @@ def get_custom_fields(current_user):
 
 @contacts_bp.route('/custom-fields', methods=['POST'])
 @require_auth
-def create_custom_field(current_user):
+def create_custom_field():
     """Create a new custom field"""
     try:
         data = request.get_json()
+        workspace_id = request.user.get('workspace_id')
         
         if not data.get('name') or not data.get('type'):
             return jsonify({'error': 'Name and type are required'}), 400
         
-        if not data.get('workspaceId'):
+        if not workspace_id:
             return jsonify({'error': 'workspaceId is required'}), 400
         
         # Validate field type
@@ -264,7 +268,7 @@ def create_custom_field(current_user):
         custom_field.required = data.get('required', False)
         custom_field.show_in_form = data.get('showInForm', True)
         custom_field.readonly = data.get('readonly', False)
-        custom_field.workspace_id = data['workspaceId']
+        custom_field.workspace_id = workspace_id
         
         db.session.add(custom_field)
         db.session.commit()
@@ -287,7 +291,7 @@ def create_custom_field(current_user):
 
 @contacts_bp.route('/custom-fields/<field_id>', methods=['PATCH'])
 @require_auth
-def update_custom_field(current_user, field_id):
+def update_custom_field(field_id):
     """Update a custom field"""
     try:
         custom_field = CustomField.query.get_or_404(field_id)
@@ -345,7 +349,7 @@ def update_custom_field(current_user, field_id):
 
 @contacts_bp.route('/custom-fields/<field_id>', methods=['DELETE'])
 @require_auth
-def delete_custom_field(current_user, field_id):
+def delete_custom_field(field_id):
     """Delete a custom field"""
     try:
         custom_field = CustomField.query.get_or_404(field_id)

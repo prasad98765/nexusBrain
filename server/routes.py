@@ -538,34 +538,85 @@ def reset_password_form(token):
     """Show password reset form"""
     try:
         user = User.query.filter_by(reset_token=token).first()
+
+        frontend_host = os.getenv("FRONTEND_HOST", "http://localhost:5174/")
         
         if not user or not user.reset_token_expiry or user.reset_token_expiry < datetime.utcnow():
-            return """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Invalid Reset Link - Nexus AI Hub</title>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <style>
-                    body { font-family: 'Inter', Arial, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 20px; }
-                    .container { max-width: 400px; margin: 100px auto; text-align: center; background: #1e293b; padding: 40px; border-radius: 16px; border: 1px solid #334155; }
-                    .logo { width: 48px; height: 48px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px; }
-                    h1 { color: #f1f5f9; margin: 0 0 10px 0; font-size: 24px; }
-                    p { color: #94a3b8; margin: 10px 0; }
-                    a { color: #6366f1; text-decoration: none; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="logo"><span style="color: white; font-weight: bold; font-size: 24px;">N</span></div>
-                    <h1>Invalid Reset Link</h1>
-                    <p>This password reset link is invalid or has expired.</p>
-                    <p><a href="/auth">Request a new reset link</a></p>
-                </div>
-            </body>
-            </html>
-            """, 400
+            return f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Invalid Reset Link - Nexus AI Hub</title>
+        <style>
+            body {{
+                font-family: 'Inter', Arial, sans-serif;
+                background: #0f172a;
+                color: #e2e8f0;
+                margin: 0;
+                padding: 20px;
+            }}
+            .container {{
+                max-width: 400px;
+                margin: 100px auto;
+                text-align: center;
+                background: #1e293b;
+                padding: 40px;
+                border-radius: 16px;
+                border: 1px solid #334155;
+                box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+            }}
+            .logo {{
+                width: 56px;
+                height: 56px;
+                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 20px auto;
+            }}
+            .logo span {{
+                color: white;
+                font-weight: bold;
+                font-size: 24px;
+            }}
+            h1 {{
+                color: #f1f5f9;
+                margin: 0 0 15px 0;
+                font-size: 26px;
+            }}
+            p {{
+                color: #94a3b8;
+                margin: 12px 0;
+            }}
+            a {{
+                display: inline-block;
+                margin-top: 15px;
+                padding: 10px 20px;
+                background: #6366f1;
+                color: #fff;
+                border-radius: 8px;
+                text-decoration: none;
+                font-weight: 500;
+                transition: background 0.2s ease-in-out;
+            }}
+            a:hover {{
+                background: #4f46e5;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="logo"><span>N</span></div>
+            <h1>Invalid Reset Link</h1>
+            <p>This password reset link is invalid or has expired.</p>
+            <a href="{frontend_host}auth">Request a new reset link</a>
+        </div>
+    </body>
+    </html>
+    """, 400
         
         # Return password reset form
         return f"""
@@ -589,9 +640,9 @@ def reset_password_form(token):
             </style>
         </head>
         <body>
-            <div class="container">
+            <div class="container"> <div style="display:grid">
                 <div class="logo"><span style="color: white; font-weight: bold; font-size: 24px;">N</span></div>
-                <h1>Reset Your Password</h1>
+                <h1>Reset Your Password</h1> </div>
                 <form id="resetForm">
                     <input type="password" id="password" placeholder="New Password" required minlength="6">
                     <input type="password" id="confirmPassword" placeholder="Confirm Password" required minlength="6">
@@ -628,7 +679,7 @@ def reset_password_form(token):
                             messageDiv.className = 'message success';
                             messageDiv.textContent = data.message;
                             messageDiv.style.display = 'block';
-                            setTimeout(() => window.location.href = '/auth', 2000);
+                            setTimeout(() => window.location.href = '{frontend_host}auth', 2000);
                         }} else {{
                             messageDiv.className = 'message error';
                             messageDiv.textContent = data.message;

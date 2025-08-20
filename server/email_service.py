@@ -27,10 +27,9 @@ def send_verification_email(user_email: str, user_name: str, verification_token:
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
                 <div style="display: inline-flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; align-items: center; justify-content: center;">
                         <span style="color: white; font-weight: bold; font-size: 18px;">N</span>
                     </div>
-                    <h1 style="color: #333; margin: 0; font-size: 24px; font-weight: 600;">Nexus AI Hub</h1>
                 </div>
             </div>
             
@@ -120,10 +119,9 @@ def send_welcome_email(user_email: str, user_name: str):
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
                 <div style="display: inline-flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; align-items: center; justify-content: center;">
                         <span style="color: white; font-weight: bold; font-size: 18px;">N</span>
                     </div>
-                    <h1 style="color: #333; margin: 0; font-size: 24px; font-weight: 600;">Nexus AI Hub</h1>
                 </div>
             </div>
             
@@ -183,7 +181,7 @@ def send_password_reset_email(user_email: str, user_name: str, reset_token: str)
     """Send password reset email using SendGrid"""
     
     try:
-        sg = SendGridAPIClient(api_key=os.getenv('SENDGRID_API_KEY',"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"))
+        sg = SendGridAPIClient(api_key="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")
         
         # Create reset URL
         reset_url = url_for('auth.reset_password_form', token=reset_token, _external=True)
@@ -197,23 +195,22 @@ def send_password_reset_email(user_email: str, user_name: str, reset_token: str)
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Reset Your Password - Nexus AI Hub</title>
         </head>
-        <body style="font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #e2e8f0; max-width: 600px; margin: 0 auto; padding: 20px; background: #0f172a;">
+        <body style="font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #e2e8f0; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
                 <div style="display: inline-flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);">
-                        <span style="color: white; font-weight: bold; font-size: 24px;">N</span>
+                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; align-items: center; place-content: center; box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);">
+                        <span style="color: white; font-weight: bold; font-size: 26px;">N</span>
                     </div>
-                    <h1 style="color: #f1f5f9; margin: 0; font-size: 28px; font-weight: 700;">Nexus AI Hub</h1>
                 </div>
                 <p style="color: #94a3b8; margin: 0; font-size: 16px;">Your AI-Powered Workspace</p>
             </div>
             
-            <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); padding: 40px; border-radius: 16px; border: 1px solid #334155; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);">
-                <h2 style="color: #f1f5f9; margin-bottom: 24px; font-size: 24px; font-weight: 600;">Reset Your Password</h2>
+            <div style="background: #f0f8ff; padding: 40px; border-radius: 16px; border: 1px solid #334155; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);">
+                <h2 style="color: #333; margin-bottom: 24px; font-size: 24px; font-weight: 600;">Reset Your Password</h2>
                 
-                <p style="color: #cbd5e1; font-size: 16px; margin-bottom: 20px;">Hi {user_name},</p>
+                <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Hi {user_name},</p>
                 
-                <p style="color: #cbd5e1; font-size: 16px;">We received a request to reset your password for your Nexus AI Hub account. Click the button below to create a new password:</p>
+                <p style="color: #333; font-size: 16px;">We received a request to reset your password for your Nexus AI Hub account. Click the button below to create a new password:</p>
                 
                 <div style="text-align: center; margin: 32px 0;">
                     <a href="{reset_url}" 
@@ -231,15 +228,15 @@ def send_password_reset_email(user_email: str, user_name: str, reset_token: str)
                     </a>
                 </div>
                 
-                <p style="color: #94a3b8; font-size: 14px; margin-top: 25px; padding: 16px; background: rgba(15, 23, 42, 0.5); border-radius: 8px; border-left: 3px solid #f59e0b;">
+                <p style="color: #333; font-size: 14px; margin-top: 25px; padding: 16px; border-radius: 8px; border-left: 3px solid #f59e0b;">
                     ⚠️ This link will expire in 1 hour for security reasons.
                 </p>
                 
-                <p style="color: #94a3b8; font-size: 14px; margin-top: 20px;">
+                <p style="color: #333; font-size: 14px; margin-top: 20px;">
                     If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
                 </p>
                 
-                <p style="color: #94a3b8; font-size: 14px; margin-top: 20px;">
+                <p style="color: #333; font-size: 14px; margin-top: 20px;">
                     If the button above doesn't work, copy and paste this link into your browser:
                     <br>
                     <a href="{reset_url}" style="color: #6366f1; word-break: break-all; text-decoration: underline;">{reset_url}</a>

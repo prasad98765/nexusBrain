@@ -84,7 +84,7 @@ function Router() {
           <Route path="/business-info" component={BusinessInfoPage} />
         </>
       )}
-      <Route component={NotFound} />
+      <Route component={Home} />
     </Switch>
   );
 }

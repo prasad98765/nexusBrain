@@ -21,6 +21,7 @@ import { MultiSelect } from '@/components/ui/multi-select';
 import { X, Save } from 'lucide-react';
 import { Contact, CustomField, InsertContact } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ContactDrawerProps {
   isOpen: boolean;
@@ -43,7 +44,7 @@ export default function ContactDrawer({
     phone: '',
     customFields: {}
   });
-  
+  const { user, token } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -51,7 +52,12 @@ export default function ContactDrawer({
   const { data: customFields = [] } = useQuery<CustomField[]>({
     queryKey: ['/api/custom-fields', workspaceId],
     queryFn: async () => {
-      const response = await fetch(`/api/custom-fields?workspace_id=${workspaceId}&limit=1000`);
+      const response = await fetch(`/api/custom-fields?workspace_id=${workspaceId}`,{
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,  // ✅ Added headers
+      },});
       if (!response.ok) throw new Error('Failed to fetch custom fields');
       const data = await response.json();
       // Handle both old and new API response formats
@@ -86,7 +92,7 @@ export default function ContactDrawer({
     mutationFn: async (data: InsertContact) => {
       const response = await fetch('/api/contacts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json','Authorization': `Bearer ${token}` },
         body: JSON.stringify({ ...data, workspaceId }),
       });
       if (!response.ok) {
@@ -114,7 +120,7 @@ export default function ContactDrawer({
     mutationFn: async (data: Partial<Contact>) => {
       const response = await fetch(`/api/contacts/${contact?.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json','Authorization': `Bearer ${token}` },
         body: JSON.stringify(data),
       });
       if (!response.ok) {

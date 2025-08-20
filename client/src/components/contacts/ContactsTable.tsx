@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { Contact, CustomField, ContactsResponse, InsertContact } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import ContactDrawer from './ContactDrawer';
 import { MultiSelect } from '@/components/ui/multi-select';
 
@@ -56,6 +57,7 @@ interface EditingCell {
 
 export default function ContactsTable({ workspaceId, onSettingsClick }: ContactsTableProps) {
   const [page, setPage] = useState(1);
+  const { user, token } = useAuth();
   const [limit, setLimit] = useState(25);
   const [search, setSearch] = useState('');
   const [visibleFields, setVisibleFields] = useState(['name', 'email', 'phone', 'createdAt']);
@@ -82,7 +84,12 @@ export default function ContactsTable({ workspaceId, onSettingsClick }: Contacts
         ...(search && { search })
       });
       
-      const response = await fetch(`/api/contacts?${params}`);
+      const response = await fetch(`/api/contacts?${params}`,{
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,  // ✅ Added headers
+      },});
       if (!response.ok) throw new Error('Failed to fetch contacts');
       return response.json();
     },
@@ -92,7 +99,12 @@ export default function ContactsTable({ workspaceId, onSettingsClick }: Contacts
   const { data: customFields = [] } = useQuery<CustomField[]>({
     queryKey: ['/api/custom-fields', workspaceId],
     queryFn: async () => {
-      const response = await fetch(`/api/custom-fields?workspace_id=${workspaceId}&limit=1000`);
+      const response = await fetch(`/api/custom-fields?workspace_id=${workspaceId}`,{
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,  // ✅ Added headers
+      },});
       if (!response.ok) throw new Error('Failed to fetch custom fields');
       const data = await response.json();
       // Handle both old and new API response formats
@@ -105,7 +117,7 @@ export default function ContactsTable({ workspaceId, onSettingsClick }: Contacts
     mutationFn: async ({ contactId, updates }: { contactId: string; updates: Partial<Contact> }) => {
       const response = await fetch(`/api/contacts/${contactId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json','Authorization': `Bearer ${token}` },
         body: JSON.stringify(updates),
       });
       if (!response.ok) throw new Error('Failed to update contact');

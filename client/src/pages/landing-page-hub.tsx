@@ -5,6 +5,10 @@ import { useLocation } from 'wouter';
 export default function LandingPageHub() {
   const [, setLocation] = useLocation();
 
+  const handleNav = (path: string) => {
+    setLocation(path);
+  };
+
   const handleGetStarted = () => {
     setLocation('/auth');
   };
@@ -15,22 +19,34 @@ export default function LandingPageHub() {
       <header className="w-full bg-slate-800/90 backdrop-blur-sm border-b border-slate-700">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3" onClick={() => handleNav('/landing-page')} style={{ cursor: 'pointer' }}>
               <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">⚡</span>
               </div>
               <span className="text-xl font-bold text-slate-100">Nexus AI Hub</span>
             </div>
-            
+
             <nav className="hidden md:flex items-center gap-6">
-              <a href="#tools" className="text-slate-300 hover:text-slate-100 transition-colors">AI Tools</a>
-              <a href="#about" className="text-slate-300 hover:text-slate-100 transition-colors">About</a>
-              <a href="#features" className="text-slate-300 hover:text-slate-100 transition-colors">Features</a>
-              <a href="#how-it-works" className="text-slate-300 hover:text-slate-100 transition-colors">How It Works</a>
-              <a href="#contact" className="text-slate-300 hover:text-slate-100 transition-colors">Contact</a>
+              <a href="/landing-page/hub" className="text-slate-300 hover:text-slate-100 transition-colors">AI Tools</a>
+              <span
+                onClick={() => handleNav('/landing-page#about')}
+                className="cursor-pointer text-slate-300 hover:text-slate-100 transition-colors"
+              >About</span>
+              <span
+                onClick={() => handleNav('/landing-page#features')}
+                className="cursor-pointer text-slate-300 hover:text-slate-100 transition-colors"
+              >Features</span>
+              <span
+                onClick={() => handleNav('/landing-page#how-it-works')}
+                className="cursor-pointer text-slate-300 hover:text-slate-100 transition-colors"
+              >How It Works</span>
+              <span
+                onClick={() => handleNav('/landing-page#contact')}
+                className="cursor-pointer text-slate-300 hover:text-slate-100 transition-colors"
+              >Contact</span>
             </nav>
-            
-            <Button 
+
+            <Button
               onClick={handleGetStarted}
               className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white"
             >
@@ -229,7 +245,7 @@ export default function LandingPageHub() {
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-1/4 left-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse-slow"></div>
           <div className="absolute bottom-1/4 right-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow animation-delay-1000"></div>
-          
+
           {/* Floating Stars */}
           <div className="absolute top-10 left-10 w-1 h-1 bg-indigo-400 rounded-full animate-twinkle"></div>
           <div className="absolute top-20 right-20 w-1 h-1 bg-purple-400 rounded-full animate-twinkle animation-delay-500"></div>
@@ -246,16 +262,16 @@ export default function LandingPageHub() {
             Join thousands of businesses creating their personalized AI ecosystems with Nexus AI Hub.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up animation-delay-600">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               onClick={handleGetStarted}
               className="w-full sm:w-auto bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg transform hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/25"
             >
               Get Started Now →
             </Button>
-            <Button 
-              variant="outline" 
-              size="lg" 
+            <Button
+              variant="outline"
+              size="lg"
               className="w-full sm:w-auto border-slate-600 text-slate-300 hover:bg-slate-800 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg transform hover:scale-105 transition-all duration-300"
             >
               Explore All Tools

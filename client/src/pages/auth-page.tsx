@@ -28,7 +28,7 @@ const NexusLogo = () => (
     <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/25">
       <span className="text-white font-bold text-xl">N</span>
     </div>
-    <div className="text-center">
+    <div >
       <h1 className="text-2xl font-bold text-slate-100">Nexus AI Hub</h1>
       <p className="text-sm text-slate-400">Build Intelligent AI Agents That Connect Everything</p>
     </div>
@@ -207,7 +207,11 @@ export default function AuthPage() {
 
   const handleResendVerification = async () => {
     setLoading(true);
-
+    if (!formData.email) {
+      setMessage({ type: 'error', text: 'Please enter your email to resend verification.' });
+      setLoading(false);
+      return;
+    }
     try {
       const response = await fetch('/api/resend-verification', {
         method: 'POST',
@@ -279,7 +283,7 @@ export default function AuthPage() {
             )}
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsList className="grid w-full grid-cols-2 mb-4" style={{ border: "1px solid #374151" }}>
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
@@ -351,6 +355,15 @@ export default function AuthPage() {
                     )}
                   </Button>
                 </form>
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                  disabled={loading}
+                  onClick={() => { window.location.href = '/forgot-password' }}
+                >
+
+                  Forgot Password ?
+                </Button>
 
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">

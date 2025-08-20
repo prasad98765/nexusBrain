@@ -88,7 +88,7 @@ export default function ForgotPasswordPage() {
               )}
 
               <div className="text-center space-y-4">
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-slate-400" style={{marginBottom: "18px"}}>
                   Didn't receive the email? Check your spam folder or try again in a few minutes.
                 </p>
                 

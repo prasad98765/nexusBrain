@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { CustomField } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ContactPropertiesProps {
   workspaceId: string;
@@ -58,6 +59,7 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [limit] = useState(10);
+  const { user, token } = useAuth();
   
   const [newField, setNewField] = useState({
     name: '',
@@ -85,7 +87,12 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
         limit: limit.toString(),
         ...(search && { search })
       });
-      const response = await fetch(`/api/custom-fields?${params}`);
+      const response = await fetch(`/api/custom-fields?${params}`,{
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,  // ✅ Added headers
+      },});
       if (!response.ok) throw new Error('Failed to fetch custom fields');
       const data = await response.json();
       // Handle both old and new API response formats
@@ -109,7 +116,7 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
     mutationFn: async (field: typeof newField & { workspaceId: string }) => {
       const response = await fetch('/api/custom-fields', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json','Authorization': `Bearer ${token}` },
         body: JSON.stringify(field),
       });
       if (!response.ok) {
@@ -134,7 +141,7 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<CustomField> }) => {
       const response = await fetch(`/api/custom-fields/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json','Authorization': `Bearer ${token}` },
         body: JSON.stringify(updates),
       });
       if (!response.ok) {
@@ -160,6 +167,10 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
     mutationFn: async (fieldId: string) => {
       const response = await fetch(`/api/custom-fields/${fieldId}`, {
         method: 'DELETE',
+             headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,  // ✅ Added headers
+      }
       });
       if (!response.ok) {
         const error = await response.text();
