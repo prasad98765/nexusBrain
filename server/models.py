@@ -92,7 +92,7 @@ class CustomField(db.Model):
     __tablename__ = 'custom_fields'
     
     id = db.Column(db.String, primary_key=True, default=lambda: str(uuid4()))
-    name = db.Column(db.String(255), nullable=False)
+    name = db.Column(db.String(20), nullable=False)
     field_type = db.Column(db.String(50), nullable=False)  # string, number, date, dropdown, radio, multiselect
     options = db.Column(db.JSON)  # For dropdown and radio types
     required = db.Column(db.Boolean, default=False)
