@@ -1,0 +1,175 @@
+from flask import Blueprint, request, jsonify
+from server.models import db, Agent
+from server.auth_utils import require_auth
+
+agents_bp = Blueprint('agents', __name__)
+
+@agents_bp.route('/agents', methods=['POST'])
+@require_auth
+def create_agent(current_user):
+    """Create a new agent"""
+    try:
+        data = request.get_json()
+        
+        if not data.get('type'):
+            return jsonify({'error': 'Agent type is required'}), 400
+        
+        if not data.get('workspaceId'):
+            return jsonify({'error': 'Workspace ID is required'}), 400
+        
+        # Validate agent type
+        valid_types = ['web', 'whatsapp', 'voice']
+        if data['type'] not in valid_types:
+            return jsonify({'error': f'Invalid agent type. Must be one of: {valid_types}'}), 400
+        
+        # Create new agent
+        agent = Agent()
+        agent.name = data.get('name', f"{data['type'].title()} Agent")
+        agent.type = data['type']
+        agent.description = data.get('description', '')
+        agent.status = data.get('status', 'draft')
+        agent.configuration = data.get('configuration', {})
+        agent.workspace_id = data['workspaceId']
+        
+        db.session.add(agent)
+        db.session.commit()
+        
+        return jsonify({
+            'id': agent.id,
+            'name': agent.name,
+            'type': agent.type,
+            'description': agent.description,
+            'status': agent.status,
+            'configuration': agent.configuration,
+            'workspaceId': agent.workspace_id,
+            'createdAt': agent.created_at.isoformat(),
+            'updatedAt': agent.updated_at.isoformat() if agent.updated_at else agent.created_at.isoformat()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@agents_bp.route('/agents', methods=['GET'])
+@require_auth
+def get_agents(current_user):
+    """Get agents for a workspace"""
+    try:
+        workspace_id = request.args.get('workspace_id')
+        
+        if not workspace_id:
+            return jsonify({'error': 'workspace_id is required'}), 400
+        
+        # Get pagination parameters
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 10))
+        
+        # Build query
+        query = Agent.query.filter_by(workspace_id=workspace_id)
+        
+        # Order by created_at desc to show latest first
+        query = query.order_by(Agent.created_at.desc())
+        
+        # Get total count before pagination
+        total_count = query.count()
+        
+        # Apply pagination
+        agents = query.offset((page - 1) * limit).limit(limit).all()
+        
+        agents_data = []
+        for agent in agents:
+            agent_dict = {
+                'id': agent.id,
+                'name': agent.name,
+                'type': agent.type,
+                'description': agent.description,
+                'status': agent.status,
+                'configuration': agent.configuration or {},
+                'workspaceId': agent.workspace_id,
+                'createdAt': agent.created_at.isoformat(),
+                'updatedAt': agent.updated_at.isoformat() if agent.updated_at else agent.created_at.isoformat()
+            }
+            agents_data.append(agent_dict)
+        
+        return jsonify({
+            'agents': agents_data,
+            'total': total_count,
+            'page': page,
+            'totalPages': (total_count + limit - 1) // limit
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@agents_bp.route('/agents/<agent_id>', methods=['GET'])
+@require_auth
+def get_agent(current_user, agent_id):
+    """Get a specific agent"""
+    try:
+        agent = Agent.query.get_or_404(agent_id)
+        
+        return jsonify({
+            'id': agent.id,
+            'name': agent.name,
+            'type': agent.type,
+            'description': agent.description,
+            'status': agent.status,
+            'configuration': agent.configuration or {},
+            'workspaceId': agent.workspace_id,
+            'createdAt': agent.created_at.isoformat(),
+            'updatedAt': agent.updated_at.isoformat() if agent.updated_at else agent.created_at.isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@agents_bp.route('/agents/<agent_id>', methods=['PATCH'])
+@require_auth
+def update_agent(current_user, agent_id):
+    """Update an agent"""
+    try:
+        agent = Agent.query.get_or_404(agent_id)
+        data = request.get_json()
+        
+        # Update fields
+        if 'name' in data:
+            agent.name = data['name']
+        if 'description' in data:
+            agent.description = data['description']
+        if 'status' in data:
+            agent.status = data['status']
+        if 'configuration' in data:
+            agent.configuration = data['configuration']
+        
+        db.session.commit()
+        
+        return jsonify({
+            'id': agent.id,
+            'name': agent.name,
+            'type': agent.type,
+            'description': agent.description,
+            'status': agent.status,
+            'configuration': agent.configuration or {},
+            'workspaceId': agent.workspace_id,
+            'createdAt': agent.created_at.isoformat(),
+            'updatedAt': agent.updated_at.isoformat() if agent.updated_at else agent.created_at.isoformat()
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@agents_bp.route('/agents/<agent_id>', methods=['DELETE'])
+@require_auth
+def delete_agent(current_user, agent_id):
+    """Delete an agent"""
+    try:
+        agent = Agent.query.get_or_404(agent_id)
+        db.session.delete(agent)
+        db.session.commit()
+        
+        return jsonify({'message': 'Agent deleted successfully'})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500

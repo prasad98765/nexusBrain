@@ -100,8 +100,22 @@ class CustomField(db.Model):
     readonly = db.Column(db.Boolean, default=False)
     workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Agent(db.Model):
+    __tablename__ = 'agents'
+    
+    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid4()))
+    name = db.Column(db.String(255), nullable=False)
+    type = db.Column(db.String(50), nullable=False)  # web, whatsapp, voice
+    description = db.Column(db.Text)
+    status = db.Column(db.String(50), default='draft')  # draft, published, archived
+    configuration = db.Column(db.JSON)  # Store agent-specific configuration
+    workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
+    workspace = db.relationship('Workspace', backref='agents', lazy=True)
     workspace = db.relationship('Workspace', backref='custom_fields', lazy=True)
 
 # Session table for Flask-Session

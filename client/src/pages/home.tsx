@@ -1,17 +1,31 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Users, Settings, LogOut, Menu, Phone, Mail, Bell, User } from 'lucide-react';
+import { MessageSquare, Users, Settings, LogOut, Menu, Phone, Mail, Bell, User, Plus, Bot, MessageCircle, Zap } from 'lucide-react';
 import ContactsTable from '@/components/contacts/ContactsTable';
 import SettingsPage from '@/pages/settings-page';
+import CreateAgentModal from '@/components/agents/CreateAgentModal';
+import CustomizeAgent from '@/pages/customize-agent';
 
 export default function Home() {
   const { user } = useAuth();
-  const [activeView, setActiveView] = useState<'dashboard' | 'contacts' | 'settings'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'contacts' | 'settings' | 'customize-agent'>('dashboard');
+  const [showCreateAgentModal, setShowCreateAgentModal] = useState(false);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
     window.location.href = '/auth';
+  };
+
+  const handleAgentCreated = (agentId: string) => {
+    setSelectedAgentId(agentId);
+    setActiveView('customize-agent');
+  };
+
+  const handleBackFromCustomize = () => {
+    setActiveView('dashboard');
+    setSelectedAgentId(null);
   };
 
   return (
@@ -77,6 +91,16 @@ export default function Home() {
                 activeView === 'dashboard' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
               }`} />
             </button>
+            
+            {/* Create Agent Button */}
+            <button 
+              className="p-3 rounded-lg hover:bg-indigo-600 transition-colors group bg-indigo-500/20 border border-indigo-500/30"
+              onClick={() => setShowCreateAgentModal(true)}
+              title="Create Agent"
+            >
+              <Plus className="h-5 w-5 text-indigo-400 group-hover:text-indigo-300" />
+            </button>
+            
             <button 
               className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${
                 activeView === 'contacts' ? 'bg-slate-700' : ''
@@ -195,9 +219,22 @@ export default function Home() {
             <div className="h-full">
               <SettingsPage workspaceId={user?.workspaceId || 'default'} />
             </div>
+          ) : activeView === 'customize-agent' ? (
+            <CustomizeAgent
+              agentId={selectedAgentId || undefined}
+              onBackClick={handleBackFromCustomize}
+            />
           ) : null}
         </main>
       </div>
+
+      {/* Create Agent Modal */}
+      <CreateAgentModal
+        open={showCreateAgentModal}
+        onOpenChange={setShowCreateAgentModal}
+        workspaceId={user?.workspaceId || 'default'}
+        onAgentCreated={handleAgentCreated}
+      />
     </div>
   );
 }
