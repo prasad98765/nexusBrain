@@ -185,14 +185,19 @@ def get_custom_fields(current_user):
         limit = int(request.args.get('limit', 10))
         search = request.args.get('search', '')
         
-        # Build query with search
+        # Build query with search and order by updated_at desc (latest first)
         query = CustomField.query.filter_by(workspace_id=workspace_id)
         if search:
             query = query.filter(CustomField.name.ilike(f'%{search}%'))
         
+        # Order by created_at desc to show latest created at top (since updated_at may not exist)
+        query = query.order_by(CustomField.created_at.desc())
+        
+        # Get total count before pagination
+        total_count = query.count()
+        
         # Apply pagination
         custom_fields = query.offset((page - 1) * limit).limit(limit).all()
-        total_count = query.count()
         
         fields_data = []
         for field in custom_fields:
@@ -205,7 +210,8 @@ def get_custom_fields(current_user):
                 'showInForm': field.show_in_form,
                 'readonly': field.readonly,
                 'workspaceId': field.workspace_id,
-                'createdAt': field.created_at.isoformat()
+                'createdAt': field.created_at.isoformat(),
+                'updatedAt': field.created_at.isoformat()  # Using created_at as proxy for updated_at
             }
             fields_data.append(field_dict)
         
@@ -237,6 +243,19 @@ def create_custom_field(current_user):
         if data['type'] not in valid_types:
             return jsonify({'error': f'Invalid field type. Must be one of: {valid_types}'}), 400
         
+        # Validate option requirements for dropdown/radio/multiselect fields
+        if data['type'] in ['dropdown', 'radio', 'multiselect'] and not data.get('options'):
+            return jsonify({'error': f'{data["type"]} fields must have at least one option'}), 400
+        
+        # Validate option count and length
+        options = data.get('options', [])
+        if options:
+            if len(options) > 50:
+                return jsonify({'error': 'Maximum 50 options allowed'}), 400
+            for option in options:
+                if len(option) < 10:
+                    return jsonify({'error': 'Each option must be at least 10 characters long'}), 400
+        
         # Create new custom field
         custom_field = CustomField()
         custom_field.name = data['name']
@@ -265,6 +284,7 @@ def create_custom_field(current_user):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
 @contacts_bp.route('/custom-fields/<field_id>', methods=['PATCH'])
 @require_auth
 def update_custom_field(current_user, field_id):
@@ -272,6 +292,19 @@ def update_custom_field(current_user, field_id):
     try:
         custom_field = CustomField.query.get_or_404(field_id)
         data = request.get_json()
+        
+        # Validate name length if provided
+        if 'name' in data and len(data['name']) > 20:
+            return jsonify({'error': 'Field name must be 20 characters or less'}), 400
+        
+        # Validate options if provided
+        if 'options' in data:
+            options = data['options']
+            if len(options) > 50:
+                return jsonify({'error': 'Maximum 50 options allowed'}), 400
+            for option in options:
+                if len(option) < 10:
+                    return jsonify({'error': 'Each option must be at least 10 characters long'}), 400
         
         # Update fields
         if 'name' in data:
@@ -287,6 +320,10 @@ def update_custom_field(current_user, field_id):
         if 'readonly' in data:
             custom_field.readonly = data['readonly']
         
+        # Ensure read-only fields are not shown in form
+        if custom_field.readonly:
+            custom_field.show_in_form = False
+        
         db.session.commit()
         
         return jsonify({
@@ -298,7 +335,8 @@ def update_custom_field(current_user, field_id):
             'showInForm': custom_field.show_in_form,
             'readonly': custom_field.readonly,
             'workspaceId': custom_field.workspace_id,
-            'createdAt': custom_field.created_at.isoformat()
+            'createdAt': custom_field.created_at.isoformat(),
+            'updatedAt': custom_field.created_at.isoformat()  # Using created_at as proxy for updated_at
         })
         
     except Exception as e:

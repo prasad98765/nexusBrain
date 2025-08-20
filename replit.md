@@ -2,7 +2,7 @@
 
 This is a comprehensive multi-tenant Nexus AI platform built with React TypeScript frontend and Python Flask backend. The application provides workspace-based organization where users can create conversations and interact with AI assistants. It features dark-themed UI matching Nexus AI Hub branding, comprehensive authentication with forgot password functionality, business information collection for user onboarding, email verification with HTML templates, Google OAuth integration, PostgreSQL database storage with MongoDB fallback support, static landing pages recreated from nexusaihub.co.in, and a comprehensive contacts management system with custom properties.
 
-**Last Updated**: August 19, 2025 - Completed comprehensive custom contact properties system with settings page management, contact drawer for full editing, and enhanced table functionality with read-only field support.
+**Last Updated**: August 20, 2025 - Enhanced custom contact properties system with advanced drawer UI for property editing, comprehensive dropdown options management with vertical scrollable layout, 20-character field name limits, 10+ character option requirements, 50-option maximum limits, latest-first sorting, and multiselect field type support.
 
 # User Preferences
 
@@ -17,7 +17,7 @@ Preferred communication style: Simple, everyday language.
 - **UI Components**: shadcn/ui component library with Radix UI primitives and Tailwind CSS
 - **Layout**: Three-panel layout with collapsible sidebar, main chat area, and right sidebar for conversation metadata
 - **Landing Pages**: Static marketing pages recreated from nexusaihub.co.in with comprehensive feature showcase
-- **Contacts System**: Advanced contacts management with custom properties, inline editing, and drawer-based full editing
+- **Contacts System**: Advanced contacts management with custom properties, inline editing, drawer-based full editing, and enhanced property management with scrollable options UI
 
 ## Backend Architecture
 - **Server**: Python Flask with development server running on port 5000
@@ -34,7 +34,7 @@ Preferred communication style: Simple, everyday language.
 - **Migrations**: SQLAlchemy model-based schema management with db.create_all()
 - **Relations**: Foreign key relationships between users, workspaces, conversations, messages, contacts, and custom fields
 - **Sessions**: Flask sessions stored in PostgreSQL using flask_sessions table
-- **Custom Properties**: Flexible custom field system supporting string, number, date, dropdown, and radio field types with workspace isolation
+- **Custom Properties**: Flexible custom field system supporting string, number, date, dropdown, radio, and multiselect field types with workspace isolation, advanced drawer UI for editing, 20-character field name limits, 10+ character option requirements, and 50-option maximum limits
 
 ## Authentication & Authorization
 - **JWT Authentication**: Secure JWT tokens with 48-hour expiry for session management

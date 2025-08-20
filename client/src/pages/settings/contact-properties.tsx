@@ -189,12 +189,23 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
   };
 
   const handleAddOption = () => {
-    if (optionInput.trim() && !newField.options.includes(optionInput.trim())) {
+    const trimmedOption = optionInput.trim();
+    if (
+      trimmedOption.length >= 10 && 
+      !newField.options.includes(trimmedOption) && 
+      newField.options.length < 50
+    ) {
       setNewField({
         ...newField,
-        options: [...newField.options, optionInput.trim()]
+        options: [trimmedOption, ...newField.options] // Add to beginning for latest first
       });
       setOptionInput('');
+    } else if (trimmedOption.length < 10) {
+      toast({ title: 'Option must be at least 10 characters long', variant: 'destructive' });
+    } else if (newField.options.includes(trimmedOption)) {
+      toast({ title: 'Option already exists', variant: 'destructive' });
+    } else if (newField.options.length >= 50) {
+      toast({ title: 'Maximum 50 options allowed', variant: 'destructive' });
     }
   };
 
@@ -206,11 +217,22 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
   };
 
   const handleAddEditOption = () => {
-    if (editOptionInput.trim() && !editOptions.includes(editOptionInput.trim())) {
-      const newOptions = [...editOptions, editOptionInput.trim()];
+    const trimmedOption = editOptionInput.trim();
+    if (
+      trimmedOption.length >= 10 && 
+      !editOptions.includes(trimmedOption) && 
+      editOptions.length < 50
+    ) {
+      const newOptions = [trimmedOption, ...editOptions]; // Add to beginning for latest first
       setEditOptions(newOptions);
       setEditData({ ...editData, options: newOptions });
       setEditOptionInput('');
+    } else if (trimmedOption.length < 10) {
+      toast({ title: 'Option must be at least 10 characters long', variant: 'destructive' });
+    } else if (editOptions.includes(trimmedOption)) {
+      toast({ title: 'Option already exists', variant: 'destructive' });
+    } else if (editOptions.length >= 50) {
+      toast({ title: 'Maximum 50 options allowed', variant: 'destructive' });
     }
   };
 
@@ -226,8 +248,8 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
       return;
     }
 
-    if (newField.name.length > 100) {
-      toast({ title: 'Field name must be 100 characters or less', variant: 'destructive' });
+    if (newField.name.length > 20) {
+      toast({ title: 'Field name must be 20 characters or less', variant: 'destructive' });
       return;
     }
 
@@ -262,8 +284,8 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
       return;
     }
 
-    if (editData.name && editData.name.length > 100) {
-      toast({ title: 'Field name must be 100 characters or less', variant: 'destructive' });
+    if (editData.name && editData.name.length > 20) {
+      toast({ title: 'Field name must be 20 characters or less', variant: 'destructive' });
       return;
     }
 
@@ -340,9 +362,9 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                   value={newField.name}
                   onChange={(e) => setNewField({ ...newField, name: e.target.value })}
                   className="bg-slate-700 border-slate-600 text-slate-100"
-                  maxLength={100}
+                  maxLength={20}
                 />
-                <p className="text-xs text-slate-500">{newField.name.length}/100 characters</p>
+                <p className="text-xs text-slate-500">{newField.name.length}/20 characters</p>
               </div>
 
               <div className="space-y-2">
@@ -363,32 +385,57 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
               </div>
 
               {(['dropdown', 'radio', 'multiselect'].includes(newField.type)) && (
-                <div className="space-y-2">
-                  <Label className="text-slate-300">Options *</Label>
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Add an option"
-                        value={optionInput}
-                        onChange={(e) => setOptionInput(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleAddOption()}
-                        className="bg-slate-700 border-slate-600 text-slate-100"
-                        maxLength={50}
-                      />
-                      <Button type="button" onClick={handleAddOption} variant="outline">
-                        Add
-                      </Button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {newField.options.map((option, index) => (
-                        <Badge key={index} variant="secondary" className="flex items-center gap-2">
-                          {option}
-                          <X 
-                            className="h-3 w-3 cursor-pointer" 
-                            onClick={() => handleRemoveOption(index)}
-                          />
-                        </Badge>
-                      ))}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-slate-300">Options *</Label>
+                    <span className="text-xs text-slate-500">{newField.options.length}/50 options</span>
+                  </div>
+                  
+                  {/* Add New Option */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add an option (min 10 characters)"
+                      value={optionInput}
+                      onChange={(e) => setOptionInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAddOption()}
+                      className="bg-slate-700 border-slate-600 text-slate-100"
+                      minLength={10}
+                    />
+                    <Button 
+                      type="button" 
+                      onClick={handleAddOption} 
+                      variant="outline"
+                      disabled={optionInput.trim().length < 10 || newField.options.length >= 50}
+                      className="whitespace-nowrap"
+                    >
+                      Add Option
+                    </Button>
+                  </div>
+                  
+                  {/* Options List - Scrollable */}
+                  <div className="border border-slate-600 rounded-lg bg-slate-800 max-h-48 overflow-y-auto">
+                    <div className="p-3 space-y-2">
+                      {newField.options.length === 0 ? (
+                        <p className="text-slate-500 text-sm text-center py-4">No options added yet</p>
+                      ) : (
+                        newField.options.map((option, index) => (
+                          <div 
+                            key={index} 
+                            className="flex items-center justify-between p-2 bg-slate-700 rounded border hover:bg-slate-600 transition-colors"
+                          >
+                            <span className="text-slate-200 flex-1 break-words pr-2">{option}</span>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleRemoveOption(index)}
+                              className="text-slate-400 hover:text-red-400 h-6 w-6 p-0"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
@@ -432,19 +479,9 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                 <Button
                   onClick={handleCreateField}
                   disabled={createFieldMutation.isPending}
-                  className="flex-1"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700"
                 >
-                  Create Field
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowCreateDrawer(false);
-                    resetNewField();
-                  }}
-                  className="flex-1"
-                >
-                  Cancel
+                  {createFieldMutation.isPending ? 'Creating...' : 'Create Field'}
                 </Button>
               </div>
             </div>
@@ -549,9 +586,9 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                               value={editData.name || ''}
                               onChange={(e) => setEditData({ ...editData, name: e.target.value })}
                               className="h-8 bg-slate-700 border-slate-600"
-                              maxLength={100}
+                              maxLength={20}
                             />
-                            <p className="text-xs text-slate-500">{(editData.name || '').length}/100</p>
+                            <p className="text-xs text-slate-500">{(editData.name || '').length}/20</p>
                           </div>
                         ) : (
                           field.name
@@ -564,31 +601,149 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                       </TableCell>
                       <TableCell>
                         {editingField === field.id && ['dropdown', 'radio', 'multiselect'].includes(field.type) ? (
-                          <div className="space-y-2 min-w-[200px]">
-                            <div className="flex gap-1">
-                              <Input
-                                placeholder="Add option"
-                                value={editOptionInput}
-                                onChange={(e) => setEditOptionInput(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleAddEditOption()}
-                                className="h-7 text-xs bg-slate-700 border-slate-600"
-                                maxLength={50}
-                              />
-                              <Button size="sm" onClick={handleAddEditOption} variant="outline" className="h-7 px-2">
-                                +
-                              </Button>
-                            </div>
-                            <div className="flex flex-wrap gap-1">
-                              {editOptions.map((option, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs flex items-center gap-1">
-                                  {option}
-                                  <X 
-                                    className="h-2 w-2 cursor-pointer" 
-                                    onClick={() => handleRemoveEditOption(index)}
-                                  />
-                                </Badge>
-                              ))}
-                            </div>
+                          <div className="min-w-[250px]">
+                            <Sheet open={editingField === field.id} onOpenChange={(open) => !open && setEditingField(null)}>
+                              <SheetTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-8">
+                                  Edit Options ({editOptions.length})
+                                </Button>
+                              </SheetTrigger>
+                              <SheetContent className="w-full sm:max-w-lg bg-slate-800 border-slate-700">
+                                <SheetHeader>
+                                  <SheetTitle className="text-slate-100">Edit Field Options</SheetTitle>
+                                  <SheetDescription className="text-slate-400">
+                                    Manage options for "{field.name}" field
+                                  </SheetDescription>
+                                </SheetHeader>
+                                
+                                <div className="mt-6 space-y-4">
+                                  {/* Field Name Edit */}
+                                  <div className="space-y-2">
+                                    <Label className="text-slate-300">Field Name</Label>
+                                    <Input
+                                      value={editData.name || ''}
+                                      onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                                      className="bg-slate-700 border-slate-600"
+                                      maxLength={20}
+                                    />
+                                    <p className="text-xs text-slate-500">{(editData.name || '').length}/20 characters</p>
+                                  </div>
+
+                                  {/* Options Management */}
+                                  <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                      <Label className="text-slate-300">Options</Label>
+                                      <span className="text-xs text-slate-500">{editOptions.length}/50 options</span>
+                                    </div>
+                                    
+                                    {/* Add New Option */}
+                                    <div className="flex gap-2">
+                                      <Input
+                                        placeholder="Add option (min 10 characters)"
+                                        value={editOptionInput}
+                                        onChange={(e) => setEditOptionInput(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && handleAddEditOption()}
+                                        className="bg-slate-700 border-slate-600"
+                                        minLength={10}
+                                      />
+                                      <Button 
+                                        onClick={handleAddEditOption} 
+                                        variant="outline"
+                                        disabled={editOptionInput.trim().length < 10 || editOptions.length >= 50}
+                                        className="whitespace-nowrap"
+                                      >
+                                        Add
+                                      </Button>
+                                    </div>
+                                    
+                                    {/* Options List - Scrollable */}
+                                    <div className="border border-slate-600 rounded-lg bg-slate-900 max-h-64 overflow-y-auto">
+                                      <div className="p-3 space-y-2">
+                                        {editOptions.length === 0 ? (
+                                          <p className="text-slate-500 text-sm text-center py-6">No options added yet</p>
+                                        ) : (
+                                          editOptions.map((option, index) => (
+                                            <div 
+                                              key={index} 
+                                              className="flex items-center justify-between p-3 bg-slate-800 rounded border hover:bg-slate-700 transition-colors"
+                                            >
+                                              <span className="text-slate-200 flex-1 break-words pr-3 text-sm leading-relaxed">
+                                                {option}
+                                              </span>
+                                              <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => handleRemoveEditOption(index)}
+                                                className="text-slate-400 hover:text-red-400 h-6 w-6 p-0 flex-shrink-0"
+                                              >
+                                                <X className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                          ))
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Field Settings */}
+                                  <div className="space-y-4 pt-2">
+                                    <div className="flex items-center space-x-2">
+                                      <Checkbox
+                                        id="edit-required"
+                                        checked={editData.required || false}
+                                        onCheckedChange={(checked) => setEditData({ ...editData, required: checked as boolean })}
+                                      />
+                                      <Label htmlFor="edit-required" className="text-slate-300">Required field</Label>
+                                    </div>
+
+                                    <div className="flex items-center space-x-2">
+                                      <Checkbox
+                                        id="edit-showInForm"
+                                        checked={editData.showInForm || false}
+                                        disabled={editData.readonly}
+                                        onCheckedChange={(checked) => handleShowInFormChange(field.id, checked as boolean)}
+                                      />
+                                      <Label htmlFor="edit-showInForm" className="text-slate-300">Show in contact form</Label>
+                                    </div>
+
+                                    <div className="flex items-center space-x-2">
+                                      <Checkbox
+                                        id="edit-readonly"
+                                        checked={editData.readonly || false}
+                                        onCheckedChange={(checked) => setEditData({ 
+                                          ...editData, 
+                                          readonly: checked as boolean,
+                                          showInForm: checked ? false : editData.showInForm
+                                        })}
+                                      />
+                                      <Label htmlFor="edit-readonly" className="text-slate-300">Read-only</Label>
+                                    </div>
+                                  </div>
+
+                                  {/* Actions */}
+                                  <div className="flex gap-2 pt-4">
+                                    <Button
+                                      onClick={handleSaveEdit}
+                                      disabled={updateFieldMutation.isPending}
+                                      className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+                                    >
+                                      {updateFieldMutation.isPending ? 'Saving...' : 'Save Changes'}
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => {
+                                        setEditingField(null);
+                                        setEditData({});
+                                        setEditOptions([]);
+                                      }}
+                                      className="flex-1"
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              </SheetContent>
+                            </Sheet>
                           </div>
                         ) : field.options && field.options.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
