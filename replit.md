@@ -2,7 +2,7 @@
 
 This is a comprehensive multi-tenant Nexus AI platform built with React TypeScript frontend and Python Flask backend. The application provides workspace-based organization where users can create conversations and interact with AI assistants. It features dark-themed UI matching Nexus AI Hub branding, comprehensive authentication with forgot password functionality, business information collection for user onboarding, email verification with HTML templates, Google OAuth integration, PostgreSQL database storage with MongoDB fallback support, static landing pages recreated from nexusaihub.co.in, a comprehensive contacts management system with custom properties, and a complete agent creation and customization system.
 
-**Last Updated**: August 20, 2025 - Added comprehensive "Create Agent" feature with modal-based selection for Web, WhatsApp, and Voice agents, complete Agent database model with workspace relationships, full backend API endpoints for agent CRUD operations, and customizable agent interface with live preview functionality.
+**Last Updated**: August 20, 2025 - Added comprehensive "Create Agent" feature with modal-based selection for Web, WhatsApp, and Voice agents, complete Agent database model with workspace relationships, full backend API endpoints for agent CRUD operations, customizable agent interface with live preview functionality, and a complete Flow Builder powered by React Flow with drag-and-drop nodes, visual connections, Bot Knowledge management, and JSON flow persistence.
 
 # User Preferences
 
@@ -18,7 +18,8 @@ Preferred communication style: Simple, everyday language.
 - **Layout**: Three-panel layout with collapsible sidebar, main chat area, and right sidebar for conversation metadata
 - **Landing Pages**: Static marketing pages recreated from nexusaihub.co.in with comprehensive feature showcase
 - **Contacts System**: Advanced contacts management with custom properties, inline editing, drawer-based full editing, and enhanced property management with scrollable options UI
-- **Agent Creation System**: Comprehensive agent creation with modal-based type selection, customization interface, and live preview functionality
+- **Agent Creation System**: Comprehensive agent creation with modal-based type selection, customization interface, live preview functionality, and advanced Flow Builder
+- **Flow Builder**: Visual drag-and-drop flow designer powered by React Flow with Start, Input, Bot Knowledge, and End nodes, visual connections, and comprehensive knowledge source management
 
 ## Backend Architecture
 - **Server**: Python Flask with development server running on port 5000
@@ -36,7 +37,8 @@ Preferred communication style: Simple, everyday language.
 - **Relations**: Foreign key relationships between users, workspaces, conversations, messages, contacts, custom fields, and agents
 - **Sessions**: Flask sessions stored in PostgreSQL using flask_sessions table
 - **Custom Properties**: Flexible custom field system supporting string, number, date, dropdown, radio, and multiselect field types with workspace isolation, advanced drawer UI for editing, 20-character field name limits, 10+ character option requirements, and 50-option maximum limits
-- **Agent Management**: Complete agent lifecycle management with Web, WhatsApp, and Voice agent types, draft/published/archived status tracking, JSON configuration storage, and workspace-isolated access control
+- **Agent Management**: Complete agent lifecycle management with Web, WhatsApp, and Voice agent types, draft/published/archived status tracking, JSON configuration storage, workspace-isolated access control, and visual flow configuration with persistent JSON storage
+- **Knowledge Management**: Multi-modal knowledge input system supporting document uploads (.doc, .pdf, .txt, .csv, .xls/.xlsx), manual text entry, and website scraping for comprehensive bot training
 
 ## Authentication & Authorization
 - **JWT Authentication**: Secure JWT tokens with 48-hour expiry for session management

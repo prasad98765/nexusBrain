@@ -1,13 +1,14 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Bot, Settings, Palette, Code, Share } from 'lucide-react';
+import { ArrowLeft, Bot, Settings, Palette, Code, Share, Workflow } from 'lucide-react';
 
 interface CustomizeAgentProps {
   agentId?: string;
   onBackClick: () => void;
+  onCreateFlow: (agentId: string) => void;
 }
 
-export default function CustomizeAgent({ agentId, onBackClick }: CustomizeAgentProps) {
+export default function CustomizeAgent({ agentId, onBackClick, onCreateFlow }: CustomizeAgentProps) {
   return (
     <div className="min-h-full bg-slate-900 text-slate-100">
       {/* Header */}
@@ -29,6 +30,14 @@ export default function CustomizeAgent({ agentId, onBackClick }: CustomizeAgentP
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              className="border-indigo-500 text-indigo-400 hover:bg-indigo-600 hover:text-white"
+              onClick={() => agentId && onCreateFlow(agentId)}
+            >
+              <Workflow className="h-4 w-4 mr-2" />
+              Create Flow
+            </Button>
             <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
               Preview
             </Button>

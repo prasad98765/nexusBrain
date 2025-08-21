@@ -6,10 +6,11 @@ import ContactsTable from '@/components/contacts/ContactsTable';
 import SettingsPage from '@/pages/settings-page';
 import CreateAgentModal from '@/components/agents/CreateAgentModal';
 import CustomizeAgent from '@/pages/customize-agent';
+import FlowBuilder from '@/pages/flow-builder';
 
 export default function Home() {
   const { user } = useAuth();
-  const [activeView, setActiveView] = useState<'dashboard' | 'contacts' | 'settings' | 'customize-agent'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'contacts' | 'settings' | 'customize-agent' | 'flow-builder'>('dashboard');
   const [showCreateAgentModal, setShowCreateAgentModal] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
@@ -26,6 +27,15 @@ export default function Home() {
   const handleBackFromCustomize = () => {
     setActiveView('dashboard');
     setSelectedAgentId(null);
+  };
+
+  const handleCreateFlow = (agentId: string) => {
+    setSelectedAgentId(agentId);
+    setActiveView('flow-builder');
+  };
+
+  const handleBackFromFlow = () => {
+    setActiveView('customize-agent');
   };
 
   return (
@@ -223,6 +233,12 @@ export default function Home() {
             <CustomizeAgent
               agentId={selectedAgentId || undefined}
               onBackClick={handleBackFromCustomize}
+              onCreateFlow={handleCreateFlow}
+            />
+          ) : activeView === 'flow-builder' ? (
+            <FlowBuilder
+              agentId={selectedAgentId || ''}
+              onBackClick={handleBackFromFlow}
             />
           ) : null}
         </main>
