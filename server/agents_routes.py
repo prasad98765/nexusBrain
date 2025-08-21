@@ -173,3 +173,49 @@ def delete_agent(current_user, agent_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+@agents_bp.route('/agents/<agent_id>/flow', methods=['POST'])
+@require_auth
+def save_agent_flow(current_user, agent_id):
+    """Save agent flow configuration"""
+    try:
+        agent = Agent.query.get_or_404(agent_id)
+        data = request.get_json()
+        
+        if not data.get('flow'):
+            return jsonify({'error': 'Flow data is required'}), 400
+        
+        # Update agent configuration with flow data
+        if not agent.configuration:
+            agent.configuration = {}
+        
+        agent.configuration['flow'] = data['flow']
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Flow saved successfully',
+            'flowId': f"flow-{agent_id}"
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@agents_bp.route('/agents/<agent_id>/flow', methods=['GET'])
+@require_auth
+def get_agent_flow(current_user, agent_id):
+    """Get agent flow configuration"""
+    try:
+        agent = Agent.query.get_or_404(agent_id)
+        
+        flow = None
+        if agent.configuration and 'flow' in agent.configuration:
+            flow = agent.configuration['flow']
+        
+        return jsonify({
+            'flow': flow,
+            'agentId': agent_id
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
