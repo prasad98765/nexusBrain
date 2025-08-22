@@ -13,6 +13,7 @@ import BusinessInfoPage from "@/pages/business-info";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import LandingPage from "@/pages/landing-page";
 import LandingPageHub from "@/pages/landing-page-hub";
+import LandingPageEnhanced from "@/pages/landing-page-enhanced";
 
 function Router() {
   const { isAuthenticated, isLoading, token } = useAuth();
@@ -64,7 +65,7 @@ function Router() {
   return (
     <Switch>
       {/* Static Landing Pages - Always accessible */}
-      <Route path="/landing-page" component={LandingPage} />
+      <Route path="/landing-page" component={LandingPageEnhanced} />
       <Route path="/landing-page/hub" component={LandingPageHub} />
       
       {!isAuthenticated ? (
