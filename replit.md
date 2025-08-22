@@ -2,7 +2,7 @@
 
 This is a comprehensive multi-tenant Nexus AI platform built with React TypeScript frontend and Python Flask backend. The application provides workspace-based organization where users can create conversations and interact with AI assistants. It features dark-themed UI matching Nexus AI Hub branding, comprehensive authentication with forgot password functionality, business information collection for user onboarding, email verification with HTML templates, Google OAuth integration, PostgreSQL database storage with MongoDB fallback support, static landing pages recreated from nexusaihub.co.in, a comprehensive contacts management system with custom properties, and a complete agent creation and customization system.
 
-**Last Updated**: August 20, 2025 - Added comprehensive "Create Agent" feature with modal-based selection for Web, WhatsApp, and Voice agents, complete Agent database model with workspace relationships, full backend API endpoints for agent CRUD operations, customizable agent interface with live preview functionality, and a complete Flow Builder powered by React Flow with drag-and-drop nodes, visual connections, Bot Knowledge management, and JSON flow persistence.
+**Last Updated**: August 22, 2025 - Added comprehensive "Create Agent" feature with modal-based selection for Web, WhatsApp, and Voice agents, complete Agent database model with workspace relationships, full backend API endpoints for agent CRUD operations, customizable agent interface with live preview functionality, and a complete Flow Builder powered by React Flow with drag-and-drop nodes, visual connections, Bot Knowledge management, and JSON flow persistence. Enhanced landing page with interactive animations, engaging content about Agent Bots and AI Search Engine features, comprehensive technology information covering AI, LLMs, and LangChain framework.
 
 # User Preferences
 
@@ -16,7 +16,7 @@ Preferred communication style: Simple, everyday language.
 - **State Management**: TanStack Query for server state management with optimistic updates
 - **UI Components**: shadcn/ui component library with Radix UI primitives and Tailwind CSS
 - **Layout**: Three-panel layout with collapsible sidebar, main chat area, and right sidebar for conversation metadata
-- **Landing Pages**: Static marketing pages recreated from nexusaihub.co.in with comprehensive feature showcase
+- **Landing Pages**: Enhanced interactive marketing pages with engaging animations, comprehensive Agent Bot showcase (Web available, WhatsApp/Voice coming soon), detailed AI Search Engine features, and advanced technology information covering LLMs, LangChain, and platform capabilities
 - **Contacts System**: Advanced contacts management with custom properties, inline editing, drawer-based full editing, and enhanced property management with scrollable options UI
 - **Agent Creation System**: Comprehensive agent creation with modal-based type selection, customization interface, live preview functionality, and advanced Flow Builder
 - **Flow Builder**: Visual drag-and-drop flow designer powered by React Flow with Start, Input, Bot Knowledge, and End nodes, visual connections, and comprehensive knowledge source management
