@@ -1,7 +1,8 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file, send_from_directory
 from server.models import db, Agent
 from server.auth_utils import require_auth
 from typing import Dict, Any
+import os
 
 agents_bp = Blueprint('agents', __name__)
 
@@ -219,6 +220,64 @@ def get_agent_flow(agent_id):
         return jsonify({
             'flow': flow,
             'agentId': agent_id
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@agents_bp.route('/agent.js', methods=['GET'])
+def serve_agent_script():
+    """Serve the embed script"""
+    try:
+        script_path = os.path.join(os.getcwd(), 'public', 'agent.js')
+        return send_file(script_path, mimetype='application/javascript')
+    except Exception as e:
+        return jsonify({'error': 'Script not found'}), 404
+
+@agents_bp.route('/agents/<agent_id>/embed-info', methods=['GET'])
+def get_agent_embed_info(agent_id):
+    """Get agent details for embed script (no auth required for public access)"""
+    try:
+        workspace_id = request.args.get('workspace_id')
+        
+        if not workspace_id:
+            return jsonify({'error': 'Workspace ID is required'}), 400
+        
+        agent = Agent.query.filter_by(id=agent_id, workspace_id=workspace_id).first()
+        if not agent:
+            return jsonify({'error': 'Agent not found'}), 404
+        
+        # Only allow published agents to be embedded
+        if agent.status != 'published':
+            return jsonify({'error': 'Agent is not published'}), 403
+        
+        # Get theme configuration from agent configuration
+        config = agent.configuration or {}
+        theme = config.get('theme', {})
+        
+        # Default theme settings
+        default_theme = {
+            'primaryColor': '#6366f1',
+            'backgroundColor': '#ffffff',
+            'textColor': '#1f2937',
+            'fontFamily': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            'borderRadius': '12px',
+            'iconSize': '60px',
+            'position': 'bottom-right'
+        }
+        
+        # Merge with custom theme
+        final_theme = {**default_theme, **theme}
+        
+        return jsonify({
+            'id': agent.id,
+            'name': agent.name,
+            'type': agent.type,
+            'description': agent.description,
+            'workspaceId': agent.workspace_id,
+            'theme': final_theme,
+            'welcomeMessage': config.get('welcomeMessage', f"Hi! I'm {agent.name}. How can I help you today?"),
+            'flow': config.get('flow', None)
         })
         
     except Exception as e:

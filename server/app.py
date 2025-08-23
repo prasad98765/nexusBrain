@@ -62,6 +62,15 @@ def create_app():
     app.register_blueprint(conversations_bp, url_prefix='/api')
     app.register_blueprint(static_bp)
     
+    # Import send_file
+    from flask import send_file
+    
+    # Serve agent.js at root level (without /api prefix)
+    @app.route('/agent.js')
+    def serve_embed_script():
+        script_path = os.path.join(os.getcwd(), 'public', 'agent.js')
+        return send_file(script_path, mimetype='application/javascript')
+    
     # Initialize MongoDB connection
     from server.mongo_service import mongo_service
     mongo_service.connect()
