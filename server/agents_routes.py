@@ -239,7 +239,7 @@ def get_agent_embed_info(agent_id):
     """Get agent details for embed script (no auth required for public access)"""
     try:
         workspace_id = request.args.get('workspace_id')
-        
+        print("agent_id",agent_id,workspace_id)
         if not workspace_id:
             return jsonify({'error': 'Workspace ID is required'}), 400
         

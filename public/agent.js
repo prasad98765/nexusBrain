@@ -1,21 +1,23 @@
-(function() {
-  'use strict';
+(function () {
+  "use strict";
 
-  // Get script attributes
-  const currentScript = document.currentScript || document.querySelector('script[data-workspace-id]');
-  const workspaceId = currentScript?.getAttribute('data-workspace-id');
-  const agentId = currentScript?.getAttribute('data-agent-id');
-  const baseUrl = currentScript?.src?.replace('/agent.js', '') || window.location.origin;
+  // ========= CONFIG ==========
+  const currentScript =
+    document.currentScript ||
+    document.querySelector("script[data-workspace-id]");
+  const workspaceId = currentScript?.getAttribute("data-workspace-id");
+  const agentId = currentScript?.getAttribute("data-agent-id");
+  const baseUrl =
+    currentScript?.src?.replace("/agent.js", "") || window.location.origin;
 
   if (!workspaceId || !agentId) {
-    console.error('Nexus AI Agent: Missing workspace-id or agent-id attributes');
+    console.error(
+      "Nexus AI Agent: Missing workspace-id or agent-id attributes"
+    );
     return;
   }
 
-  // Prevent multiple instances
-  if (window.nexusAiAgent) {
-    return;
-  }
+  if (window.nexusAiAgent) return; // prevent multiple instances
 
   window.nexusAiAgent = {
     workspaceId,
@@ -24,62 +26,31 @@
     isOpen: false,
     conversationId: null,
     agentInfo: null,
-    theme: {}
+    theme: {},
   };
 
-  // Generate a unique conversation ID
+  // ========= UTILS ==========
   function generateConversationId() {
-    return 'conv_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+    return (
+      "conv_" +
+      Math.random().toString(36).substr(2, 9) +
+      Date.now().toString(36)
+    );
   }
 
-  // Fetch agent details and theme
-  async function fetchAgentInfo() {
-    try {
-      const response = await fetch(`${baseUrl}/api/agents/${agentId}/embed-info?workspace_id=${workspaceId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch agent info');
-      }
-      const agentInfo = await response.json();
-      window.nexusAiAgent.agentInfo = agentInfo;
-      window.nexusAiAgent.theme = agentInfo.theme || {};
-      return agentInfo;
-    } catch (error) {
-      console.error('Nexus AI Agent: Error fetching agent info:', error);
-      // Use default theme if fetch fails
-      window.nexusAiAgent.theme = {
-        primaryColor: '#6366f1',
-        backgroundColor: '#ffffff',
-        textColor: '#1f2937',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        borderRadius: '12px',
-        iconSize: '60px',
-        position: 'bottom-right'
-      };
-      return null;
-    }
-  }
+  function injectStyles() {
+    if (document.getElementById("nexus-ai-agent-style")) return;
 
-  // Create chatbot icon with theme
-  function createChatIcon() {
-    const theme = window.nexusAiAgent.theme;
-    const icon = document.createElement('div');
-    icon.id = 'nexus-ai-chat-icon';
-    
-    // Get position coordinates
-    const position = theme.position || 'bottom-right';
-    const [vertical, horizontal] = position.split('-');
-    const positionStyle = `
-      ${vertical}: 20px;
-      ${horizontal}: 20px;
-    `;
-    
-    icon.innerHTML = `
-      <div style="
+    const style = document.createElement("style");
+    style.id = "nexus-ai-agent-style";
+    style.innerHTML = `
+      #nexus-ai-chat-icon {
         position: fixed;
-        ${positionStyle}
-        width: ${theme.iconSize || '60px'};
-        height: ${theme.iconSize || '60px'};
-        background: ${theme.primaryColor || '#6366f1'};
+        bottom: 20px;
+        right: 20px;
+        width: var(--icon-size, 60px);
+        height: var(--icon-size, 60px);
+        background: var(--primary-color, #6366f1);
         border-radius: 50%;
         cursor: pointer;
         z-index: 2147483647;
@@ -87,133 +58,169 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.3s ease;
-        font-family: ${theme.fontFamily || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'};
-      " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-          <path d="21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-        </svg>
-      </div>
-    `;
-    
-    icon.addEventListener('click', toggleChat);
-    document.body.appendChild(icon);
-    return icon;
-  }
+        transition: transform 0.3s ease;
+      }
+      #nexus-ai-chat-icon:hover {
+        transform: scale(1.05);
+      }
 
-  // Create chat iframe with theme
-  function createChatIframe() {
-    const theme = window.nexusAiAgent.theme;
-    const agentInfo = window.nexusAiAgent.agentInfo;
-    const container = document.createElement('div');
-    container.id = 'nexus-ai-chat-container';
-    
-    // Get position coordinates for iframe
-    const position = theme.position || 'bottom-right';
-    const [vertical, horizontal] = position.split('-');
-    const positionStyle = `
-      ${vertical}: 100px;
-      ${horizontal}: 20px;
-    `;
-    
-    container.innerHTML = `
-      <div style="
+      #nexus-ai-chat-container {
         position: fixed;
-        ${positionStyle}
+        bottom: 100px;
+        right: 20px;
         width: 350px;
         height: 500px;
-        background: ${theme.backgroundColor || 'white'};
-        border-radius: ${theme.borderRadius || '12px'};
+        background: var(--bg-color, #fff);
+        border-radius: var(--border-radius, 12px);
         box-shadow: 0 8px 32px rgba(0,0,0,0.15);
         z-index: 2147483646;
         overflow: hidden;
-        transition: all 0.3s ease;
         transform: scale(0.95) translateY(10px);
         opacity: 0;
         display: none;
-        font-family: ${theme.fontFamily || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'};
-      " id="chat-window">
-        <div style="
-          height: 50px;
-          background: ${theme.primaryColor || '#6366f1'};
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0 16px;
-          color: white;
-        ">
-          <div style="font-weight: 500;">${agentInfo?.name || 'AI Assistant'}</div>
-          <div style="cursor: pointer; padding: 4px;" onclick="window.nexusAiAgent.closeChat()">✕</div>
-        </div>
-        <iframe 
-          id="nexus-ai-chat-iframe"
-          src="${baseUrl}/chatbot?workspace=${workspaceId}&agent=${agentId}&conversation=${generateConversationId()}"
-          style="
-            width: 100%;
-            height: calc(100% - 50px);
-            border: none;
-            background: ${theme.backgroundColor || 'white'};
-          "
-          allow="microphone; camera"
-        ></iframe>
-      </div>
+        transition: all 0.3s ease;
+      }
+      #nexus-ai-chat-container.open {
+        display: block;
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+      #nexus-ai-chat-header {
+        height: 50px;
+        background: var(--primary-color, #6366f1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+        color: white;
+        font-weight: 500;
+      }
+      #nexus-ai-chat-header .close-btn {
+        cursor: pointer;
+        padding: 4px;
+      }
+      #nexus-ai-chat-iframe {
+        width: 100%;
+        height: calc(100% - 50px);
+        border: none;
+        background: var(--bg-color, #fff);
+      }
     `;
-    
+    document.head.appendChild(style);
+  }
+
+  async function fetchAgentInfo() {
+    try {
+      const res = await fetch(
+        `${baseUrl}/api/agents/${agentId}/embed-info?workspace_id=${workspaceId}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch agent info");
+      const agentInfo = await res.json();
+      window.nexusAiAgent.agentInfo = agentInfo;
+      window.nexusAiAgent.theme = agentInfo.theme || {};
+      applyTheme(agentInfo.theme);
+    } catch (err) {
+      console.error("Nexus AI Agent: Error fetching agent info:", err);
+      applyTheme(); // fallback theme
+    }
+  }
+
+  function applyTheme(theme = {}) {
+    document.documentElement.style.setProperty(
+      "--primary-color",
+      theme.primaryColor || "#6366f1"
+    );
+    document.documentElement.style.setProperty(
+      "--bg-color",
+      theme.backgroundColor || "#fff"
+    );
+    document.documentElement.style.setProperty(
+      "--text-color",
+      theme.textColor || "#1f2937"
+    );
+    document.documentElement.style.setProperty(
+      "--border-radius",
+      theme.borderRadius || "12px"
+    );
+    document.documentElement.style.setProperty(
+      "--icon-size",
+      theme.iconSize || "60px"
+    );
+  }
+
+  // ========= UI ==========
+  function createChatIcon() {
+    const icon = document.createElement("div");
+    icon.id = "nexus-ai-chat-icon";
+    icon.innerHTML = `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" 
+        stroke="white" stroke-width="2">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 
+        2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+    `;
+    icon.addEventListener("click", toggleChat);
+    document.body.appendChild(icon);
+  }
+
+  function createChatIframe() {
+    const container = document.createElement("div");
+    container.id = "nexus-ai-chat-container";
+
+    const agentName = window.nexusAiAgent.agentInfo?.name || "AI Assistant";
+
+    container.innerHTML = `
+      <div id="nexus-ai-chat-header">
+        <div>${agentName}</div>
+        <div class="close-btn" onclick="window.nexusAiAgent.closeChat()">✕</div>
+      </div>
+      <iframe 
+        id="nexus-ai-chat-iframe"
+        src="${baseUrl}/chatbot?workspace=${workspaceId}&agent=${agentId}&conversation=${generateConversationId()}"
+        allow="microphone; camera">
+      </iframe>
+    `;
     document.body.appendChild(container);
-    return container;
   }
 
-  // Toggle chat window
-  function toggleChat() {
-    if (!window.nexusAiAgent.isOpen) {
-      openChat();
-    } else {
-      closeChat();
-    }
-  }
-
-  // Open chat window
+  // ========= STATE ==========
   function openChat() {
-    const chatWindow = document.getElementById('chat-window');
-    if (chatWindow) {
-      chatWindow.style.display = 'block';
-      setTimeout(() => {
-        chatWindow.style.opacity = '1';
-        chatWindow.style.transform = 'scale(1) translateY(0)';
-      }, 10);
-      window.nexusAiAgent.isOpen = true;
-    }
+    document.getElementById("nexus-ai-chat-container")?.classList.add("open");
+    window.nexusAiAgent.isOpen = true;
+
+    // Call API when opened (like chatbot.com)
+    fetch(`${baseUrl}/api/agents/${agentId}/open?workspace_id=${workspaceId}`, {
+      method: "POST",
+    }).catch(console.error);
   }
 
-  // Close chat window
   function closeChat() {
-    const chatWindow = document.getElementById('chat-window');
-    if (chatWindow) {
-      chatWindow.style.opacity = '0';
-      chatWindow.style.transform = 'scale(0.95) translateY(10px)';
-      setTimeout(() => {
-        chatWindow.style.display = 'none';
-      }, 300);
-      window.nexusAiAgent.isOpen = false;
-    }
+    document
+      .getElementById("nexus-ai-chat-container")
+      ?.classList.remove("open");
+    window.nexusAiAgent.isOpen = false;
   }
 
-  // Expose functions globally
+  function toggleChat() {
+    if (window.nexusAiAgent.isOpen) closeChat();
+    else openChat();
+  }
+
+  // ========= INIT ==========
+  async function init() {
+    injectStyles();
+    await fetchAgentInfo();
+    createChatIcon();
+    createChatIframe();
+    console.log("Nexus AI Agent: Ready!");
+  }
+
   window.nexusAiAgent.openChat = openChat;
   window.nexusAiAgent.closeChat = closeChat;
   window.nexusAiAgent.toggleChat = toggleChat;
 
-  // Initialize when DOM is ready
-  async function init() {
-    console.log('Nexus AI Agent: Initializing...');
-    await fetchAgentInfo();
-    createChatIcon();
-    createChatIframe();
-    console.log('Nexus AI Agent: Ready!');
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
   } else {
     init();
   }
