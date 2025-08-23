@@ -23,6 +23,7 @@ import InputNode from '@/components/flow/InputNode';
 import BotKnowledgeNode from '@/components/flow/BotKnowledgeNode';
 import EndNode from '@/components/flow/EndNode';
 import BotKnowledgeModal from '@/components/flow/BotKnowledgeModal';
+import { useAuth } from '@/hooks/useAuth';
 
 const nodeTypes: NodeTypes = {
   startNode: StartNode,
@@ -55,9 +56,9 @@ function FlowBuilderInner({ agentId, onBackClick }: FlowBuilderProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const { toast } = useToast();
-
+  const { user, token } = useAuth();
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+    (params: Connection) => setEdges((eds:any) => addEdge(params, eds)),
     [setEdges]
   );
 
@@ -94,7 +95,7 @@ function FlowBuilderInner({ agentId, onBackClick }: FlowBuilderProps) {
         },
       };
 
-      setNodes((nds) => nds.concat(newNode));
+      setNodes((nds:any) => nds.concat(newNode));
     },
     [reactFlowInstance, setNodes]
   );
@@ -113,7 +114,13 @@ function FlowBuilderInner({ agentId, onBackClick }: FlowBuilderProps) {
   useEffect(() => {
     const loadFlow = async () => {
       try {
-        const response = await fetch(`/api/agents/${agentId}/flow`);
+        const response = await fetch(`/api/agents/${agentId}/flow`,{
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        });
         if (response.ok) {
           const data = await response.json();
           if (data.flow && reactFlowInstance) {
@@ -143,6 +150,7 @@ function FlowBuilderInner({ agentId, onBackClick }: FlowBuilderProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ flow }),
       });
@@ -222,8 +230,8 @@ function FlowBuilderInner({ agentId, onBackClick }: FlowBuilderProps) {
         nodeId={selectedKnowledgeNode}
         onUpdate={(data) => {
           if (selectedKnowledgeNode) {
-            setNodes((nds) =>
-              nds.map((node) =>
+            setNodes((nds:any) =>
+              nds.map((node:any) =>
                 node.id === selectedKnowledgeNode
                   ? { ...node, data: { ...node.data, ...data } }
                   : node

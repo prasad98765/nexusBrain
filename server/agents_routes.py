@@ -6,15 +6,16 @@ agents_bp = Blueprint('agents', __name__)
 
 @agents_bp.route('/agents', methods=['POST'])
 @require_auth
-def create_agent(current_user):
+def create_agent():
     """Create a new agent"""
     try:
         data = request.get_json()
+        workspace_id = request.user.get('workspace_id')
         
         if not data.get('type'):
             return jsonify({'error': 'Agent type is required'}), 400
         
-        if not data.get('workspaceId'):
+        if not workspace_id:
             return jsonify({'error': 'Workspace ID is required'}), 400
         
         # Validate agent type
@@ -29,7 +30,7 @@ def create_agent(current_user):
         agent.description = data.get('description', '')
         agent.status = data.get('status', 'draft')
         agent.configuration = data.get('configuration', {})
-        agent.workspace_id = data['workspaceId']
+        agent.workspace_id = workspace_id
         
         db.session.add(agent)
         db.session.commit()
@@ -52,10 +53,10 @@ def create_agent(current_user):
 
 @agents_bp.route('/agents', methods=['GET'])
 @require_auth
-def get_agents(current_user):
+def get_agents():
     """Get agents for a workspace"""
     try:
-        workspace_id = request.args.get('workspace_id')
+        workspace_id = request.user.get('workspace_id')
         
         if not workspace_id:
             return jsonify({'error': 'workspace_id is required'}), 400
@@ -103,7 +104,7 @@ def get_agents(current_user):
 
 @agents_bp.route('/agents/<agent_id>', methods=['GET'])
 @require_auth
-def get_agent(current_user, agent_id):
+def get_agent(agent_id):
     """Get a specific agent"""
     try:
         agent = Agent.query.get_or_404(agent_id)
@@ -125,7 +126,7 @@ def get_agent(current_user, agent_id):
 
 @agents_bp.route('/agents/<agent_id>', methods=['PATCH'])
 @require_auth
-def update_agent(current_user, agent_id):
+def update_agent(agent_id):
     """Update an agent"""
     try:
         agent = Agent.query.get_or_404(agent_id)
@@ -161,7 +162,7 @@ def update_agent(current_user, agent_id):
 
 @agents_bp.route('/agents/<agent_id>', methods=['DELETE'])
 @require_auth
-def delete_agent(current_user, agent_id):
+def delete_agent(agent_id):
     """Delete an agent"""
     try:
         agent = Agent.query.get_or_404(agent_id)
@@ -176,7 +177,7 @@ def delete_agent(current_user, agent_id):
 
 @agents_bp.route('/agents/<agent_id>/flow', methods=['POST'])
 @require_auth
-def save_agent_flow(current_user, agent_id):
+def save_agent_flow(agent_id):
     """Save agent flow configuration"""
     try:
         agent = Agent.query.get_or_404(agent_id)
@@ -203,7 +204,7 @@ def save_agent_flow(current_user, agent_id):
 
 @agents_bp.route('/agents/<agent_id>/flow', methods=['GET'])
 @require_auth
-def get_agent_flow(current_user, agent_id):
+def get_agent_flow(agent_id):
     """Get agent flow configuration"""
     try:
         agent = Agent.query.get_or_404(agent_id)

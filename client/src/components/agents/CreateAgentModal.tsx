@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Bot, MessageCircle, Phone, Zap, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface CreateAgentModalProps {
   open: boolean;
@@ -35,7 +36,7 @@ export default function CreateAgentModal({
 }: CreateAgentModalProps) {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const { toast } = useToast();
-
+  const { user, token } = useAuth();
   const agentTypes: AgentType[] = [
     {
       id: 'web',
@@ -68,6 +69,7 @@ export default function CreateAgentModal({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: agentType,
