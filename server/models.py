@@ -54,13 +54,15 @@ class Conversation(db.Model):
     id = db.Column(db.String, primary_key=True, default=lambda: str(uuid4()))
     title = db.Column(db.String(255))
     workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
-    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True)  # Nullable for agent conversations
+    agent_id = db.Column(db.String, db.ForeignKey('agents.id'), nullable=True)  # For agent conversations
     model = db.Column(db.String(50), default='gpt-4')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     messages = db.relationship('Message', backref='conversation', lazy=True)
+    agent = db.relationship('Agent', backref='conversations', lazy=True)
 
 class Message(db.Model):
     __tablename__ = 'messages'
@@ -100,6 +102,9 @@ class CustomField(db.Model):
     readonly = db.Column(db.Boolean, default=False)
     workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    workspace = db.relationship('Workspace', backref='custom_fields', lazy=True)
 
 class Agent(db.Model):
     __tablename__ = 'agents'
@@ -116,7 +121,6 @@ class Agent(db.Model):
     
     # Relationships
     workspace = db.relationship('Workspace', backref='agents', lazy=True)
-    workspace = db.relationship('Workspace', backref='custom_fields', lazy=True)
 
 # Session table for Flask-Session
 class FlaskSession(db.Model):

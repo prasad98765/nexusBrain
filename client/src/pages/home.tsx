@@ -7,10 +7,11 @@ import SettingsPage from '@/pages/settings-page';
 import CreateAgentModal from '@/components/agents/CreateAgentModal';
 import CustomizeAgent from '@/pages/customize-agent';
 import FlowBuilder from '@/pages/flow-builder';
+import AgentsPage from '@/pages/agents-page';
 
 export default function Home() {
   const { user } = useAuth();
-  const [activeView, setActiveView] = useState<'dashboard' | 'contacts' | 'settings' | 'customize-agent' | 'flow-builder'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'contacts' | 'settings' | 'customize-agent' | 'flow-builder' | 'agents'>('dashboard');
   const [showCreateAgentModal, setShowCreateAgentModal] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
@@ -99,6 +100,19 @@ export default function Home() {
             >
               <MessageSquare className={`h-5 w-5 ${
                 activeView === 'dashboard' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
+              }`} />
+            </button>
+            
+            {/* Agents Button */}
+            <button 
+              className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${
+                activeView === 'agents' ? 'bg-slate-700' : ''
+              }`}
+              onClick={() => setActiveView('agents')}
+              title="Agents"
+            >
+              <Bot className={`h-5 w-5 ${
+                activeView === 'agents' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
               }`} />
             </button>
             
@@ -240,6 +254,8 @@ export default function Home() {
               agentId={selectedAgentId || ''}
               onBackClick={handleBackFromFlow}
             />
+          ) : activeView === 'agents' ? (
+            <AgentsPage />
           ) : null}
         </main>
       </div>

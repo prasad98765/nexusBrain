@@ -52,12 +52,14 @@ def create_app():
     from server.routes import auth_bp, workspace_bp, conversation_bp, message_bp, static_bp
     from server.contacts_routes import contacts_bp
     from server.agents_routes import agents_bp
+    from server.conversation_routes import conversations_bp
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(workspace_bp, url_prefix='/api')
     app.register_blueprint(conversation_bp, url_prefix='/api')
     app.register_blueprint(message_bp, url_prefix='/api')
     app.register_blueprint(contacts_bp, url_prefix='/api')
     app.register_blueprint(agents_bp, url_prefix='/api')
+    app.register_blueprint(conversations_bp, url_prefix='/api')
     app.register_blueprint(static_bp)
     
     # Initialize MongoDB connection

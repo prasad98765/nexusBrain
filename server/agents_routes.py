@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from server.models import db, Agent
 from server.auth_utils import require_auth
+from typing import Dict, Any
 
 agents_bp = Blueprint('agents', __name__)
 
@@ -10,7 +11,8 @@ def create_agent():
     """Create a new agent"""
     try:
         data = request.get_json()
-        workspace_id = request.user.get('workspace_id')
+        user_data: Dict[str, Any] = getattr(request, 'user', {})
+        workspace_id = user_data.get('workspace_id')
         
         if not data.get('type'):
             return jsonify({'error': 'Agent type is required'}), 400
@@ -56,7 +58,8 @@ def create_agent():
 def get_agents():
     """Get agents for a workspace"""
     try:
-        workspace_id = request.user.get('workspace_id')
+        user_data: Dict[str, Any] = getattr(request, 'user', {})
+        workspace_id = user_data.get('workspace_id')
         
         if not workspace_id:
             return jsonify({'error': 'workspace_id is required'}), 400

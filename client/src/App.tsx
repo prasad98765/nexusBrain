@@ -14,6 +14,7 @@ import ForgotPasswordPage from "@/pages/forgot-password";
 import LandingPage from "@/pages/landing-page";
 import LandingPageHub from "@/pages/landing-page-hub";
 import LandingPageEnhanced from "@/pages/landing-page-enhanced";
+import ChatbotPage from "@/pages/chatbot";
 
 function Router() {
   const { isAuthenticated, isLoading, token } = useAuth();
@@ -67,6 +68,9 @@ function Router() {
       {/* Static Landing Pages - Always accessible */}
       <Route path="/landing-page" component={LandingPageEnhanced} />
       <Route path="/landing-page/hub" component={LandingPageHub} />
+      
+      {/* Chatbot Interface - Always accessible for embedded use */}
+      <Route path="/chatbot" component={ChatbotPage} />
       
       {!isAuthenticated ? (
         <>
