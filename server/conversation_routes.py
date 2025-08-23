@@ -1,8 +1,9 @@
 from flask import Blueprint, request, jsonify
-from server.models import db, Conversation, Message, Agent
+from server.models import db, Conversation, Message, Agent, Contact
 from datetime import datetime
 from uuid import uuid4
 from typing import Dict, Any
+import re
 
 conversations_bp = Blueprint('conversations', __name__)
 
@@ -43,6 +44,11 @@ def create_conversation_message():
         message.role = sender
         
         db.session.add(message)
+        
+        # Extract and store contact information if user provides it
+        if sender == 'user':
+            extract_and_store_contact_info(message_text, conversation_id, workspace_id)
+        
         db.session.commit()
         
         return jsonify({
@@ -191,3 +197,73 @@ def get_conversation_stats():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+def extract_and_store_contact_info(message_text, conversation_id, workspace_id):
+    """Extract potential contact information from user messages and store as contacts"""
+    try:
+        # Extract email addresses
+        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        emails = re.findall(email_pattern, message_text)
+        
+        # Extract phone numbers (basic patterns)
+        phone_pattern = r'\b(?:\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})\b'
+        phones = re.findall(phone_pattern, message_text)
+        
+        # Extract names (look for "I'm [name]" or "My name is [name]")
+        name_patterns = [
+            r'\b(?:i\'?m|my name is|name is|call me)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)?)\b',
+            r'\b([a-zA-Z]+(?:\s+[a-zA-Z]+)?)\s+(?:here|speaking)\b'
+        ]
+        names = []
+        for pattern in name_patterns:
+            matches = re.findall(pattern, message_text.lower())
+            names.extend(matches)
+        
+        # If we found contact info, create or update contact
+        if emails or phones or names:
+            # Look for existing contact in this workspace
+            contact = None
+            
+            # Search by email first (most reliable)
+            if emails:
+                email = emails[0].lower()  # Use first email found
+                contact = Contact.query.filter_by(
+                    workspace_id=workspace_id,
+                    email=email
+                ).first()
+            
+            # If no contact found, create new one
+            if not contact:
+                contact = Contact()
+                contact.workspace_id = workspace_id
+                
+                # Set contact information
+                if emails:
+                    contact.email = emails[0].lower()
+                if phones:
+                    # Format phone number
+                    phone_parts = phones[0]
+                    contact.phone = f"({phone_parts[0]}) {phone_parts[1]}-{phone_parts[2]}"
+                if names:
+                    name_parts = names[0].strip().split()
+                    contact.name = name_parts[0].title() + (' ' + ' '.join(name_parts[1:]).title() if len(name_parts) > 1 else '')
+                else:
+                    contact.name = 'Chat User'
+                
+                # Set custom fields for conversation source
+                contact.custom_fields = {'conversation_source': conversation_id}
+                
+                db.session.add(contact)
+            else:
+                # Update existing contact with new information
+                if phones and not contact.phone:
+                    phone_parts = phones[0]
+                    contact.phone = f"({phone_parts[0]}) {phone_parts[1]}-{phone_parts[2]}"
+                
+                if names and (not contact.name or contact.name == 'Chat User'):
+                    name_parts = names[0].strip().split()
+                    contact.name = name_parts[0].title() + (' ' + ' '.join(name_parts[1:]).title() if len(name_parts) > 1 else '')
+    
+    except Exception as e:
+        print(f"Error extracting contact info: {e}")
+        # Don't fail the message creation if contact extraction fails

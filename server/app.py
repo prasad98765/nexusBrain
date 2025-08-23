@@ -40,9 +40,11 @@ def create_app():
     
     # Initialize extensions with app
     db.init_app(app)
-    # Update CORS to include Vite frontend port
-    CORS(app, origins=['http://localhost:3000', 'http://localhost:5000', 'http://localhost:5173'], 
-         supports_credentials=True)
+    # Update CORS to include embed script domains
+    CORS(app, origins=['*'], 
+         supports_credentials=True,
+         allow_headers=['Content-Type', 'Authorization'],
+         methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
     Session(app)
     
     # Configure logging

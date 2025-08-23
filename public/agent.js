@@ -68,8 +68,8 @@
         position: fixed;
         bottom: 100px;
         right: 20px;
-        width: 350px;
-        height: 500px;
+        width: var(--chat-width, 350px);
+        height: var(--chat-height, 500px);
         background: var(--bg-color, #fff);
         border-radius: var(--border-radius, 12px);
         box-shadow: 0 8px 32px rgba(0,0,0,0.15);
@@ -79,6 +79,7 @@
         opacity: 0;
         display: none;
         transition: all 0.3s ease;
+        border: var(--border-width, 1px) solid var(--border-color, #e5e7eb);
       }
       #nexus-ai-chat-container.open {
         display: block;
@@ -146,6 +147,22 @@
       "--icon-size",
       theme.iconSize || "60px"
     );
+    document.documentElement.style.setProperty(
+      "--chat-width",
+      theme.chatWidth || "350px"
+    );
+    document.documentElement.style.setProperty(
+      "--chat-height",
+      theme.chatHeight || "500px"
+    );
+    document.documentElement.style.setProperty(
+      "--border-width",
+      theme.borderWidth || "1px"
+    );
+    document.documentElement.style.setProperty(
+      "--border-color",
+      theme.borderColor || "#e5e7eb"
+    );
   }
 
   // ========= UI ==========
@@ -181,6 +198,16 @@
       </iframe>
     `;
     document.body.appendChild(container);
+    
+    // Listen for close messages from iframe
+    if (!window.nexusAiAgent.messageListenerAdded) {
+      window.addEventListener('message', function(event) {
+        if (event.data === 'close-chat') {
+          closeChat();
+        }
+      });
+      window.nexusAiAgent.messageListenerAdded = true;
+    }
   }
 
   // ========= STATE ==========
