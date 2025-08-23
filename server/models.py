@@ -80,7 +80,7 @@ class Contact(db.Model):
     
     id = db.Column(db.String, primary_key=True, default=lambda: str(uuid4()))
     name = db.Column(db.String(255), nullable=False)
-    email = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), nullable=True)  # Make email optional for chat users
     phone = db.Column(db.String(50))
     workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
     custom_fields = db.Column(db.JSON)  # Store custom field data as JSON
