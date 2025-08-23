@@ -22,7 +22,9 @@
     agentId,
     baseUrl,
     isOpen: false,
-    conversationId: null
+    conversationId: null,
+    agentInfo: null,
+    theme: {}
   };
 
   // Generate a unique conversation ID
@@ -30,18 +32,54 @@
     return 'conv_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
   }
 
-  // Create chatbot icon
+  // Fetch agent details and theme
+  async function fetchAgentInfo() {
+    try {
+      const response = await fetch(`${baseUrl}/api/agents/${agentId}/embed-info?workspace_id=${workspaceId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch agent info');
+      }
+      const agentInfo = await response.json();
+      window.nexusAiAgent.agentInfo = agentInfo;
+      window.nexusAiAgent.theme = agentInfo.theme || {};
+      return agentInfo;
+    } catch (error) {
+      console.error('Nexus AI Agent: Error fetching agent info:', error);
+      // Use default theme if fetch fails
+      window.nexusAiAgent.theme = {
+        primaryColor: '#6366f1',
+        backgroundColor: '#ffffff',
+        textColor: '#1f2937',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        borderRadius: '12px',
+        iconSize: '60px',
+        position: 'bottom-right'
+      };
+      return null;
+    }
+  }
+
+  // Create chatbot icon with theme
   function createChatIcon() {
+    const theme = window.nexusAiAgent.theme;
     const icon = document.createElement('div');
     icon.id = 'nexus-ai-chat-icon';
+    
+    // Get position coordinates
+    const position = theme.position || 'bottom-right';
+    const [vertical, horizontal] = position.split('-');
+    const positionStyle = `
+      ${vertical}: 20px;
+      ${horizontal}: 20px;
+    `;
+    
     icon.innerHTML = `
       <div style="
         position: fixed;
-        bottom: 20px;
-        right: 20px;
-        width: 60px;
-        height: 60px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        ${positionStyle}
+        width: ${theme.iconSize || '60px'};
+        height: ${theme.iconSize || '60px'};
+        background: ${theme.primaryColor || '#6366f1'};
         border-radius: 50%;
         cursor: pointer;
         z-index: 2147483647;
@@ -50,7 +88,7 @@
         align-items: center;
         justify-content: center;
         transition: all 0.3s ease;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family: ${theme.fontFamily || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'};
       " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
           <path d="21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -63,19 +101,29 @@
     return icon;
   }
 
-  // Create chat iframe
+  // Create chat iframe with theme
   function createChatIframe() {
+    const theme = window.nexusAiAgent.theme;
+    const agentInfo = window.nexusAiAgent.agentInfo;
     const container = document.createElement('div');
     container.id = 'nexus-ai-chat-container';
+    
+    // Get position coordinates for iframe
+    const position = theme.position || 'bottom-right';
+    const [vertical, horizontal] = position.split('-');
+    const positionStyle = `
+      ${vertical}: 100px;
+      ${horizontal}: 20px;
+    `;
+    
     container.innerHTML = `
       <div style="
         position: fixed;
-        bottom: 100px;
-        right: 20px;
+        ${positionStyle}
         width: 350px;
         height: 500px;
-        background: white;
-        border-radius: 12px;
+        background: ${theme.backgroundColor || 'white'};
+        border-radius: ${theme.borderRadius || '12px'};
         box-shadow: 0 8px 32px rgba(0,0,0,0.15);
         z-index: 2147483646;
         overflow: hidden;
@@ -83,18 +131,18 @@
         transform: scale(0.95) translateY(10px);
         opacity: 0;
         display: none;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family: ${theme.fontFamily || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'};
       " id="chat-window">
         <div style="
           height: 50px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: ${theme.primaryColor || '#6366f1'};
           display: flex;
           align-items: center;
           justify-content: space-between;
           padding: 0 16px;
           color: white;
         ">
-          <div style="font-weight: 500;">AI Assistant</div>
+          <div style="font-weight: 500;">${agentInfo?.name || 'AI Assistant'}</div>
           <div style="cursor: pointer; padding: 4px;" onclick="window.nexusAiAgent.closeChat()">✕</div>
         </div>
         <iframe 
@@ -104,7 +152,7 @@
             width: 100%;
             height: calc(100% - 50px);
             border: none;
-            background: white;
+            background: ${theme.backgroundColor || 'white'};
           "
           allow="microphone; camera"
         ></iframe>
@@ -156,9 +204,12 @@
   window.nexusAiAgent.toggleChat = toggleChat;
 
   // Initialize when DOM is ready
-  function init() {
+  async function init() {
+    console.log('Nexus AI Agent: Initializing...');
+    await fetchAgentInfo();
     createChatIcon();
     createChatIframe();
+    console.log('Nexus AI Agent: Ready!');
   }
 
   if (document.readyState === 'loading') {
