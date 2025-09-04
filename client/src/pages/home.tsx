@@ -52,7 +52,7 @@ export default function Home() {
                 </div>
                 <span className="text-xl font-bold text-slate-100">Nexus AI Hub</span>
               </div>
-              
+
               {/* Navigation Links */}
               <nav className="hidden md:flex items-center gap-6">
                 <a href="#" className="text-slate-300 hover:text-slate-100 transition-colors">AI Tools</a>
@@ -62,15 +62,15 @@ export default function Home() {
                 <a href="#" className="text-slate-300 hover:text-slate-100 transition-colors">Contact</a>
               </nav>
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="hidden md:flex items-center gap-3">
                 <span className="text-sm text-slate-300">
                   Welcome, {user?.first_name || 'User'}!
                 </span>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="border-indigo-500 text-indigo-400 hover:bg-indigo-500 hover:text-white"
                 >
                   Get Started
@@ -90,50 +90,48 @@ export default function Home() {
           <button className="p-3 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors">
             <Menu className="h-5 w-5 text-slate-300" />
           </button>
-          
+
           <div className="flex flex-col gap-4">
-            <button 
-              className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${
-                activeView === 'dashboard' ? 'bg-slate-700' : ''
-              }`}
-              onClick={() => setActiveView('dashboard')}
-            >
-              <MessageSquare className={`h-5 w-5 ${
-                activeView === 'dashboard' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
-              }`} />
-            </button>
-            
-            {/* Agents Button */}
-            <button 
-              className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${
-                activeView === 'agents' ? 'bg-slate-700' : ''
-              }`}
-              onClick={() => setActiveView('agents')}
-              title="Agents"
-            >
-              <Bot className={`h-5 w-5 ${
-                activeView === 'agents' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
-              }`} />
-            </button>
-            
+
+
             {/* Create Agent Button */}
-            <button 
+            <button
               className="p-3 rounded-lg hover:bg-indigo-600 transition-colors group bg-indigo-500/20 border border-indigo-500/30"
               onClick={() => setShowCreateAgentModal(true)}
               title="Create Agent"
             >
               <Plus className="h-5 w-5 text-indigo-400 group-hover:text-indigo-300" />
             </button>
-            
-            <button 
-              className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${
-                activeView === 'contacts' ? 'bg-slate-700' : ''
-              }`}
+
+            <button
+              className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${activeView === 'dashboard' ? 'bg-slate-700' : ''
+                }`}
+              onClick={() => setActiveView('dashboard')}
+            >
+              <MessageSquare className={`h-5 w-5 ${activeView === 'dashboard' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
+                }`} />
+            </button>
+
+
+            {/* Agents Button */}
+            <button
+              className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${activeView === 'agents' ? 'bg-slate-700' : ''
+                }`}
+              onClick={() => setActiveView('agents')}
+              title="Agents"
+            >
+              <Bot className={`h-5 w-5 ${activeView === 'agents' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
+                }`} />
+            </button>
+
+
+            <button
+              className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${activeView === 'contacts' ? 'bg-slate-700' : ''
+                }`}
               onClick={() => setActiveView('contacts')}
             >
-              <Users className={`h-5 w-5 ${
-                activeView === 'contacts' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
-              }`} />
+              <Users className={`h-5 w-5 ${activeView === 'contacts' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
+                }`} />
             </button>
             <button className="p-3 rounded-lg hover:bg-slate-700 transition-colors group">
               <Phone className="h-5 w-5 text-slate-400 group-hover:text-slate-200" />
@@ -147,15 +145,13 @@ export default function Home() {
           </div>
 
           <div className="mt-auto flex flex-col gap-4">
-            <button 
-              className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${
-                activeView === 'settings' ? 'bg-slate-700' : ''
-              }`}
+            <button
+              className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${activeView === 'settings' ? 'bg-slate-700' : ''
+                }`}
               onClick={() => setActiveView('settings')}
             >
-              <Settings className={`h-5 w-5 ${
-                activeView === 'settings' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
-              }`} />
+              <Settings className={`h-5 w-5 ${activeView === 'settings' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
+                }`} />
             </button>
             <button className="p-3 rounded-lg hover:bg-slate-700 transition-colors group">
               <User className="h-5 w-5 text-slate-400 group-hover:text-slate-200" />
@@ -177,24 +173,24 @@ export default function Home() {
                     </span><br />
                     <span className="text-white">That <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Connect Everything</span></span>
                   </h1>
-                  
+
                   <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-                    Where all your AI, tools, and data converge. Create powerful agents with drag-and-drop simplicity, integrate 
+                    Where all your AI, tools, and data converge. Create powerful agents with drag-and-drop simplicity, integrate
                     any third-party service, and deploy everywhere.
                   </p>
                 </div>
 
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium px-8 py-3 text-lg"
                   >
                     Start Building Now →
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="lg" 
+                  <Button
+                    variant="outline"
+                    size="lg"
                     className="border-slate-600 text-slate-300 hover:bg-slate-800 px-8 py-3 text-lg"
                   >
                     Watch Interactive Demo
@@ -210,7 +206,7 @@ export default function Home() {
                   </div>
                   <span className="text-sm text-slate-400">No-Code</span>
                 </div>
-                
+
                 <div className="flex flex-col items-center gap-3 text-center">
                   <div className="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center">
                     <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-orange-500 rounded flex items-center justify-center">
@@ -219,7 +215,7 @@ export default function Home() {
                   </div>
                   <span className="text-sm text-slate-400">Instant Deploy</span>
                 </div>
-                
+
                 <div className="flex flex-col items-center gap-3 text-center">
                   <div className="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center">
                     <div className="w-6 h-6 bg-gradient-to-br from-red-400 to-pink-500 rounded-full"></div>
@@ -235,8 +231,8 @@ export default function Home() {
               </div>
             </div>
           ) : activeView === 'contacts' ? (
-            <ContactsTable 
-              workspaceId={user?.workspaceId || 'default'} 
+            <ContactsTable
+              workspaceId={user?.workspaceId || 'default'}
               onSettingsClick={() => setActiveView('settings')}
             />
           ) : activeView === 'settings' ? (

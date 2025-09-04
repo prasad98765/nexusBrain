@@ -102,6 +102,8 @@ class CustomField(db.Model):
     readonly = db.Column(db.Boolean, default=False)
     workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
     
     # Relationships
     workspace = db.relationship('Workspace', backref='custom_fields', lazy=True)

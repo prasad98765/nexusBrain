@@ -77,6 +77,7 @@ export default function LandingPageEnhanced() {
               <a href="#ai-search" className="text-slate-300 hover:text-slate-100 transition-colors">AI Search</a>
               <a href="#ai-technology" className="text-slate-300 hover:text-slate-100 transition-colors">Technology</a>
               <a href="#how-it-works" className="text-slate-300 hover:text-slate-100 transition-colors">How It Works</a>
+              <a onClick={() => {setLocation('/About/AI');}} className="text-slate-300 hover:text-slate-100 transition-colors">About AI</a>
             </nav>
 
             <div className="flex items-center gap-4">
@@ -104,6 +105,7 @@ export default function LandingPageEnhanced() {
             <a href="#ai-search" className="block text-slate-300 hover:text-slate-100 transition-colors">AI Search</a>
             <a href="#ai-technology" className="block text-slate-300 hover:text-slate-100 transition-colors">Technology</a>
             <a href="#how-it-works" className="block text-slate-300 hover:text-slate-100 transition-colors">How It Works</a>
+            <a href="#how-it-works" className="block text-slate-300 hover:text-slate-100 transition-colors">About Ai</a>
           </div>
         )}
       </header>

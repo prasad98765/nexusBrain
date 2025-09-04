@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Send, Bot, User, Loader2, MessageCircle, Home, Phone, ArrowLeft } from 'lucide-react';
+import { url } from 'inspector';
 
 interface Message {
   id: string;
@@ -50,9 +51,9 @@ export default function ChatbotPage() {
 
   // Get URL parameters
   const urlParams = new URLSearchParams(window.location.search);
-  const workspaceId = urlParams.get('workspace');
-  const agentId = urlParams.get('agent');
-  const conversationId = urlParams.get('conversation');
+  const workspaceId = "d122d86a-3827-450d-a246-76468b0cb956" 
+  const agentId = "88c3eaf8-cf52-49ce-af94-42108c4b2a88";
+  const conversationId = urlParams.get('conversation_id') || null;
 
   // Fetch agent theme and info
   const { data: agentInfo } = useQuery({

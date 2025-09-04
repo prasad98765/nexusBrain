@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,12 +28,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Plus, 
-  Trash2, 
-  Edit2, 
-  Save, 
-  X, 
+import {
+  Plus,
+  Trash2,
+  Edit2,
+  Save,
+  X,
   Search,
   ChevronLeft,
   ChevronRight
@@ -60,7 +60,7 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
   const [search, setSearch] = useState('');
   const [limit] = useState(10);
   const { user, token } = useAuth();
-  
+
   const [newField, setNewField] = useState({
     name: '',
     type: 'string' as const,
@@ -77,9 +77,28 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  function useDebounce<T>(value: T, delay: number): T {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+
+    useEffect(() => {
+      const handler = setTimeout(() => {
+        setDebouncedValue(value);
+      }, delay);
+
+      return () => clearTimeout(handler); // cleanup on value change
+    }, [value, delay]);
+
+    return debouncedValue;
+  }
+
+  const debouncedSearch = useDebounce(search, 500); // wait 500ms after typing stops
+
+
   // Fetch custom fields with pagination
   const { data: customFieldsData, isLoading } = useQuery<CustomFieldsResponse>({
-    queryKey: ['/api/custom-fields', workspaceId, page, search],
+    queryKey: ['/api/custom-fields', workspaceId, page, debouncedSearch],
     queryFn: async () => {
       const params = new URLSearchParams({
         workspace_id: workspaceId,
@@ -87,12 +106,13 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
         limit: limit.toString(),
         ...(search && { search })
       });
-      const response = await fetch(`/api/custom-fields?${params}`,{
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,  // ✅ Added headers
-      },});
+      const response = await fetch(`/api/custom-fields?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,  // ✅ Added headers
+        },
+      });
       if (!response.ok) throw new Error('Failed to fetch custom fields');
       const data = await response.json();
       // Handle both old and new API response formats
@@ -116,7 +136,7 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
     mutationFn: async (field: typeof newField & { workspaceId: string }) => {
       const response = await fetch('/api/custom-fields', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json','Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(field),
       });
       if (!response.ok) {
@@ -141,7 +161,7 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<CustomField> }) => {
       const response = await fetch(`/api/custom-fields/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json','Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(updates),
       });
       if (!response.ok) {
@@ -167,10 +187,10 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
     mutationFn: async (fieldId: string) => {
       const response = await fetch(`/api/custom-fields/${fieldId}`, {
         method: 'DELETE',
-             headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,  // ✅ Added headers
-      }
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,  // ✅ Added headers
+        }
       });
       if (!response.ok) {
         const error = await response.text();
@@ -202,8 +222,8 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
   const handleAddOption = () => {
     const trimmedOption = optionInput.trim();
     if (
-      trimmedOption.length >= 10 && 
-      !newField.options.includes(trimmedOption) && 
+      trimmedOption.length >= 3 &&
+      !newField.options.includes(trimmedOption) &&
       newField.options.length < 50
     ) {
       setNewField({
@@ -211,7 +231,7 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
         options: [trimmedOption, ...newField.options] // Add to beginning for latest first
       });
       setOptionInput('');
-    } else if (trimmedOption.length < 10) {
+    } else if (trimmedOption.length < 3) {
       toast({ title: 'Option must be at least 10 characters long', variant: 'destructive' });
     } else if (newField.options.includes(trimmedOption)) {
       toast({ title: 'Option already exists', variant: 'destructive' });
@@ -230,15 +250,15 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
   const handleAddEditOption = () => {
     const trimmedOption = editOptionInput.trim();
     if (
-      trimmedOption.length >= 10 && 
-      !editOptions.includes(trimmedOption) && 
+      trimmedOption.length >= 3 &&
+      !editOptions.includes(trimmedOption) &&
       editOptions.length < 50
     ) {
       const newOptions = [trimmedOption, ...editOptions]; // Add to beginning for latest first
       setEditOptions(newOptions);
       setEditData({ ...editData, options: newOptions });
       setEditOptionInput('');
-    } else if (trimmedOption.length < 10) {
+    } else if (trimmedOption.length < 3) {
       toast({ title: 'Option must be at least 10 characters long', variant: 'destructive' });
     } else if (editOptions.includes(trimmedOption)) {
       toast({ title: 'Option already exists', variant: 'destructive' });
@@ -319,7 +339,7 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
       toast({ title: 'Read-only fields cannot be shown in contact form', variant: 'destructive' });
       return;
     }
-    
+
     if (editingField === fieldId) {
       setEditData({ ...editData, showInForm: checked });
     }
@@ -349,7 +369,7 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
           <h1 className="text-3xl font-bold text-slate-100">Contact Properties</h1>
           <p className="text-slate-400 mt-2">Manage custom contact properties for your workspace</p>
         </div>
-        
+
         <Sheet open={showCreateDrawer} onOpenChange={setShowCreateDrawer}>
           <SheetTrigger asChild>
             <Button className="bg-indigo-600 hover:bg-indigo-700">
@@ -364,7 +384,7 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                 Add a new custom field to collect additional contact information
               </SheetDescription>
             </SheetHeader>
-            
+
             <div className="mt-8 space-y-6">
               <div className="space-y-2">
                 <Label className="text-slate-300">Field Name *</Label>
@@ -401,28 +421,28 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                     <Label className="text-slate-300">Options *</Label>
                     <span className="text-xs text-slate-500">{newField.options.length}/50 options</span>
                   </div>
-                  
+
                   {/* Add New Option */}
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Add an option (min 10 characters)"
+                      placeholder="Add an option (min 3 characters)"
                       value={optionInput}
                       onChange={(e) => setOptionInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleAddOption()}
                       className="bg-slate-700 border-slate-600 text-slate-100"
                       minLength={10}
                     />
-                    <Button 
-                      type="button" 
-                      onClick={handleAddOption} 
+                    <Button
+                      type="button"
+                      onClick={handleAddOption}
                       variant="outline"
-                      disabled={optionInput.trim().length < 10 || newField.options.length >= 50}
-                      className="whitespace-nowrap"
+                      disabled={optionInput.trim().length < 3 || newField.options.length >= 50}
+                      className="flex-1 bg-indigo-600 hover:bg-indigo-700"
                     >
                       Add Option
                     </Button>
                   </div>
-                  
+
                   {/* Options List - Scrollable */}
                   <div className="border border-slate-600 rounded-lg bg-slate-800 max-h-48 overflow-y-auto">
                     <div className="p-3 space-y-2">
@@ -430,8 +450,8 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                         <p className="text-slate-500 text-sm text-center py-4">No options added yet</p>
                       ) : (
                         newField.options.map((option, index) => (
-                          <div 
-                            key={index} 
+                          <div
+                            key={index}
                             className="flex items-center justify-between p-2 bg-slate-700 rounded border hover:bg-slate-600 transition-colors"
                           >
                             <span className="text-slate-200 flex-1 break-words pr-2">{option}</span>
@@ -476,8 +496,8 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                   <Checkbox
                     id="readonly"
                     checked={newField.readonly}
-                    onCheckedChange={(checked) => setNewField({ 
-                      ...newField, 
+                    onCheckedChange={(checked) => setNewField({
+                      ...newField,
                       readonly: checked as boolean,
                       showInForm: checked ? false : newField.showInForm
                     })}
@@ -549,20 +569,28 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold text-slate-100">Custom Fields</h2>
-          
-          <div className="flex items-center gap-4">
+
+          <div className="flex items-center gap-4" >
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Search fields..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 bg-slate-700 border-slate-600 text-slate-100 w-64"
+                className="pl-9 pr-8 bg-slate-700 border-slate-600 text-slate-100 w-64"
               />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
         </div>
-        
+
         {customFields.length === 0 && !search ? (
           <div className="border border-slate-700 rounded-lg p-8 text-center">
             <p className="text-slate-400">No custom fields created yet</p>
@@ -626,7 +654,7 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                                     Manage options for "{field.name}" field
                                   </SheetDescription>
                                 </SheetHeader>
-                                
+
                                 <div className="mt-6 space-y-4">
                                   {/* Field Name Edit */}
                                   <div className="space-y-2">
@@ -646,27 +674,27 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                                       <Label className="text-slate-300">Options</Label>
                                       <span className="text-xs text-slate-500">{editOptions.length}/50 options</span>
                                     </div>
-                                    
+
                                     {/* Add New Option */}
                                     <div className="flex gap-2">
                                       <Input
-                                        placeholder="Add option (min 10 characters)"
+                                        placeholder="Add option (min 3 characters)"
                                         value={editOptionInput}
                                         onChange={(e) => setEditOptionInput(e.target.value)}
                                         onKeyPress={(e) => e.key === 'Enter' && handleAddEditOption()}
                                         className="bg-slate-700 border-slate-600"
                                         minLength={10}
                                       />
-                                      <Button 
-                                        onClick={handleAddEditOption} 
+                                      <Button
+                                        onClick={handleAddEditOption}
                                         variant="outline"
-                                        disabled={editOptionInput.trim().length < 10 || editOptions.length >= 50}
-                                        className="whitespace-nowrap"
+                                        disabled={editOptionInput.trim().length < 3 || editOptions.length >= 50}
+                                        className="flex-1 bg-indigo-600 hover:bg-indigo-700"
                                       >
                                         Add
                                       </Button>
                                     </div>
-                                    
+
                                     {/* Options List - Scrollable */}
                                     <div className="border border-slate-600 rounded-lg bg-slate-900 max-h-64 overflow-y-auto">
                                       <div className="p-3 space-y-2">
@@ -674,8 +702,8 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                                           <p className="text-slate-500 text-sm text-center py-6">No options added yet</p>
                                         ) : (
                                           editOptions.map((option, index) => (
-                                            <div 
-                                              key={index} 
+                                            <div
+                                              key={index}
                                               className="flex items-center justify-between p-3 bg-slate-800 rounded border hover:bg-slate-700 transition-colors"
                                             >
                                               <span className="text-slate-200 flex-1 break-words pr-3 text-sm leading-relaxed">
@@ -721,8 +749,8 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                                       <Checkbox
                                         id="edit-readonly"
                                         checked={editData.readonly || false}
-                                        onCheckedChange={(checked) => setEditData({ 
-                                          ...editData, 
+                                        onCheckedChange={(checked) => setEditData({
+                                          ...editData,
                                           readonly: checked as boolean,
                                           showInForm: checked ? false : editData.showInForm
                                         })}
@@ -747,7 +775,7 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                                         setEditData({});
                                         setEditOptions([]);
                                       }}
-                                      className="flex-1"
+                                      className="flex-1 bg-indigo-600 hover:bg-indigo-700"
                                     >
                                       Cancel
                                     </Button>
@@ -802,8 +830,8 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                         {editingField === field.id ? (
                           <Checkbox
                             checked={editData.readonly || false}
-                            onCheckedChange={(checked) => setEditData({ 
-                              ...editData, 
+                            onCheckedChange={(checked) => setEditData({
+                              ...editData,
                               readonly: checked as boolean,
                               showInForm: checked ? false : editData.showInForm
                             })}

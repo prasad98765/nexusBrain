@@ -1,0 +1,472 @@
+import { Sidebar } from "@/components/ui/sidebar";
+import { FlowDiagram } from "@/components/flow-diagram";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { CheckCircle, Zap, Users, ArrowRight, Play, Brain, Cpu, Globe, X, Menu } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
+
+export default function Home() {
+  const [location, setLocation] = useLocation();
+  const [activeFeature, setActiveFeature] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (window.location.hash) {
+      setTimeout(() => {
+        const el = document.getElementById(window.location.hash.substring(1));
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
+    }
+  }, [location]);
+
+  const handleNav = (path: string) => {
+    setLocation(path);
+  };
+
+  const handleGetStarted = () => {
+    setLocation('/auth');
+  };
+
+  // Auto-rotate features
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveFeature((prev: any) => (prev + 1) % 3);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+  return (
+    <div className="min-h-screen bg-background" style={{color:"white"}}>
+      <header className="w-full bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-3" onClick={() => handleNav('/landing-page')} style={{ cursor: 'pointer' }}>
+              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center animate-pulse">
+                <span className="text-white font-bold text-sm">⚡</span>
+              </div>
+              <span className="text-lg sm:text-xl font-bold text-slate-100">Nexus AI Hub</span>
+            </div>
+
+            <nav className="hidden md:flex items-center gap-6">
+              <a onClick={() => { setLocation('/landing-page'); }} className="text-slate-300 hover:text-slate-100 transition-colors">Agent Bots</a>
+              <a onClick={() => { setLocation('/landing-page'); }} className="text-slate-300 hover:text-slate-100 transition-colors">AI Search</a>
+              <a onClick={() => { setLocation('/landing-page'); }} className="text-slate-300 hover:text-slate-100 transition-colors">Technology</a>
+              <a onClick={() => { setLocation('/landing-page'); }} className="text-slate-300 hover:text-slate-100 transition-colors">How It Works</a>
+              <a onClick={() => { setLocation('/About-AI/AI'); }} className="text-slate-300 hover:text-slate-100 transition-colors">About AI</a>
+            </nav>
+
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={handleGetStarted}
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-sm sm:text-base px-4 sm:px-6 transform hover:scale-105 transition-all duration-300"
+              >
+                Get Started
+              </Button>
+
+              <button
+                className="md:hidden text-slate-300 hover:text-slate-100"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-slate-800 border-t border-slate-700 px-4 py-4 space-y-3">
+            <a href="#agent-bots" className="block text-slate-300 hover:text-slate-100 transition-colors">Agent Bots</a>
+            <a href="#ai-search" className="block text-slate-300 hover:text-slate-100 transition-colors">AI Search</a>
+            <a href="#ai-technology" className="block text-slate-300 hover:text-slate-100 transition-colors">Technology</a>
+            <a href="#how-it-works" className="block text-slate-300 hover:text-slate-100 transition-colors">How It Works</a>
+            <a href="#how-it-works" className="block text-slate-300 hover:text-slate-100 transition-colors">About Ai</a>
+          </div>
+        )}
+      </header>
+      <Sidebar />
+
+      <main className="lg:ml-64">
+
+        {/* AI Section */}
+        <section className="px-6 py-16">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-3xl lg:text-4xl font-bold text-center mb-16 gradient-text">Artificial Intelligence</h2>
+
+            {/* What is AI */}
+            <Card data-testid="card-what-is-ai" className="mb-12 hover-glow transition-all">
+              <CardContent className="p-8">
+                <div className="grid lg:grid-cols-2 gap-8 items-center">
+                  <div>
+                    <h3 className="text-2xl font-bold mb-4">What is Artificial Intelligence?</h3>
+                    <p className=" mb-6">
+                      Artificial intelligence (AI) is a set of technologies that enable computers to perform a variety of advanced functions, including the ability to see, understand and translate spoken and written language, analyze data, make recommendations, and more.
+                    </p>
+                    <p className=" mb-6">
+                      AI is a field of science concerned with building computers and machines that can reason, learn, and act in such a way that would normally require human intelligence or that involves data whose scale exceeds what humans can analyze.
+                    </p>
+                    <ul className="space-y-2 ">
+                      <li className="flex items-center"><span className="text-accent mr-2">•</span> Machine Learning & Deep Learning</li>
+                      <li className="flex items-center"><span className="text-accent mr-2">•</span> Natural Language Processing</li>
+                      <li className="flex items-center"><span className="text-accent mr-2">•</span> Computer Vision & Object Recognition</li>
+                      <li className="flex items-center"><span className="text-accent mr-2">•</span> Predictive Analytics & Forecasting</li>
+                      <li className="flex items-center"><span className="text-accent mr-2">•</span> Intelligent Data Retrieval</li>
+                    </ul>
+                  </div>
+                  <div className="relative">
+                    <img
+                      src="https://images.unsplash.com/photo-1677442136019-21780ecad995?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600"
+                      alt="AI neural networks and human-robot interaction"
+                      className="rounded-xl shadow-lg w-full h-auto"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* What is an AI Agent */}
+            <Card data-testid="card-ai-agent" className="mb-12 hover-glow transition-all">
+              <CardContent className="p-8">
+                <h3 className="text-2xl font-bold mb-6">What is an AI Agent?</h3>
+                <div className="grid lg:grid-cols-2 gap-8">
+                  <div>
+                    <p className=" mb-6">
+                      AI Agents are LLM-powered autonomous tools that can perceive their environment, make decisions, and take actions to achieve specific goals. They bridge the gap between human intent and automated execution.
+                    </p>
+                    <Card className="bg-card/50 p-4 mb-6">
+                      <h4 className="font-semibold text-accent-secondary mb-2">Available Now:</h4>
+                      <p className=" mb-4">Web Agent - Ready for deployment</p>
+                      <h4 className="font-semibold text-warning mb-2">Coming Soon:</h4>
+                      <p className="">WhatsApp Agent & Voice Agent</p>
+                    </Card>
+                  </div>
+                  <div>
+                    <FlowDiagram steps={["User", "AI Agent", "LLM", "Action"]} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Search Engine */}
+            <Card data-testid="card-ai-search" className="mb-12 hover-glow transition-all">
+              <CardContent className="p-8">
+                <h3 className="text-2xl font-bold mb-6">What is an AI Search Engine?</h3>
+                <div className="grid lg:grid-cols-2 gap-8">
+                  <div>
+                    <p className=" mb-6">
+                      Unlike traditional keyword-based search, AI Search Engines leverage LLM context to understand intent and deliver semantic, personalized results.
+                    </p>
+                    <div className="space-y-4 mb-6">
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 bg-accent rounded-full mr-3"></div>
+                        <span>Semantic search understanding</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 bg-accent-secondary rounded-full mr-3"></div>
+                        <span>Custom UI with CSS styling</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 bg-warning rounded-full mr-3"></div>
+                        <span>Personalized result ranking</span>
+                      </div>
+                    </div>
+                    <Card className="bg-card/50 p-4">
+                      <h4 className="text-accent-secondary mb-2">Sample CSS Customization:</h4>
+                      <pre className="text-sm  overflow-x-auto"><code>{`.search-results {
+  background: linear-gradient(135deg, #1a1b23, #2a2d34);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+}`}</code></pre>
+                    </Card>
+                  </div>
+                  <div>
+                    <FlowDiagram steps={["Search Box", "LLM", "Results"]} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Connection */}
+            <Card data-testid="card-ai-connection" className="mb-12 hover-glow transition-all">
+              <CardContent className="p-8">
+                <h3 className="text-2xl font-bold mb-6">Connection — AI Agent + LLM</h3>
+                <div className="grid lg:grid-cols-2 gap-8 items-center">
+                  <div>
+                    <p className=" mb-4">
+                      The synergy between AI Agents and Large Language Models creates a powerful ecosystem where natural language understanding meets autonomous action execution.
+                    </p>
+                    <p className="">
+                      This connection enables agents to interpret complex user requests, reason through multi-step processes, and execute actions while maintaining context and learning from interactions.
+                    </p>
+                  </div>
+                  <div>
+                    <FlowDiagram steps={["User Input", "Agent", "LLM", "Response"]} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Agent Web Bot */}
+            <Card data-testid="card-web-bot" className="mb-12 hover-glow transition-all">
+              <CardContent className="p-8">
+                <div className="grid lg:grid-cols-2 gap-8 items-center">
+                  <div>
+                    <h3 className="text-2xl font-bold mb-4">AI Agent Web Bot</h3>
+                    <p className=" mb-6">
+                      Web-based LLM agents provide real-time conversational interfaces that seamlessly integrate into existing websites and applications. Perfect for customer support, lead generation, and user engagement.
+                    </p>
+                    <div className="space-y-3">
+                      <div className="flex items-center">
+                        <CheckCircle className="w-5 h-5 text-accent mr-3" />
+                        <span>Live chat capabilities</span>
+                      </div>
+                      <div className="flex items-center">
+                        <CheckCircle className="w-5 h-5 text-accent mr-3" />
+                        <span>Integration-ready APIs</span>
+                      </div>
+                      <div className="flex items-center">
+                        <CheckCircle className="w-5 h-5 text-accent mr-3" />
+                        <span>Popular for customer support</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <img
+                      src="https://images.unsplash.com/photo-1531746790731-6c087fecd65a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600"
+                      alt="AI chatbot interface and customer service automation"
+                      className="rounded-xl shadow-lg w-full h-auto"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Contacts & Contact Properties */}
+            {/* <Card data-testid="card-contacts" className="mb-12 hover-glow transition-all">
+              <CardContent className="p-8">
+                <h3 className="text-2xl font-bold mb-6">Contacts & Contact Properties</h3>
+                <div className="grid lg:grid-cols-2 gap-8">
+                  <div>
+                    <div className="mb-6">
+                      <h4 className="text-lg font-semibold text-accent-secondary mb-2">Contact Definition:</h4>
+                      <p className="">Individual records containing name, email, phone, and other identifying information.</p>
+                    </div>
+                    <div className="mb-6">
+                      <h4 className="text-lg font-semibold text-accent-secondary mb-2">Properties Include:</h4>
+                      <ul className="space-y-1 ">
+                        <li>• Tags and categories</li>
+                        <li>• User preferences</li>
+                        <li>• Traffic source tracking</li>
+                        <li>• Behavioral data</li>
+                      </ul>
+                    </div>
+                    <Card className="bg-card/50 p-4">
+                      <p className="text-sm ">
+                        <strong className="text-accent">Use Case:</strong> Essential for business automation, CRM integration, and targeted marketing campaigns.
+                      </p>
+                    </Card>
+                  </div>
+                  <div>
+                    <FlowDiagram steps={["Web Bot", "CRM/API", "Contact Saved"]} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card> */}
+
+            {/* Types of AI */}
+            <Card data-testid="card-ai-types" className="mb-12 hover-glow transition-all">
+              <CardContent className="p-8">
+                <h3 className="text-2xl font-bold mb-6">Types of Artificial Intelligence</h3>
+                <div className="space-y-6">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="bg-card/50 rounded-lg p-6">
+                      <h4 className="font-semibold text-accent-secondary mb-3">1. Reactive Machines</h4>
+                      <p className=" text-sm">
+                        Limited AI that only reacts to different kinds of stimuli based on preprogrammed rules. Does not use memory and thus cannot learn with new data. IBM's Deep Blue that beat chess champion Garry Kasparov in 1997 was an example.
+                      </p>
+                    </div>
+                    <div className="bg-card/50 rounded-lg p-6">
+                      <h4 className="font-semibold text-accent-secondary mb-3">2. Limited Memory</h4>
+                      <p className=" text-sm">
+                        Most modern AI is considered limited memory. It can use memory to improve over time by being trained with new data, typically through artificial neural networks. Deep learning is considered limited memory artificial intelligence.
+                      </p>
+                    </div>
+                    <div className="bg-card/50 rounded-lg p-6">
+                      <h4 className="font-semibold text-accent-secondary mb-3">3. Theory of Mind</h4>
+                      <p className=" text-sm">
+                        Theory of mind AI does not currently exist, but research is ongoing. It describes AI that can emulate the human mind and has decision-making capabilities equal to humans, including recognizing and remembering emotions.
+                      </p>
+                    </div>
+                    <div className="bg-card/50 rounded-lg p-6">
+                      <h4 className="font-semibold text-accent-secondary mb-3">4. Self-Aware</h4>
+                      <p className=" text-sm">
+                        A step above theory of mind AI, self-aware AI describes a mythical machine that is aware of its own existence and has the intellectual and emotional capabilities of a human. Self-aware AI does not currently exist.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Training Models */}
+            <Card data-testid="card-ai-training" className="mb-12 hover-glow transition-all">
+              <CardContent className="p-8">
+                <h3 className="text-2xl font-bold mb-6">AI Training Models</h3>
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="bg-card/50 rounded-lg p-6">
+                    <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center mb-4">
+                      <Brain className="w-6 h-6 text-accent" />
+                    </div>
+                    <h4 className="font-semibold text-accent-secondary mb-3">Supervised Learning</h4>
+                    <p className=" text-sm">
+                      Uses labeled training data to map specific inputs to outputs. For example, feeding the algorithm pictures labeled as cats to train it to recognize cat images.
+                    </p>
+                  </div>
+                  <div className="bg-card/50 rounded-lg p-6">
+                    <div className="w-12 h-12 bg-accent-secondary/20 rounded-lg flex items-center justify-center mb-4">
+                      <Cpu className="w-6 h-6 text-accent-secondary" />
+                    </div>
+                    <h4 className="font-semibold text-accent-secondary mb-3">Unsupervised Learning</h4>
+                    <p className=" text-sm">
+                      Learns patterns from unlabeled data. The algorithm categorizes information into groups based on attributes, excellent for pattern matching and descriptive modeling.
+                    </p>
+                  </div>
+                  <div className="bg-card/50 rounded-lg p-6">
+                    <div className="w-12 h-12 bg-warning/20 rounded-lg flex items-center justify-center mb-4">
+                      <Globe className="w-6 h-6 text-warning" />
+                    </div>
+                    <h4 className="font-semibold text-accent-secondary mb-3">Reinforcement Learning</h4>
+                    <p className=" text-sm">
+                      "Learn by doing" approach where an agent learns to perform tasks through trial and error using a feedback loop. Receives positive reinforcement for good performance.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Benefits of AI */}
+            <Card data-testid="card-ai-benefits" className="mb-12 hover-glow transition-all">
+              <CardContent className="p-8">
+                <h3 className="text-2xl font-bold mb-6">Benefits of AI</h3>
+                <div className="grid md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <div className="flex items-start">
+                      <CheckCircle className="w-6 h-6 text-accent mr-3 mt-1" />
+                      <div>
+                        <h4 className="font-semibold text-accent-secondary mb-2">Automation</h4>
+                        <p className=" text-sm">AI can automate workflows and processes or work independently from human teams, like monitoring network traffic for cybersecurity.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <CheckCircle className="w-6 h-6 text-accent mr-3 mt-1" />
+                      <div>
+                        <h4 className="font-semibold text-accent-secondary mb-2">Reduce Human Error</h4>
+                        <p className=" text-sm">Eliminate manual errors in data processing, analytics, and manufacturing through consistent algorithmic processes.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <CheckCircle className="w-6 h-6 text-accent mr-3 mt-1" />
+                      <div>
+                        <h4 className="font-semibold text-accent-secondary mb-2">Eliminate Repetitive Tasks</h4>
+                        <p className=" text-sm">Free human capital for higher impact problems by automating document verification, call transcription, and customer service.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-start">
+                      <CheckCircle className="w-6 h-6 text-accent mr-3 mt-1" />
+                      <div>
+                        <h4 className="font-semibold text-accent-secondary mb-2">Fast and Accurate</h4>
+                        <p className=" text-sm">Process more information quickly than humans, finding patterns and relationships in data that humans may miss.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <CheckCircle className="w-6 h-6 text-accent mr-3 mt-1" />
+                      <div>
+                        <h4 className="font-semibold text-accent-secondary mb-2">Infinite Availability</h4>
+                        <p className=" text-sm">AI systems can be "always on," continuously working on assigned tasks without breaks or time limitations.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <CheckCircle className="w-6 h-6 text-accent mr-3 mt-1" />
+                      <div>
+                        <h4 className="font-semibold text-accent-secondary mb-2">Accelerated R&D</h4>
+                        <p className=" text-sm">Analyze vast amounts of data quickly to accelerate breakthroughs in research, pharmaceutical development, and scientific discovery.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Applications */}
+            <Card data-testid="card-ai-applications" className="mb-12 hover-glow transition-all">
+              <CardContent className="p-8">
+                <h3 className="text-2xl font-bold mb-6">AI Applications & Use Cases</h3>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="bg-card/50 rounded-lg p-6">
+                    <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center mb-4">
+                      <Brain className="w-6 h-6 text-accent" />
+                    </div>
+                    <h4 className="font-semibold text-accent-secondary mb-2">Speech Recognition</h4>
+                    <p className=" text-sm">
+                      Automatically convert spoken speech into written text for transcription and voice interfaces.
+                    </p>
+                  </div>
+                  <div className="bg-card/50 rounded-lg p-6">
+                    <div className="w-12 h-12 bg-accent-secondary/20 rounded-lg flex items-center justify-center mb-4">
+                      <Cpu className="w-6 h-6 text-accent-secondary" />
+                    </div>
+                    <h4 className="font-semibold text-accent-secondary mb-2">Image Recognition</h4>
+                    <p className=" text-sm">
+                      Identify and categorize various aspects of images for medical diagnosis, autonomous vehicles, and security.
+                    </p>
+                  </div>
+                  <div className="bg-card/50 rounded-lg p-6">
+                    <div className="w-12 h-12 bg-warning/20 rounded-lg flex items-center justify-center mb-4">
+                      <Globe className="w-6 h-6 text-warning" />
+                    </div>
+                    <h4 className="font-semibold text-accent-secondary mb-2">Language Translation</h4>
+                    <p className=" text-sm">
+                      Translate written or spoken words from one language into another with contextual understanding.
+                    </p>
+                  </div>
+                  <div className="bg-card/50 rounded-lg p-6">
+                    <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center mb-4">
+                      <Zap className="w-6 h-6 text-accent" />
+                    </div>
+                    <h4 className="font-semibold text-accent-secondary mb-2">Predictive Modeling</h4>
+                    <p className=" text-sm">
+                      Mine data to forecast specific outcomes with high degrees of granularity for business intelligence.
+                    </p>
+                  </div>
+                  <div className="bg-card/50 rounded-lg p-6">
+                    <div className="w-12 h-12 bg-accent-secondary/20 rounded-lg flex items-center justify-center mb-4">
+                      <Users className="w-6 h-6 text-accent-secondary" />
+                    </div>
+                    <h4 className="font-semibold text-accent-secondary mb-2">Data Analytics</h4>
+                    <p className=" text-sm">
+                      Find patterns and relationships in data for business intelligence and strategic decision making.
+                    </p>
+                  </div>
+                  <div className="bg-card/50 rounded-lg p-6">
+                    <div className="w-12 h-12 bg-warning/20 rounded-lg flex items-center justify-center mb-4">
+                      <CheckCircle className="w-6 h-6 text-warning" />
+                    </div>
+                    <h4 className="font-semibold text-accent-secondary mb-2">Cybersecurity</h4>
+                    <p className=" text-sm">
+                      Autonomously scan networks for cyber attacks and threats, providing real-time security monitoring.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
