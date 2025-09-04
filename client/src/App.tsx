@@ -8,6 +8,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
+import AIPage from "@/pages/Ai-page";
+import LangchainPage from "@/pages/langchain";
+import LLMPage from "@/pages/llm";
 import Home from "@/pages/home";
 import BusinessInfoPage from "@/pages/business-info";
 import ForgotPasswordPage from "@/pages/forgot-password";
@@ -67,7 +70,11 @@ function Router() {
     <Switch>
       {/* Static Landing Pages - Always accessible */}
       <Route path="/landing-page" component={LandingPageEnhanced} />
-      <Route path="/landing-page/hub" component={LandingPageHub} />
+      {/* <Route path="/landing-page/hub" component={LandingPageHub} /> */}
+      <Route path="/About/AI" component={AIPage} />
+      <Route path="/About/langchain" component={LangchainPage} />
+      <Route path="/About/LLM" component={LLMPage} />
+
       
       {/* Chatbot Interface - Always accessible for embedded use */}
       <Route path="/chatbot" component={ChatbotPage} />

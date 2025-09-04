@@ -19,7 +19,7 @@ def create_conversation_message():
         message_text = data.get('message')
         sender = data.get('sender', 'user')
         
-        if not all([workspace_id, agent_id, conversation_id, message_text]):
+        if not all([workspace_id, agent_id, message_text]):
             return jsonify({'error': 'Missing required fields'}), 400
         
         # Verify agent exists
@@ -42,6 +42,7 @@ def create_conversation_message():
         message.conversation_id = conversation_id
         message.content = message_text
         message.role = sender
+        message.agent_id = agent_id
         
         db.session.add(message)
         
@@ -100,8 +101,8 @@ def get_conversations():
         if workspace_id:
             query = query.filter_by(workspace_id=workspace_id)
         
-        if agent_id:
-            query = query.filter_by(agent_id=agent_id)
+        # if agent_id:
+        #     query = query.filter_by(agent_id=agent_id)
         
         # Order by most recent
         conversations = query.order_by(Conversation.updated_at.desc()).all()
@@ -170,8 +171,8 @@ def get_conversation_stats():
         if workspace_id:
             query = query.filter_by(workspace_id=workspace_id)
         
-        if agent_id:
-            query = query.filter_by(agent_id=agent_id)
+        # if agent_id:
+        #     query = query.filter_by(agent_id=agent_id)
         
         # Get total conversations
         total_conversations = query.count()

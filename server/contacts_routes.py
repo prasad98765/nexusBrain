@@ -226,6 +226,7 @@ def get_custom_fields():
         })
         
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @contacts_bp.route('/custom-fields', methods=['POST'])
@@ -257,7 +258,7 @@ def create_custom_field():
             if len(options) > 50:
                 return jsonify({'error': 'Maximum 50 options allowed'}), 400
             for option in options:
-                if len(option) < 10:
+                if len(option) < 3:
                     return jsonify({'error': 'Each option must be at least 10 characters long'}), 400
         
         # Create new custom field
@@ -307,7 +308,7 @@ def update_custom_field(field_id):
             if len(options) > 50:
                 return jsonify({'error': 'Maximum 50 options allowed'}), 400
             for option in options:
-                if len(option) < 10:
+                if len(option) < 3:
                     return jsonify({'error': 'Each option must be at least 10 characters long'}), 400
         
         # Update fields

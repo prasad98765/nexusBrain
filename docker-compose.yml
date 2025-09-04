@@ -39,3 +39,6 @@ services:
 volumes:
   postgres_data:
   pgadmin_data:   # ✅ Add this line
+
+
+# to run docker compose up --build

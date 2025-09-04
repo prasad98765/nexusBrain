@@ -216,9 +216,9 @@
     window.nexusAiAgent.isOpen = true;
 
     // Call API when opened (like chatbot.com)
-    fetch(`${baseUrl}/api/agents/${agentId}/open?workspace_id=${workspaceId}`, {
-      method: "POST",
-    }).catch(console.error);
+    // fetch(`${baseUrl}/api/agents/${agentId}/open?workspace_id=${workspaceId}`, {
+    //   method: "POST",
+    // }).catch(console.error);
   }
 
   function closeChat() {
