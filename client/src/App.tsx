@@ -18,6 +18,7 @@ import LandingPage from "@/pages/landing-page";
 import LandingPageHub from "@/pages/landing-page-hub";
 import LandingPageEnhanced from "@/pages/landing-page-enhanced";
 import ChatbotPage from "@/pages/chatbot";
+import ContactPropertiesPage from "@/pages/settings/contact-properties-page";
 
 function Router() {
   const { isAuthenticated, isLoading, token } = useAuth();
@@ -94,6 +95,7 @@ function Router() {
         <>
           <Route path="/" component={Home} />
           <Route path="/business-info" component={BusinessInfoPage} />
+          <Route path="/settings/contact-properties" component={ContactPropertiesPage} />
         </>
       )}
       <Route component={Home} />

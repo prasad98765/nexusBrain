@@ -18,7 +18,6 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from '@/components/ui/sheet';
 import {
   Table,
@@ -40,6 +39,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import {
   Plus,
@@ -57,7 +66,8 @@ import {
   Calendar,
   List,
   MoreVertical,
-  Check
+  Check,
+  AlertTriangle
 } from 'lucide-react';
 import { CustomField } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
@@ -75,35 +85,17 @@ interface CustomFieldsResponse {
 }
 
 export default function ContactProperties({ workspaceId }: ContactPropertiesProps) {
-  // Create custom field mutation
-  const createFieldMutation = useMutation({
-    mutationFn: async (data: typeof newField) => {
-      const response = await fetch('/api/custom-fields', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ ...data, workspaceId }),
-      });
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error);
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/custom-fields'] });
-      resetNewField();
-      setShowCreateDrawer(false);
-      toast({ title: 'Custom field created successfully' });
-    },
-    onError: (error: Error) => {
-      toast({ title: 'Failed to create custom field', description: error.message, variant: 'destructive' });
-    },
-  });
-  // Track loading state for each field action
-  const [loadingFieldId, setLoadingFieldId] = useState<string | null>(null);
+  // ...existing state declarations...
+
+  // ...existing state declarations...
+
+  // Place cleanup effect after all state declarations
+
   const [showCreateDrawer, setShowCreateDrawer] = useState(false);
   const [showEditDrawer, setShowEditDrawer] = useState(false);
   const [editingField, setEditingField] = useState<CustomField | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [fieldToDelete, setFieldToDelete] = useState<CustomField | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [limit] = useState(10);
@@ -126,6 +118,15 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
   const queryClient = useQueryClient();
 
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  
+  // Default contact properties that should always be shown
+  const defaultProperties = [
+    { key: 'name', label: 'Name', type: 'Text', tooltip: 'Contact\'s full name - required for all contacts' },
+    { key: 'email', label: 'Email', type: 'Text', tooltip: 'Contact\'s email address for communication' },
+    { key: 'phone', label: 'Phone', type: 'Text', tooltip: 'Contact\'s phone number' },
+    { key: 'createdAt', label: 'Created Date', type: 'Date', tooltip: 'When this contact was first added' },
+    { key: 'updatedAt', label: 'Modified Date', type: 'Date', tooltip: 'When this contact was last updated' }
+  ];
   
   // Field type definitions with tooltips
   const fieldTypes = {
@@ -212,23 +213,13 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
   const totalPages = customFieldsData?.totalPages || 1;
   const total = customFieldsData?.total || 0;
 
-  // Maintain search focus after data refresh
-  useEffect(() => {
-    if (searchInputRef.current && document.activeElement !== searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [customFieldsData]);
-
-  // Delete custom field mutation with per-row loading
-  const deleteFieldMutation = useMutation({
-    mutationFn: async (fieldId: string) => {
-      setLoadingFieldId(fieldId);
-      const response = await fetch(`/api/custom-fields/${fieldId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        }
+  // Create custom field mutation
+  const createFieldMutation = useMutation({
+    mutationFn: async (data: typeof newField) => {
+      const response = await fetch('/api/custom-fields', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ ...data, workspaceId }),
       });
       if (!response.ok) {
         const error = await response.text();
@@ -238,14 +229,16 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/custom-fields'] });
-      toast({ title: 'Custom field deleted successfully' });
-      setLoadingFieldId(null);
+      resetNewField();
+      setShowCreateDrawer(false);
+      toast({ title: 'Custom field created successfully' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Failed to delete custom field', description: error.message, variant: 'destructive' });
-      setLoadingFieldId(null);
+      toast({ title: 'Failed to create custom field', description: error.message, variant: 'destructive' });
     },
   });
+
+  // Update custom field mutation
   const updateFieldMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string, updates: Partial<CustomField> }) => {
       const response = await fetch(`/api/custom-fields/${id}`, {
@@ -272,6 +265,32 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
     },
   });
 
+  // Delete custom field mutation
+  const deleteFieldMutation = useMutation({
+    mutationFn: async (fieldId: string) => {
+      const response = await fetch(`/api/custom-fields/${fieldId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/custom-fields'] });
+      setDeleteDialogOpen(false);
+      setFieldToDelete(null);
+      toast({ title: 'Custom field deleted successfully' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Failed to delete custom field', description: error.message, variant: 'destructive' });
+    },
+  });
 
   const resetNewField = () => {
     setNewField({
@@ -363,6 +382,17 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
     });
   };
 
+  const handleDeleteField = (field: CustomField) => {
+    setFieldToDelete(field);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (fieldToDelete) {
+      deleteFieldMutation.mutate(fieldToDelete.id);
+    }
+  };
+
   // Reset form when drawer closes
   useEffect(() => {
     if (!showCreateDrawer) {
@@ -400,7 +430,7 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
               Contact Properties
             </h1>
             <p className="text-slate-400 mt-1">
-              Create and manage custom fields for your contacts
+              Manage default and custom fields for your contacts
             </p>
           </div>
 
@@ -410,11 +440,110 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
             data-testid="button-create-property"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Property
+            Add Custom Property
           </Button>
         </div>
 
-        {/* Search and Stats */}
+
+
+        {/* Default Properties Section */}
+        <Card className="bg-slate-800 border-slate-700">
+          <div className="p-4 border-b border-slate-700">
+            <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+              <Type className="h-5 w-5" />
+              Default Properties
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-4 w-4 text-slate-500" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>These are the standard contact fields that cannot be modified</p>
+                </TooltipContent>
+              </Tooltip>
+            </h2>
+            <p className="text-sm text-slate-400 mt-1">Built-in contact fields that are always available</p>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow className="border-slate-700">
+                <TableHead className="text-slate-300 font-medium">Property Name</TableHead>
+                <TableHead className="text-slate-300 font-medium">Type</TableHead>
+                <TableHead className="text-slate-300 font-medium">Status</TableHead>
+                <TableHead className="text-slate-300 font-medium w-12">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {defaultProperties.map((property) => (
+                <TableRow key={property.key} className="border-slate-700 hover:bg-slate-700/30">
+                  <TableCell className="text-slate-100">
+                    <div className="flex items-center gap-2">
+                      <Type className="h-4 w-4" />
+                      <span className="font-medium">{property.label}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Badge variant="outline" className="bg-slate-700 text-slate-300 border-slate-600">
+                          {property.type}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{property.tooltip}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      {property.key === 'name' && (
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge variant="destructive" className="text-xs">Required</Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>This field must be filled out</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Badge variant="default" className="text-xs bg-green-600">Built-in</Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Default system field</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      {['createdAt', 'updatedAt'].includes(property.key) && (
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge variant="outline" className="text-xs">Read-only</Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Automatically managed by the system</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-500 cursor-not-allowed" disabled>
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Default properties cannot be modified</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+
+                {/* Search and Stats */}
         <Card className="bg-slate-800 border-slate-700 p-4">
           <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
             <div className="relative flex-1 max-w-md">
@@ -429,209 +558,220 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
               />
             </div>
             <div className="text-sm text-slate-400">
-              {total} {total === 1 ? 'property' : 'properties'} total
+              {total} custom {total === 1 ? 'property' : 'properties'} + 5 default properties
             </div>
           </div>
         </Card>
 
-        {/* Properties Table */}
-        {isLoading ? (
-          <Card className="bg-slate-800 border-slate-700 p-8">
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            </div>
-          </Card>
-        ) : customFields.length === 0 ? (
-          <Card className="bg-slate-800 border-slate-700 p-8">
-            <div className="text-center">
-              <Settings className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-100 mb-2">No custom properties yet</h3>
-              <p className="text-slate-400 mb-4">
-                {search ? 'No properties match your search.' : 'Create your first custom property to get started.'}
-              </p>
-              {!search && (
-                <Button
-                  onClick={() => setShowCreateDrawer(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Property
-                </Button>
-              )}
-            </div>
-          </Card>
-        ) : (
-          <Card className="bg-slate-800 border-slate-700">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-slate-700">
-                  <TableHead className="text-slate-300 font-medium">
-                    <div className="flex items-center gap-2">
-                      Property Name
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <HelpCircle className="h-3 w-3 text-slate-500" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>The name of the custom field as it appears in forms</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-slate-300 font-medium">
-                    <div className="flex items-center gap-2">
-                      Type
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <HelpCircle className="h-3 w-3 text-slate-500" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>The input type that determines how users interact with this field</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-slate-300 font-medium">
-                    <div className="flex items-center gap-2">
-                      Status
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <HelpCircle className="h-3 w-3 text-slate-500" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Field settings: required, visible in forms, read-only</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-slate-300 font-medium w-12">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {customFields.map((field) => (
-                  <TableRow key={field.id} className="border-slate-700 hover:bg-slate-700/50">
-                    <TableCell className="text-slate-100">
-                      <div className="flex items-center gap-2">
-                        {getFieldTypeIcon(field.type)}
-                        <span className="font-medium">{field.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Badge variant="secondary" className="bg-slate-600 text-slate-200 hover:bg-slate-500">
-                            {getFieldTypeLabel(field.type)}
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{fieldTypes[field.type as keyof typeof fieldTypes]?.tooltip}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        {field.required && (
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Badge variant="destructive" className="text-xs">Required</Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>This field must be filled out</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                        {field.showInForm && (
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Badge variant="default" className="text-xs bg-blue-600">Visible</Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Appears in contact forms</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                        {field.readonly && (
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Badge variant="outline" className="text-xs">Read-only</Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Cannot be edited by users</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-slate-100">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
-                          <DropdownMenuItem
-                            onClick={() => handleEditField(field)}
-                            className="text-slate-200 hover:bg-slate-700 cursor-pointer"
-                            disabled={loadingFieldId === field.id}
-                          >
-                            {loadingFieldId === field.id ? (
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            ) : (
-                              <Edit2 className="h-4 w-4 mr-2" />
-                            )}
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => deleteFieldMutation.mutate(field.id)}
-                            className="text-red-400 hover:bg-red-900/20 cursor-pointer"
-                            disabled={loadingFieldId === field.id}
-                          >
-                            {loadingFieldId === field.id ? (
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            ) : (
-                              <Trash2 className="h-4 w-4 mr-2" />
-                            )}
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between p-4 border-t border-slate-700">
-                <div className="text-sm text-slate-400">
-                  Page {page} of {totalPages}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
+        {/* Custom Properties Section */}
+        <Card className="bg-slate-800 border-slate-700">
+          <div className="p-4 border-b border-slate-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+                  <List className="h-5 w-5" />
+                  Custom Properties
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <HelpCircle className="h-4 w-4 text-slate-500" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Custom fields you've created for additional contact information</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </h2>
+                <p className="text-sm text-slate-400 mt-1">Your custom contact fields</p>
               </div>
-            )}
-          </Card>
-        )}
+              <Button
+                onClick={() => setShowCreateDrawer(true)}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Custom
+              </Button>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="p-8">
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              </div>
+            </div>
+          ) : customFields.length === 0 ? (
+            <div className="p-8">
+              <div className="text-center">
+                <List className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-100 mb-2">No custom properties yet</h3>
+                <p className="text-slate-400 mb-4">
+                  {search ? 'No custom properties match your search.' : 'Create your first custom property to collect additional contact information.'}
+                </p>
+                {!search && (
+                  <Button
+                    onClick={() => setShowCreateDrawer(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Custom Property
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-slate-700">
+                    <TableHead className="text-slate-300 font-medium">Property Name</TableHead>
+                    <TableHead className="text-slate-300 font-medium">Type</TableHead>
+                    <TableHead className="text-slate-300 font-medium">Status</TableHead>
+                    <TableHead className="text-slate-300 font-medium w-12">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {customFields.map((field) => (
+                    <TableRow key={field.id} className="border-slate-700 hover:bg-slate-700/50">
+                      <TableCell className="text-slate-100">
+                        <div className="flex items-center gap-2">
+                          {getFieldTypeIcon(field.type)}
+                          <span className="font-medium">{field.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge variant="secondary" className="bg-slate-600 text-slate-200 hover:bg-slate-500">
+                              {getFieldTypeLabel(field.type)}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{fieldTypes[field.type as keyof typeof fieldTypes]?.tooltip}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          {field.required && (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge variant="destructive" className="text-xs">Required</Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>This field must be filled out</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          {field.showInForm && (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge variant="default" className="text-xs bg-blue-600">Visible</Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Appears in contact forms</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          {field.readonly && (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge variant="outline" className="text-xs">Read-only</Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Cannot be edited by users</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TableCell>
+               <TableCell className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-slate-400 hover:text-slate-100 hover:bg-slate-700"
+                    onClick={() => handleEditField(field)}
+                    data-testid={`button-edit-${field.id}`}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                    onClick={() => handleDeleteField(field)}
+                    data-testid={`button-delete-${field.id}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between p-4 border-t border-slate-700">
+                  <div className="text-sm text-slate-400">
+                    Page {page} of {totalPages}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </Card>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent className="bg-slate-800 border-slate-700">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-slate-100 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                Delete Property
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-slate-300">
+                Are you sure you want to delete it? This action cannot be undone and will remove all data associated with this property from existing contacts.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700 text-white"
+                disabled={deleteFieldMutation.isPending}
+              >
+                {deleteFieldMutation.isPending ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                ) : null}
+                Delete Property
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Create Property Drawer */}
         <Sheet open={showCreateDrawer} onOpenChange={setShowCreateDrawer}>
@@ -853,8 +993,16 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
         </Sheet>
 
         {/* Edit Property Drawer */}
-        <Sheet open={showEditDrawer} onOpenChange={setShowEditDrawer}>
-          <SheetContent className="bg-slate-900 border-slate-700 text-slate-100 w-[400px] sm:w-[540px]">
+        <Sheet open={showEditDrawer} onOpenChange={(open) => {
+          setShowEditDrawer(open);
+          if (!open) {
+            setEditingField(null);
+            setEditData({});
+            setEditOptions([]);
+            setEditOptionInput('');
+          }
+        }}>
+          <SheetContent className="bg-slate-900 border-slate-700 text-slate-100 w-[400px] sm:w-[540px] z-[100]">
             <SheetHeader>
               <SheetTitle className="text-slate-100">Edit Property</SheetTitle>
               <SheetDescription className="text-slate-400">
@@ -923,7 +1071,6 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                         </TooltipContent>
                       </Tooltip>
                     </Label>
-                    
                     <div className="flex gap-2">
                       <Input
                         value={editOptionInput}
@@ -941,7 +1088,6 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
-
                     {editOptions.length > 0 && (
                       <div className="space-y-2 max-h-32 overflow-y-auto">
                         {editOptions.map((option: string, index: number) => (
@@ -969,7 +1115,6 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                 {/* Settings */}
                 <div className="space-y-4">
                   <Label className="text-slate-300">Settings</Label>
-                  
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <Checkbox
@@ -989,7 +1134,6 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                         </Tooltip>
                       </Label>
                     </div>
-
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="edit-showInForm"
@@ -1008,7 +1152,6 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                         </Tooltip>
                       </Label>
                     </div>
-
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="edit-readonly"
@@ -1029,7 +1172,6 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                     </div>
                   </div>
                 </div>
-
                 {/* Actions */}
                 <div className="flex gap-3 pt-4">
                   <Button
@@ -1046,7 +1188,13 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => setShowEditDrawer(false)}
+                    onClick={() => {
+                      setShowEditDrawer(false);
+                      setEditingField(null);
+                      setEditData({});
+                      setEditOptions([]);
+                      setEditOptionInput('');
+                    }}
                     className="border-slate-600 text-slate-300 hover:bg-slate-700"
                   >
                     Cancel
