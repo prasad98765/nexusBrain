@@ -789,10 +789,10 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                 <Label className="text-slate-300 flex items-center gap-2">
                   Property Name
                   <Tooltip>
-                    <TooltipTrigger>
+                    <TooltipTrigger asChild>
                       <HelpCircle className="h-3 w-3 text-slate-500" />
                     </TooltipTrigger>
-                    <TooltipContent>
+                    <TooltipContent side='top'>
                       <p>Choose a clear, descriptive name (max 20 characters)</p>
                     </TooltipContent>
                   </Tooltip>
@@ -1017,10 +1017,10 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                   <Label className="text-slate-300 flex items-center gap-2">
                     Property Name
                     <Tooltip>
-                      <TooltipTrigger>
+                      <TooltipTrigger asChild>
                         <HelpCircle className="h-3 w-3 text-slate-500" />
                       </TooltipTrigger>
-                      <TooltipContent>
+                      <TooltipContent side='top'>
                         <p>Choose a clear, descriptive name (max 20 characters)</p>
                       </TooltipContent>
                     </Tooltip>
@@ -1031,6 +1031,7 @@ export default function ContactProperties({ workspaceId }: ContactPropertiesProp
                     placeholder="e.g., Department, Budget, Lead Source"
                     className="bg-slate-800 border-slate-600 text-slate-100"
                     maxLength={20}
+                    autoFocus
                   />
                   <div className="text-xs text-slate-500">
                     {(editData.name || '').length}/20 characters
