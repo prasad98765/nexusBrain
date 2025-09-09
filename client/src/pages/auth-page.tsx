@@ -113,7 +113,7 @@ export default function AuthPage() {
         localStorage.setItem('auth_token', data.token);
         setMessage({ type: 'success', text: data.message });
         // Redirect will happen automatically via useAuth
-        window.location.href = '/';
+        window.location.href = '/nexus';
       } else {
         if (data.verification_required) {
           setVerificationRequired(true);
@@ -190,7 +190,7 @@ export default function AuthPage() {
         localStorage.setItem('auth_token', data.token);
         setMessage({ type: 'success', text: data.message });
         // Redirect will happen automatically
-        window.location.href = '/';
+        window.location.href = '/nexus';
       } else {
         setMessage({ type: 'error', text: data.message });
       }

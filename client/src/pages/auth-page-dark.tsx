@@ -54,7 +54,7 @@ export default function AuthPageDark() {
 
   // Redirect if already authenticated
   if (isAuthenticated) {
-    window.location.href = '/';
+    window.location.href = '/nexus';
     return null;
   }
 
@@ -122,7 +122,7 @@ export default function AuthPageDark() {
         localStorage.setItem('auth_token', data.token);
         setMessage({ type: 'success', text: data.message });
         // Redirect will happen automatically via useAuth
-        window.location.href = '/';
+        window.location.href = '/nexus';
       } else {
         if (data.verification_required) {
           setVerificationRequired(true);
@@ -198,7 +198,7 @@ export default function AuthPageDark() {
       if (response.ok) {
         localStorage.setItem('auth_token', data.token);
         setMessage({ type: 'success', text: data.message });
-        window.location.href = '/';
+        window.location.href = '/nexus';
       } else {
         setMessage({ type: 'error', text: data.message });
       }

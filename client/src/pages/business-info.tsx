@@ -83,7 +83,7 @@ export default function BusinessInfoPage() {
         setMessage({ type: 'success', text: 'Business information saved successfully!' });
         // Redirect to dashboard after a short delay
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.href = '/nexus';
         }, 1500);
       } else {
         setMessage({ type: 'error', text: data.message || 'Failed to save business information' });

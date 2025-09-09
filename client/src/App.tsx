@@ -1,4 +1,3 @@
-import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -19,6 +18,9 @@ import LandingPageHub from "@/pages/landing-page-hub";
 import LandingPageEnhanced from "@/pages/landing-page-enhanced";
 import ChatbotPage from "@/pages/chatbot";
 import ContactPropertiesPage from "@/pages/settings/contact-properties-page";
+import { Routes, Route, BrowserRouter } from "react-router-dom";
+import AgentsPage from "./pages/agents-page";
+import Layout from "./pages/Layout";
 
 function Router() {
   const { isAuthenticated, isLoading, token } = useAuth();
@@ -68,38 +70,41 @@ function Router() {
   }
 
   return (
-    <Switch>
+    <Routes>
       {/* Static Landing Pages - Always accessible */}
-      <Route path="/landing-page" component={LandingPageEnhanced} />
-      {/* <Route path="/landing-page/hub" component={LandingPageHub} /> */}
-      <Route path="/About/AI" component={AIPage} />
-      <Route path="/About/langchain" component={LangchainPage} />
-      <Route path="/About/LLM" component={LLMPage} />
+      <Route path="/landing-page" Component={LandingPageEnhanced} />
+      {/* <Route path="/landing-page/hub" Component={LandingPageHub} /> */}
+      <Route path="/About/AI" Component={AIPage} />
+      <Route path="/About/langchain" Component={LangchainPage} />
+      <Route path="/About/LLM" Component={LLMPage} />
 
       
       {/* Chatbot Interface - Always accessible for embedded use */}
-      <Route path="/chatbot" component={ChatbotPage} />
+      <Route path="/chatbot" Component={ChatbotPage} />
       
       {!isAuthenticated ? (
         <>
-          <Route path="/auth" component={AuthPage} />
-          <Route path="/forgot-password" component={ForgotPasswordPage} />
-          <Route path="/" component={() => { window.location.href = '/auth'; return null; }} />
+          <Route path="/auth" Component={AuthPage} />
+          <Route path="/forgot-password" Component={ForgotPasswordPage} />
+          <Route path="/" Component={() => { window.location.href = '/auth'; return null; }} />
         </>
       ) : businessInfoRequired ? (
         <>
-          <Route path="/" component={BusinessInfoPage} />
-          <Route path="/business-info" component={BusinessInfoPage} />
+          <Route path="/" Component={BusinessInfoPage} />
+          <Route path="/business-info" Component={BusinessInfoPage} />
         </>
       ) : (
         <>
-          <Route path="/" component={Home} />
-          <Route path="/business-info" component={BusinessInfoPage} />
-          <Route path="/settings/contact-properties" component={ContactPropertiesPage} />
+         <Route path="/nexus" element={<Layout />}>
+            <Route index element={<Home />} />
+            <Route path="agents" element={<AgentsPage />} />
+          </Route>
+          <Route path="/business-info" Component={BusinessInfoPage} />
+          <Route path="/settings/contact-properties" Component={ContactPropertiesPage} />
         </>
       )}
-      <Route component={Home} />
-    </Switch>
+      <Route Component={Home} />
+    </Routes>
   );
 }
 
@@ -109,7 +114,9 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
-          <Router />
+          <BrowserRouter>
+            <Router />
+          </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
     </GoogleOAuthProvider>

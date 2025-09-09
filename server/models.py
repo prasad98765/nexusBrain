@@ -99,7 +99,7 @@ class CustomField(db.Model):
     options = db.Column(db.JSON)  # For dropdown and radio types
     required = db.Column(db.Boolean, default=False)
     show_in_form = db.Column(db.Boolean, default=True)
-    readonly = db.Column(db.Boolean, default=False)
+    # default_model = db.Column(db.String(50), default="gpt-4")
     workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     # updated_at = db.Column(db.DateTime, default=datetime.utcnow)

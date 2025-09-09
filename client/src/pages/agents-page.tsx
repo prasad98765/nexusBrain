@@ -33,8 +33,8 @@ interface Agent {
   status: 'draft' | 'published' | 'archived';
   configuration: any;
   workspaceId: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const AgentTypeIcon = ({ type }: { type: string }) => {
@@ -157,10 +157,24 @@ export default function AgentsPage() {
   };
 
   // Filter agents based on search term
-  const filteredAgents = agentsData?.agents?.filter((agent: Agent) =>
-    agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    agent.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  // const filteredAgents = agentsData?.agents?.filter((agent: Agent) =>
+  //   agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //   agent.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  // ) || [];
+
+  // Add Translate Language perdefined hard code card
+   const filteredAgents: Agent[] = [
+    {
+      id: '1',
+      name: 'Translate Language',
+      type: 'web', // explicitly typed as 'web' | 'whatsapp' | 'voice'
+      description: 'A web agent that translates text between multiple languages using AI.',
+      status: 'published',
+      configuration: {},
+      workspaceId: 'workspace_1'
+    }
+   ]
+  
 
   // Generate embed script
   const generateEmbedScript = (agent: Agent) => {
@@ -213,17 +227,17 @@ export default function AgentsPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-white">Agents</h1>
-        <Button 
+        {/* <Button 
           className="bg-indigo-600 hover:bg-indigo-700"
           data-testid="button-create-agent"
         >
           <Plus className="h-4 w-4 mr-2" />
           Create Agent
-        </Button>
+        </Button> */}
       </div>
 
       {/* Search */}
-      <div className="relative">
+      {/* <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
         <Input
           placeholder="Search agents..."
@@ -232,7 +246,7 @@ export default function AgentsPage() {
           className="pl-10 bg-slate-800 border-slate-600 text-white"
           data-testid="input-search-agents"
         />
-      </div>
+      </div> */}
 
       {/* Agents Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -246,10 +260,9 @@ export default function AgentsPage() {
                   </div>
                   <div>
                     <CardTitle className="text-white text-sm">{agent.name}</CardTitle>
-                    <p className="text-xs text-slate-400 capitalize">{agent.type} Agent</p>
                   </div>
                 </div>
-                <DropdownMenu>
+                {/* <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" data-testid={`button-menu-${agent.id}`}>
                       <MoreVertical className="h-4 w-4" />
@@ -292,16 +305,13 @@ export default function AgentsPage() {
                       Delete
                     </DropdownMenuItem>
                   </DropdownMenuContent>
-                </DropdownMenu>
+                </DropdownMenu> */}
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-slate-300">{agent.description || 'No description provided'}</p>
               <div className="flex justify-between items-center">
                 <StatusBadge status={agent.status} />
-                <span className="text-xs text-slate-500">
-                  {new Date(agent.createdAt).toLocaleDateString()}
-                </span>
               </div>
             </CardContent>
           </Card>
@@ -319,7 +329,7 @@ export default function AgentsPage() {
       )}
 
       {/* Edit Agent Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+      {/* <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="bg-slate-800 border-slate-700">
           <DialogHeader>
             <DialogTitle className="text-white">Edit Agent</DialogTitle>
@@ -363,10 +373,10 @@ export default function AgentsPage() {
             </form>
           )}
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
 
       {/* Embed Script Dialog */}
-      <Dialog open={showEmbedDialog} onOpenChange={setShowEmbedDialog}>
+      {/* <Dialog open={showEmbedDialog} onOpenChange={setShowEmbedDialog}>
         <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-white">Integration Script</DialogTitle>
@@ -401,7 +411,7 @@ export default function AgentsPage() {
             </div>
           )}
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
     </div>
   );
 }
