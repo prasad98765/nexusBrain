@@ -43,6 +43,7 @@ import {
   Quote
 } from 'lucide-react';
 import '../styles/landing-animations.css';
+import UniversalTranslator from '@/components/UniversalTranslator';
 
 export default function LandingPageEnhanced() {
   const [location, setLocation] = useLocation();
@@ -53,6 +54,7 @@ export default function LandingPageEnhanced() {
   const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
   const [typedText, setTypedText] = useState('');
   const [typeIndex, setTypeIndex] = useState(0);
+  const [translatorOpen, setTranslatorOpen] = useState(false);
 
   const heroText = "Welcome to Nexus AI Hub – Your All-in-One AI Superpower";
 
@@ -286,6 +288,12 @@ export default function LandingPageEnhanced() {
                   }`}
                   onMouseEnter={() => setHoveredFeature(index)}
                   onMouseLeave={() => setHoveredFeature(null)}
+                  onClick={() => {
+                    // Open Universal Translator when Language Translator card is clicked (index 2)
+                    if (index === 2 && tool.name === 'Language Translator') {
+                      setTranslatorOpen(true);
+                    }
+                  }}
                   data-testid={`feature-card-${index}`}
                 >
                   <CardHeader className="pb-2">
@@ -725,6 +733,12 @@ export default function LandingPageEnhanced() {
           </div>
         </div>
       </footer>
+      
+      {/* Universal Translator Modal */}
+      <UniversalTranslator 
+        isOpen={translatorOpen} 
+        onClose={() => setTranslatorOpen(false)} 
+      />
     </div>
   );
 }
