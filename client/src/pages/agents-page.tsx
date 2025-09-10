@@ -10,20 +10,21 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { 
-  Plus, 
-  Search, 
-  MoreVertical, 
-  Edit, 
-  Trash2, 
-  Power, 
-  Bot, 
+import {
+  Plus,
+  Search,
+  MoreVertical,
+  Edit,
+  Trash2,
+  Power,
+  Bot,
   MessageSquare,
   Phone,
   Code,
   Eye,
   Copy
 } from 'lucide-react';
+import UniversalTranslator from '@/components/UniversalTranslator';
 
 interface Agent {
   id: string;
@@ -72,6 +73,7 @@ export default function AgentsPage() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showEmbedDialog, setShowEmbedDialog] = useState(false);
   const [selectedAgentForEmbed, setSelectedAgentForEmbed] = useState<Agent | null>(null);
+  const [translatorOpen, setTranslatorOpen] = useState(false);
 
   // Fetch agents
   const { data: agentsData, isLoading } = useQuery({
@@ -163,7 +165,7 @@ export default function AgentsPage() {
   // ) || [];
 
   // Add Translate Language perdefined hard code card
-   const filteredAgents: Agent[] = [
+  const filteredAgents: Agent[] = [
     {
       id: '1',
       name: 'Translate Language',
@@ -173,8 +175,8 @@ export default function AgentsPage() {
       configuration: {},
       workspaceId: 'workspace_1'
     }
-   ]
-  
+  ]
+
 
   // Generate embed script
   const generateEmbedScript = (agent: Agent) => {
@@ -251,7 +253,11 @@ export default function AgentsPage() {
       {/* Agents Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredAgents.map((agent: Agent) => (
-          <Card key={agent.id} className="bg-slate-800 border-slate-700" data-testid={`card-agent-${agent.id}`}>
+          <Card key={agent.id} className="bg-slate-800 border-slate-700" style={{ cursor: 'pointer' }} data-testid={`card-agent-${agent.id}`} onClick={() => {
+
+            setTranslatorOpen(true);
+
+          }}>
             <CardHeader className="pb-3">
               <div className="flex justify-between items-start">
                 <div className="flex items-center space-x-2">
@@ -412,6 +418,11 @@ export default function AgentsPage() {
           )}
         </DialogContent>
       </Dialog> */}
+      {/* Universal Translator Modal */}
+      <UniversalTranslator
+        isOpen={translatorOpen}
+        onClose={() => setTranslatorOpen(false)}
+      />
     </div>
   );
 }

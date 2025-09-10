@@ -54,7 +54,7 @@ export default function Home() {
       {activeView === "dashboard" ? (
         <div className="flex flex-col items-center justify-center text-center relative" style={{ backgroundColor: 'var(--sidebar)' }}>
           {/* Hero Section */}
-          <div className="max-w-4xl space-y-8 z-10">
+          <div className="max-w-4xl space-y-8 z-10" style={{ backgroundColor: "rgb(15 23 42 / var(--tw-bg-opacity, 1))" }}>
             <div className="space-y-6">
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                 <span className="bg-gradient-to-r from-white via-indigo-200 to-white bg-clip-text text-transparent">

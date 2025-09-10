@@ -5,11 +5,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useLocation } from 'wouter';
-import { 
-  Sparkles, 
-  Zap, 
-  ArrowRight, 
-  CheckCircle, 
+import {
+  Sparkles,
+  Zap,
+  ArrowRight,
+  CheckCircle,
   Star,
   Users,
   TrendingUp,
@@ -43,6 +43,8 @@ import {
   Quote
 } from 'lucide-react';
 import '../styles/landing-animations.css';
+import UniversalTranslator from '@/components/UniversalTranslator';
+import { Outlet, useNavigate } from "react-router-dom";
 
 export default function LandingPageEnhanced() {
   const [location, setLocation] = useLocation();
@@ -53,8 +55,10 @@ export default function LandingPageEnhanced() {
   const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
   const [typedText, setTypedText] = useState('');
   const [typeIndex, setTypeIndex] = useState(0);
+  const [translatorOpen, setTranslatorOpen] = useState(false);
 
   const heroText = "Welcome to Nexus AI Hub – Your All-in-One AI Superpower";
+  const navigate = useNavigate();
 
   // Typing animation effect
   useEffect(() => {
@@ -83,7 +87,7 @@ export default function LandingPageEnhanced() {
   };
 
   const handleGetStarted = () => {
-    setLocation('/auth');
+    navigate('/nexus');
   };
 
   // AI Tools Features
@@ -111,7 +115,7 @@ export default function LandingPageEnhanced() {
     },
     {
       name: "Sarah M.",
-      role: "Marketing Manager", 
+      role: "Marketing Manager",
       content: "The AI tools are incredibly intuitive. I use the grammar checker and email writer daily – they're perfect!",
       rating: 5
     },
@@ -279,13 +283,18 @@ export default function LandingPageEnhanced() {
             {aiTools.map((tool, index) => {
               const IconComponent = tool.icon;
               return (
-                <Card 
+                <Card
                   key={index}
-                  className={`bg-slate-800/80 border-slate-700 hover:border-slate-600 transition-all duration-300 transform hover:scale-105 hover:shadow-xl cursor-pointer group ${
-                    hoveredFeature === index ? 'shadow-2xl' : ''
-                  }`}
+                  className={`bg-slate-800/80 border-slate-700 hover:border-slate-600 transition-all duration-300 transform hover:scale-105 hover:shadow-xl cursor-pointer group ${hoveredFeature === index ? 'shadow-2xl' : ''
+                    }`}
                   onMouseEnter={() => setHoveredFeature(index)}
                   onMouseLeave={() => setHoveredFeature(null)}
+                  onClick={() => {
+                    // Open Universal Translator when Language Translator card is clicked (index 2)
+                    if (index === 2 && tool.name === 'Language Translator') {
+                      setTranslatorOpen(true);
+                    }
+                  }}
                   data-testid={`feature-card-${index}`}
                 >
                   <CardHeader className="pb-2">
@@ -436,7 +445,7 @@ export default function LandingPageEnhanced() {
                     Grammar Check
                   </Button>
                 </div>
-                
+
                 <div className="space-y-3">
                   <div className="bg-slate-700/50 rounded-lg p-4">
                     <div className="text-sm text-slate-400 mb-2">Input:</div>
@@ -446,11 +455,11 @@ export default function LandingPageEnhanced() {
                       {demoMode === 'grammar' && 'I are going to the store yesterday.'}
                     </div>
                   </div>
-                  
+
                   <div className="flex justify-center">
                     <ArrowRight className="h-6 w-6 text-indigo-400 animate-pulse" />
                   </div>
-                  
+
                   <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 rounded-lg p-4">
                     <div className="text-sm text-indigo-400 mb-2">AI Result:</div>
                     <div className="text-white font-mono text-sm">
@@ -470,8 +479,8 @@ export default function LandingPageEnhanced() {
                     <h3 className="text-lg font-semibold text-white">Speech-to-Text</h3>
                   </div>
                   <p className="text-slate-300 mb-4">Speak naturally and watch your words appear instantly with 99% accuracy.</p>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/20"
                     onClick={() => setIsListening(!isListening)}
                   >
@@ -487,7 +496,7 @@ export default function LandingPageEnhanced() {
                     <h3 className="text-lg font-semibold text-white">AI Image Generator</h3>
                   </div>
                   <p className="text-slate-300 mb-4">Type any description and watch AI create stunning visuals in seconds.</p>
-                  <Input 
+                  <Input
                     placeholder="Describe an image..."
                     className="bg-slate-700/50 border-slate-600 text-white mb-3"
                   />
@@ -574,7 +583,7 @@ export default function LandingPageEnhanced() {
                     <span className="text-slate-300">Community support</span>
                   </div>
                 </div>
-                <Button 
+                <Button
                   onClick={handleGetStarted}
                   className="w-full bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 text-white"
                 >
@@ -612,7 +621,7 @@ export default function LandingPageEnhanced() {
                     <span className="text-slate-300">Email support</span>
                   </div>
                 </div>
-                <Button 
+                <Button
                   onClick={handleGetStarted}
                   className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white"
                 >
@@ -647,7 +656,7 @@ export default function LandingPageEnhanced() {
                     <span className="text-slate-300">24/7 dedicated support</span>
                   </div>
                 </div>
-                <Button 
+                <Button
                   variant="outline"
                   className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
                 >
@@ -725,6 +734,12 @@ export default function LandingPageEnhanced() {
           </div>
         </div>
       </footer>
+
+      {/* Universal Translator Modal */}
+      <UniversalTranslator
+        isOpen={translatorOpen}
+        onClose={() => setTranslatorOpen(false)}
+      />
     </div>
   );
 }
