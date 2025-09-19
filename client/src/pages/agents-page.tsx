@@ -25,6 +25,7 @@ import {
   Copy
 } from 'lucide-react';
 import UniversalTranslator from '@/components/UniversalTranslator';
+import HtmlPageGenerator from '@/components/HtmlPageGenerator';
 
 interface Agent {
   id: string;
@@ -74,6 +75,7 @@ export default function AgentsPage() {
   const [showEmbedDialog, setShowEmbedDialog] = useState(false);
   const [selectedAgentForEmbed, setSelectedAgentForEmbed] = useState<Agent | null>(null);
   const [translatorOpen, setTranslatorOpen] = useState(false);
+  const [agentId, setAgentId] = useState('');
 
   // Fetch agents
   const { data: agentsData, isLoading } = useQuery({
@@ -174,7 +176,18 @@ export default function AgentsPage() {
       status: 'published',
       configuration: {},
       workspaceId: 'workspace_1'
-    }
+    },
+    // Add Create html page agent
+    {
+      id: '2',
+      name: 'Create HTML Page',
+      type: 'web', // explicitly typed as 'web' | 'whatsapp' | 'voice'
+      description: 'A web agent that generates complete HTML pages based on user input using AI.',
+      status: 'published',
+      configuration: {},
+      workspaceId: 'workspace_1'
+    },
+    // Add more predefined agents as needed
   ]
 
 
@@ -256,6 +269,7 @@ export default function AgentsPage() {
           <Card key={agent.id} className="bg-slate-800 border-slate-700" style={{ cursor: 'pointer' }} data-testid={`card-agent-${agent.id}`} onClick={() => {
 
             setTranslatorOpen(true);
+            setAgentId(agent.id);
 
           }}>
             <CardHeader className="pb-3">
@@ -419,10 +433,16 @@ export default function AgentsPage() {
         </DialogContent>
       </Dialog> */}
       {/* Universal Translator Modal */}
-      <UniversalTranslator
+      {agentId === "1" && <UniversalTranslator
         isOpen={translatorOpen}
         onClose={() => setTranslatorOpen(false)}
-      />
+      />}
+
+      {/* HTML Page Generator */}
+      {agentId === "2" && <HtmlPageGenerator
+        isOpen={translatorOpen}
+        onClose={() => setTranslatorOpen(false)}
+      />}
     </div>
   );
 }

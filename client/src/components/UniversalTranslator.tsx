@@ -1,20 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
+import FancySelect from '@/components/ui/FancySelect';
+import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Languages, 
-  ArrowLeftRight, 
-  Volume2, 
-  Mic, 
-  Copy, 
-  Download, 
-  Share2, 
-  Save, 
-  History, 
-  Trash2, 
+import {
+  Languages,
+  ArrowLeftRight,
+  Volume2,
+  Mic,
+  Copy,
+  Download,
+  Share2,
+  Save,
+  History,
+  Trash2,
   RefreshCw,
   Bold,
   Italic,
@@ -61,7 +63,6 @@ export default function UniversalTranslator({ isOpen, onClose }: UniversalTransl
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState<Translation[]>([]);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [currentFormatting, setCurrentFormatting] = useState({
     bold: false,
     italic: false,
@@ -113,8 +114,12 @@ export default function UniversalTranslator({ isOpen, onClose }: UniversalTransl
   }, [history]);
 
   const showFeedback = (type: 'success' | 'error' | 'info', message: string) => {
-    setFeedback({ type, message });
-    setTimeout(() => setFeedback(null), 3000);
+    toast({
+      title:
+        type === 'success' ? 'Success' : type === 'error' ? 'Error' : 'Info',
+      description: message,
+      variant: type === 'error' ? 'destructive' : 'default',
+    });
   };
 
   const handleTranslate = async () => {
@@ -124,16 +129,16 @@ export default function UniversalTranslator({ isOpen, onClose }: UniversalTransl
     }
 
     setIsTranslating(true);
-    
+
     // Simulate API call - replace with actual translation API later
     setTimeout(() => {
       const sourceLanguageName = languages.find(lang => lang.code === sourceLanguage)?.name || 'Auto-detect';
       const targetLanguageName = languages.find(lang => lang.code === targetLanguage)?.name || 'Unknown';
-      
+
       // Mock translation with target language prefix for now
       const mockTranslation = `[${targetLanguageName}] ${inputText}`;
       setTranslatedText(mockTranslation);
-      
+
       // Add to history
       const newTranslation: Translation = {
         id: Date.now().toString(),
@@ -145,7 +150,7 @@ export default function UniversalTranslator({ isOpen, onClose }: UniversalTransl
         styledText: mockTranslation,
         formatting: { ...currentFormatting }
       };
-      
+
       setHistory(prev => [newTranslation, ...prev.slice(0, 9)]); // Keep only last 10
       setIsTranslating(false);
       showFeedback('success', 'Translation completed successfully!');
@@ -157,19 +162,19 @@ export default function UniversalTranslator({ isOpen, onClose }: UniversalTransl
     const temp = sourceLanguage;
     setSourceLanguage(targetLanguage);
     setTargetLanguage(temp);
-    
+
     // Also swap the text
     const tempText = inputText;
     setInputText(translatedText);
     setTranslatedText(tempText);
-    
+
     showFeedback('info', 'Languages swapped successfully');
   };
 
   const handleSpeechToText = () => {
     setIsListening(true);
     showFeedback('info', 'Listening... (Speech-to-text simulation)');
-    
+
     // Mock speech-to-text
     setTimeout(() => {
       setInputText(prev => prev + ' This is mock speech input.');
@@ -183,10 +188,10 @@ export default function UniversalTranslator({ isOpen, onClose }: UniversalTransl
       showFeedback('error', 'No translation to read aloud');
       return;
     }
-    
+
     setIsSpeaking(true);
     showFeedback('info', 'Reading translation aloud...');
-    
+
     // Mock text-to-speech
     setTimeout(() => {
       setIsSpeaking(false);
@@ -200,13 +205,13 @@ export default function UniversalTranslator({ isOpen, onClose }: UniversalTransl
       [type]: !currentFormatting[type]
     };
     setCurrentFormatting(newFormatting);
-    
+
     // Apply formatting to selected text or entire text
     if (translatedTextRef.current) {
       const textarea = translatedTextRef.current;
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
-      
+
       if (start !== end) {
         // Format selected text (simulation - in real implementation would use rich text editor)
         showFeedback('info', `Applied ${type} formatting to selected text`);
@@ -331,19 +336,7 @@ export default function UniversalTranslator({ isOpen, onClose }: UniversalTransl
           </div>
         </div>
 
-        {/* Feedback Messages */}
-        {feedback && (
-          <div className={`mx-6 mt-4 p-3 rounded-lg flex items-center gap-2 ${
-            feedback.type === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-            feedback.type === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-            'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-          }`}>
-            {feedback.type === 'success' && <Check className="h-4 w-4" />}
-            {feedback.type === 'error' && <AlertCircle className="h-4 w-4" />}
-            {feedback.type === 'info' && <Info className="h-4 w-4" />}
-            <span>{feedback.message}</span>
-          </div>
-        )}
+        {/* Feedback Messages now handled by toast system */}
 
         <div className="flex-1 overflow-hidden flex">
           {/* Main Translation Interface */}
@@ -352,20 +345,15 @@ export default function UniversalTranslator({ isOpen, onClose }: UniversalTransl
             <div className="flex items-center gap-4">
               <div className="flex-1">
                 <label className="block text-sm font-medium text-slate-300 mb-2">From</label>
-                <select
+                <FancySelect
+                  options={languages.map(lang => ({ value: lang.code, label: lang.name, icon: lang.flag }))}
                   value={sourceLanguage}
-                  onChange={(e) => setSourceLanguage(e.target.value)}
-                  className="w-full p-3 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  data-testid="source-language-select"
-                >
-                  {languages.map(lang => (
-                    <option key={lang.code} value={lang.code}>
-                      {lang.flag} {lang.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setSourceLanguage}
+                  placeholder="Select language"
+                  className="mb-2"
+                />
               </div>
-              
+
               <Button
                 variant="outline"
                 onClick={handleSwapLanguages}
@@ -375,21 +363,16 @@ export default function UniversalTranslator({ isOpen, onClose }: UniversalTransl
               >
                 <ArrowLeftRight className="h-4 w-4" />
               </Button>
-              
+
               <div className="flex-1">
                 <label className="block text-sm font-medium text-slate-300 mb-2">To</label>
-                <select
+                <FancySelect
+                  options={languages.filter(lang => lang.code !== 'auto').map(lang => ({ value: lang.code, label: lang.name, icon: lang.flag }))}
                   value={targetLanguage}
-                  onChange={(e) => setTargetLanguage(e.target.value)}
-                  className="w-full p-3 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  data-testid="target-language-select"
-                >
-                  {languages.filter(lang => lang.code !== 'auto').map(lang => (
-                    <option key={lang.code} value={lang.code}>
-                      {lang.flag} {lang.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setTargetLanguage}
+                  placeholder="Select language"
+                  className="mb-2"
+                />
               </div>
             </div>
 
@@ -547,18 +530,14 @@ export default function UniversalTranslator({ isOpen, onClose }: UniversalTransl
                     onChange={(e) => setTranslatedText(e.target.value)}
                     placeholder="Translation will appear here..."
                     rows={8}
-                    className={`w-full bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none ${
-                      currentFormatting.bold ? 'font-bold' : ''
-                    } ${
-                      currentFormatting.italic ? 'italic' : ''
-                    } ${
-                      currentFormatting.underline ? 'underline' : ''
-                    } ${
-                      currentFormatting.strikethrough ? 'line-through' : ''
-                    }`}
+                    className={`w-full bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none ${currentFormatting.bold ? 'font-bold' : ''
+                      } ${currentFormatting.italic ? 'italic' : ''
+                      } ${currentFormatting.underline ? 'underline' : ''
+                      } ${currentFormatting.strikethrough ? 'line-through' : ''
+                      }`}
                     data-testid="translation-textarea"
                   />
-                  
+
                   <div className="flex items-center justify-between mt-4">
                     <span className="text-sm text-slate-400">{translatedText.length} characters</span>
                     <div className="flex gap-2">
@@ -614,7 +593,7 @@ export default function UniversalTranslator({ isOpen, onClose }: UniversalTransl
                   {history.length}/10
                 </Badge>
               </div>
-              
+
               {history.length === 0 ? (
                 <div className="text-center py-8">
                   <FileText className="h-12 w-12 text-slate-600 mx-auto mb-3" />
@@ -638,26 +617,26 @@ export default function UniversalTranslator({ isOpen, onClose }: UniversalTransl
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
-                        
+
                         <div className="text-sm text-slate-300">
                           <span className="text-indigo-400">{translation.sourceLanguage}</span>
                           <ArrowLeftRight className="inline h-3 w-3 mx-2" />
                           <span className="text-purple-400">{translation.targetLanguage}</span>
                         </div>
-                        
+
                         <div className="space-y-2">
                           <div className="bg-slate-800/80 p-2 rounded text-sm text-slate-300">
-                            {translation.originalText.length > 60 
-                              ? `${translation.originalText.substring(0, 60)}...` 
+                            {translation.originalText.length > 60
+                              ? `${translation.originalText.substring(0, 60)}...`
                               : translation.originalText}
                           </div>
                           <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 p-2 rounded text-sm text-slate-200">
-                            {translation.styledText.length > 60 
-                              ? `${translation.styledText.substring(0, 60)}...` 
+                            {translation.styledText.length > 60
+                              ? `${translation.styledText.substring(0, 60)}...`
                               : translation.styledText}
                           </div>
                         </div>
-                        
+
                         <div className="flex gap-1">
                           <Button
                             variant="ghost"

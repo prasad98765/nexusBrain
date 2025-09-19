@@ -1,16 +1,49 @@
-services:
-  db:
-    image: postgres:16
-    restart: always
-    environment:
-      POSTGRES_USER: prasad
-      POSTGRES_PASSWORD: YourStrongPass123!
-      POSTGRES_DB: nexusdb
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+# services:
+#   db:
+#     image: postgres:16
+#     restart: always
+#     environment:
+#       POSTGRES_USER: prasad
+#       POSTGRES_PASSWORD: YourStrongPass123!
+#       POSTGRES_DB: nexusdb
+#     ports:
+#       - "5433:5432"
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
 
+#   web:
+#     build: .
+#     command: python run.py
+#     volumes:
+#       - .:/app
+#     ports:
+#       - "5433:5432"
+#     environment:
+#       - DATABASE_URL=postgresql+psycopg://sonar:sonar123@43.204.3.223:5432/postgres
+#     depends_on:
+#       - db
+
+#   pgadmin:
+#     image: dpage/pgadmin4
+#     restart: always
+#     environment:
+#       PGADMIN_DEFAULT_EMAIL: admin@admin.com
+#       PGADMIN_DEFAULT_PASSWORD: admin
+#     ports:
+#       - "5050:80"
+#     depends_on:
+#       - db
+#     volumes:
+#       - pgadmin_data:/var/lib/pgadmin
+
+# volumes:
+#   postgres_data:
+#   pgadmin_data:   # ✅ Add this line
+
+
+# # to run docker compose up --build
+
+services:
   web:
     build: .
     command: python run.py
@@ -19,9 +52,7 @@ services:
     ports:
       - "5001:5000"
     environment:
-      - DATABASE_URL=postgresql+psycopg://prasad:YourStrongPass123!@db:5432/nexusdb
-    depends_on:
-      - db
+      - DATABASE_URL=postgresql+psycopg://sonar:sonar123@43.204.3.223:5432/postgres
 
   pgadmin:
     image: dpage/pgadmin4
@@ -31,14 +62,8 @@ services:
       PGADMIN_DEFAULT_PASSWORD: admin
     ports:
       - "5050:80"
-    depends_on:
-      - db
     volumes:
       - pgadmin_data:/var/lib/pgadmin
 
 volumes:
-  postgres_data:
-  pgadmin_data:   # ✅ Add this line
-
-
-# to run docker compose up --build
+  pgadmin_data:

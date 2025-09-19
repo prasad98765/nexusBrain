@@ -14,60 +14,64 @@ import Home from "@/pages/home";
 import BusinessInfoPage from "@/pages/business-info";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import LandingPage from "@/pages/landing-page";
+import QASection from "@/pages/qa-section";
 import LandingPageHub from "@/pages/landing-page-hub";
 import LandingPageEnhanced from "@/pages/landing-page-enhanced";
 import ChatbotPage from "@/pages/chatbot";
 import ContactPropertiesPage from "@/pages/settings/contact-properties-page";
+import ContactsPage from "@/components/contacts/ContactsTable"
 import { Routes, Route, BrowserRouter } from "react-router-dom";
 import AgentsPage from "./pages/agents-page";
 import Layout from "./pages/Layout";
+import SettingsPage from "./pages/settings-page";
+import FlowBuilderInner from "@/pages/flow-builder";
 
 function Router() {
   const { isAuthenticated, isLoading, token } = useAuth();
   const [businessInfoRequired, setBusinessInfoRequired] = useState<boolean | null>(null);
 
   // Check if business info is required for authenticated users
-  useEffect(() => {
-    if (isAuthenticated && token) {
-      const checkBusinessInfo = async () => {
-        try {
-          const response = await fetch('/api/business-info', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            setBusinessInfoRequired(data.exists === false);
-          } else {
-            setBusinessInfoRequired(false);
-          }
-        } catch (error) {
-          console.error('Failed to check business info:', error);
-          setBusinessInfoRequired(false);
-        }
-      };
+  // useEffect(() => {
+  //   if (isAuthenticated && token) {
+  //     const checkBusinessInfo = async () => {
+  //       try {
+  //         const response = await fetch('/api/business-info', {
+  //           headers: {
+  //             'Authorization': `Bearer ${token}`
+  //           }
+  //         });
 
-      checkBusinessInfo();
-    } else {
-      setBusinessInfoRequired(null);
-    }
-  }, [isAuthenticated, token]);
+  //         if (response.ok) {
+  //           const data = await response.json();
+  //           setBusinessInfoRequired(data.exists === false);
+  //         } else {
+  //           setBusinessInfoRequired(false);
+  //         }
+  //       } catch (error) {
+  //         console.error('Failed to check business info:', error);
+  //         setBusinessInfoRequired(false);
+  //       }
+  //     };
 
-  if (isLoading || (isAuthenticated && businessInfoRequired === null)) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center animate-pulse">
-            <span className="text-white font-bold text-xl">N</span>
-          </div>
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          <p className="text-gray-600">Loading Nexus AI Hub...</p>
-        </div>
-      </div>
-    );
-  }
+  //     checkBusinessInfo();
+  //   } else {
+  //     setBusinessInfoRequired(null);
+  //   }
+  // }, [isAuthenticated, token]);
+
+  // if (isLoading || (isAuthenticated && businessInfoRequired === null)) {
+  //   return (
+  //     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+  //       <div className="flex flex-col items-center space-y-4">
+  //         <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center animate-pulse">
+  //           <span className="text-white font-bold text-xl">N</span>
+  //         </div>
+  //         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+  //         <p className="text-gray-600">Loading Nexus AI Hub...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <Routes>
@@ -77,27 +81,29 @@ function Router() {
       <Route path="/About/AI" Component={AIPage} />
       <Route path="/About/langchain" Component={LangchainPage} />
       <Route path="/About/LLM" Component={LLMPage} />
+      <Route path="/About/qa" Component={QASection} />
 
-      
+
       {/* Chatbot Interface - Always accessible for embedded use */}
       <Route path="/chatbot" Component={ChatbotPage} />
-      
+
       {!isAuthenticated ? (
         <>
           <Route path="/auth" Component={AuthPage} />
           <Route path="/forgot-password" Component={ForgotPasswordPage} />
           <Route path="/" Component={() => { window.location.href = '/auth'; return null; }} />
         </>
-      ) : businessInfoRequired ? (
-        <>
-          <Route path="/" Component={BusinessInfoPage} />
-          <Route path="/business-info" Component={BusinessInfoPage} />
-        </>
       ) : (
         <>
-         <Route path="/nexus" element={<Layout />}>
+
+          <Route path="/nexus" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="agents" element={<AgentsPage />} />
+            <Route path="contacts" element={<ContactsPage workspaceId={""} />} />
+            <Route path="settings" element={<SettingsPage workspaceId={""} />} />
+            <Route path="flow-builder" element={<FlowBuilderInner agentId={""} onBackClick={function (): void {
+              throw new Error("Function not implemented.");
+            }} />} />
           </Route>
           <Route path="/business-info" Component={BusinessInfoPage} />
           <Route path="/settings/contact-properties" Component={ContactPropertiesPage} />

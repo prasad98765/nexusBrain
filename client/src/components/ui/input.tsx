@@ -12,7 +12,12 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className
         )}
         ref={ref}
-        style={{color:"white"}}
+        style={{
+          color: "white",
+          borderColor: "rgb(71 85 105 / var(--tw-border-opacity, 1))",
+          backgroundColor: "rgb(30 41 59 / var(--tw-bg-opacity, 1))",
+          height: "50px"
+        }}
         {...props}
       />
     )

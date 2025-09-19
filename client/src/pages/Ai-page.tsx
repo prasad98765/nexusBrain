@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, Zap, Users, ArrowRight, Play, Brain, Cpu, Globe, X, Menu } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 
 export default function Home() {
-  const [location, setLocation] = useLocation();
+  const navigate = useNavigate();
   const [activeFeature, setActiveFeature] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -23,11 +23,11 @@ export default function Home() {
   }, [location]);
 
   const handleNav = (path: string) => {
-    setLocation(path);
+    navigate(path);
   };
 
   const handleGetStarted = () => {
-    setLocation('/auth');
+    navigate('/auth');
   };
 
   // Auto-rotate features
@@ -38,7 +38,7 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
   return (
-    <div className="min-h-screen bg-background" style={{color:"white"}}>
+    <div className="min-h-screen bg-background" style={{ color: "white" }}>
       <header className="w-full bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between items-center h-16">
@@ -48,14 +48,6 @@ export default function Home() {
               </div>
               <span className="text-lg sm:text-xl font-bold text-slate-100">Nexus AI Hub</span>
             </div>
-
-            <nav className="hidden md:flex items-center gap-6">
-              <a onClick={() => { setLocation('/landing-page'); }} className="text-slate-300 hover:text-slate-100 transition-colors">Agent Bots</a>
-              <a onClick={() => { setLocation('/landing-page'); }} className="text-slate-300 hover:text-slate-100 transition-colors">AI Search</a>
-              <a onClick={() => { setLocation('/landing-page'); }} className="text-slate-300 hover:text-slate-100 transition-colors">Technology</a>
-              <a onClick={() => { setLocation('/landing-page'); }} className="text-slate-300 hover:text-slate-100 transition-colors">How It Works</a>
-              <a onClick={() => { setLocation('/About-AI/AI'); }} className="text-slate-300 hover:text-slate-100 transition-colors">About AI</a>
-            </nav>
 
             <div className="flex items-center gap-4">
               <Button
@@ -78,11 +70,11 @@ export default function Home() {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden bg-slate-800 border-t border-slate-700 px-4 py-4 space-y-3">
-            <a href="#agent-bots" className="block text-slate-300 hover:text-slate-100 transition-colors">Agent Bots</a>
-            <a href="#ai-search" className="block text-slate-300 hover:text-slate-100 transition-colors">AI Search</a>
-            <a href="#ai-technology" className="block text-slate-300 hover:text-slate-100 transition-colors">Technology</a>
-            <a href="#how-it-works" className="block text-slate-300 hover:text-slate-100 transition-colors">How It Works</a>
-            <a href="#how-it-works" className="block text-slate-300 hover:text-slate-100 transition-colors">About Ai</a>
+            <a onClick={() => { navigate('/customize-agent'); setMobileMenuOpen(false); }} className="block text-slate-300 hover:text-slate-100 transition-colors cursor-pointer">Agent Bots</a>
+            <a onClick={() => { navigate('/ai-search'); setMobileMenuOpen(false); }} className="block text-slate-300 hover:text-slate-100 transition-colors cursor-pointer">AI Search</a>
+            <a onClick={() => { navigate('/flow-builder'); setMobileMenuOpen(false); }} className="block text-slate-300 hover:text-slate-100 transition-colors cursor-pointer">Technology</a>
+            <a onClick={() => { navigate('/chatbot'); setMobileMenuOpen(false); }} className="block text-slate-300 hover:text-slate-100 transition-colors cursor-pointer">How It Works</a>
+            <a onClick={() => { navigate('/ai'); setMobileMenuOpen(false); }} className="block text-slate-300 hover:text-slate-100 transition-colors cursor-pointer">About AI</a>
           </div>
         )}
       </header>

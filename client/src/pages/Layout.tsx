@@ -1,6 +1,6 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu, Bot } from "lucide-react";
+import { LogOut, Menu, Bot, Users, Settings, Workflow } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 
@@ -38,13 +38,12 @@ export default function Layout() {
       </header>
 
       {/* Layout body */}
-      <div className="flex">
+      <div className="flex h-[calc(100vh-4rem)]">
         {/* Sidebar */}
-        <aside className="w-16 bg-slate-800/50 border-r border-slate-700 min-h-screen flex flex-col items-center py-6 gap-6">
+        <aside className="w-16 bg-slate-800/50 border-r border-slate-700 h-full flex flex-col items-center py-6 gap-6">
           <button
-            className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${
-              active === "dashboard" ? "bg-slate-700" : ""
-            }`}
+            className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${active === "dashboard" ? "bg-slate-700" : ""
+              }`}
             onClick={() => {
               setActive("dashboard");
               navigate("/nexus");
@@ -54,9 +53,8 @@ export default function Layout() {
           </button>
 
           <button
-            className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${
-              active === "agents" ? "bg-slate-700" : ""
-            }`}
+            className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${active === "agents" ? "bg-slate-700" : ""
+              }`}
             onClick={() => {
               setActive("agents");
               navigate("/nexus/agents");
@@ -64,17 +62,55 @@ export default function Layout() {
             title="Agents"
           >
             <Bot
-              className={`h-5 w-5 ${
-                active === "agents"
-                  ? "text-indigo-400"
-                  : "text-slate-400 group-hover:text-slate-200"
-              }`}
+              className={`h-5 w-5 ${active === "agents"
+                ? "text-indigo-400"
+                : "text-slate-400 group-hover:text-slate-200"
+                }`}
             />
           </button>
+
+          <button
+            className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${active === 'contacts' ? 'bg-slate-700' : ''
+              }`}
+            onClick={() => {
+              setActive("contacts");
+              navigate("/nexus/contacts");
+            }}
+          >
+            <Users className={`h-5 w-5 ${active === 'contacts' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
+              }`} />
+          </button>
+          <button
+            className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${active === 'flow-builder' ? 'bg-slate-700' : ''
+              }`}
+            onClick={() => {
+              setActive("flow-builder");
+              navigate("/nexus/flow-builder");
+            }}
+          >
+            <Workflow className={`h-5 w-5 ${active === 'flow-builder' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
+              }`} />
+          </button>
+          <div className="mt-auto flex flex-col gap-4">
+            <button
+              className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${active === 'settings' ? 'bg-slate-700' : ''
+                }`}
+              onClick={() => {
+                setActive("settings");
+                navigate("/nexus/settings");
+              }}
+            >
+              <Settings className={`h-5 w-5 ${active === 'settings' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
+                }`} />
+            </button>
+            {/* <button className="p-3 rounded-lg hover:bg-slate-700 transition-colors group">
+              <User className="h-5 w-5 text-slate-400 group-hover:text-slate-200" />
+            </button> */}
+          </div>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 px-8 py-6">
+        <main className="flex-1 px-8 py-6 overflow-y-auto h-full">
           <Outlet />
         </main>
       </div>

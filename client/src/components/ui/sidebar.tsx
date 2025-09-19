@@ -773,13 +773,14 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/ui/theme-provider";
-import { useLocation, Link } from "wouter";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Menu, Brain, Link as LinkIcon, Zap, Info, Moon, Sun, Home } from "lucide-react";
 
 export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const { theme, setTheme } = useTheme();
-  const [location] = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const toggleSidebar = () => setIsOpen(!isOpen);
   const closeSidebar = () => setIsOpen(false);
@@ -833,27 +834,27 @@ export function Sidebar() {
       {/* Sidebar */}
       <nav
         data-testid="sidebar-navigation"
-        className={`fixed left-0 top-0 h-full w-64 bg-sidebar transform sidebar-transition z-40 overflow-y-auto ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0`}
+        className={`fixed left-0 top-0 h-full w-64 bg-sidebar transform sidebar-transition z-40 overflow-y-auto ${isOpen ? "translate-x-0" : "-translate-x-full"
+          } lg:translate-x-0`}
       >
         <div className="p-6">
 
           {/* Navigation Links */}
-          <ul className="space-y-2" style={{marginTop: "4rem"}}>
+          <ul className="space-y-2" style={{ marginTop: "4rem" }}>
             {navItems.map(({ path, label, icon: Icon }) => (
               <li key={path}>
-                <Link
-                  href={path}
+                <button
                   data-testid={`link-${path.replace('/', '') || 'home'}`}
-                  onClick={handleNavClick}
-                  className={`w-full flex items-center p-3 rounded-lg hover:bg-accent/20 transition-colors ${
-                    location === path ? "active-nav" : ""
-                  }`}
+                  onClick={() => {
+                    navigate(path);
+                    handleNavClick();
+                  }}
+                  className={`w-full flex items-center p-3 rounded-lg hover:bg-accent/20 transition-colors ${location.pathname === path ? "active-nav" : ""
+                    }`}
                 >
                   <Icon className="w-5 h-5 mr-3" />
                   {label}
-                </Link>
+                </button>
               </li>
             ))}
           </ul>

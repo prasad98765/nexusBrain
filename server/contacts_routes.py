@@ -101,7 +101,9 @@ def create_contact():
         contact.phone = data.get('phone')
         contact.workspace_id = workspace_id
         contact.custom_fields = data.get('customFields', {})
-        
+        # contact.created_at = data.get('createdAt')
+        # contact.updated_at = data.get('updatedAt')
+
         db.session.add(contact)
         db.session.commit()
         

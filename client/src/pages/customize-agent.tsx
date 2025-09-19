@@ -13,7 +13,7 @@ export default function CustomizeAgent({ agentId, onBackClick, onCreateFlow }: C
     <div className="min-h-full bg-slate-900 text-slate-100">
       {/* Header */}
       <div className="border-b border-slate-700 bg-slate-800/50">
-        <div className="flex items-center justify-between px-8 py-6">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -30,8 +30,8 @@ export default function CustomizeAgent({ agentId, onBackClick, onCreateFlow }: C
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="border-indigo-500 text-indigo-400 hover:bg-indigo-600 hover:text-white"
               onClick={() => agentId && onCreateFlow(agentId)}
             >
@@ -173,7 +173,7 @@ export default function CustomizeAgent({ agentId, onBackClick, onCreateFlow }: C
                   <div className="space-y-6">
                     <h1 className="text-3xl font-bold">Welcome to Your Website</h1>
                     <p className="text-lg text-slate-600">
-                      This is a preview of how your AI agent will appear on your website. 
+                      This is a preview of how your AI agent will appear on your website.
                       The chat widget will be positioned according to your settings.
                     </p>
                     <div className="grid md:grid-cols-2 gap-6">
@@ -221,8 +221,8 @@ export default function CustomizeAgent({ agentId, onBackClick, onCreateFlow }: C
                       <div className="flex items-center gap-2 text-xs text-slate-500">
                         <div className="flex gap-1">
                           <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse"></div>
-                          <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
-                          <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                          <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                         </div>
                         <span>Agent is typing...</span>
                       </div>

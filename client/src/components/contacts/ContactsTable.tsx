@@ -57,6 +57,7 @@ import { Contact, CustomField, ContactsResponse, InsertContact } from '@shared/s
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import ContactDrawer from './ContactDrawer';
+import AISearchDrawer from './AISearchDrawer';
 import { MultiSelect } from '@/components/ui/multi-select';
 
 interface ContactsTableProps {
@@ -70,6 +71,7 @@ interface EditingCell {
 }
 
 export default function ContactsTable({ workspaceId, onSettingsClick }: ContactsTableProps) {
+  const [aiDrawerOpen, setAIDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const { user, token } = useAuth();
   const [limit, setLimit] = useState(25);
@@ -78,7 +80,7 @@ export default function ContactsTable({ workspaceId, onSettingsClick }: Contacts
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [editValue, setEditValue] = useState('');
   const [showFieldDialog, setShowFieldDialog] = useState(false);
-  
+
   // Contact drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
@@ -97,13 +99,14 @@ export default function ContactsTable({ workspaceId, onSettingsClick }: Contacts
         limit: limit.toString(),
         ...(search && { search })
       });
-      
-      const response = await fetch(`/api/contacts?${params}`,{
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,  // ✅ Added headers
-      },});
+
+      const response = await fetch(`/api/contacts?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,  // ✅ Added headers
+        },
+      });
       if (!response.ok) throw new Error('Failed to fetch contacts');
       return response.json();
     },
@@ -113,12 +116,13 @@ export default function ContactsTable({ workspaceId, onSettingsClick }: Contacts
   const { data: customFields = [] } = useQuery<CustomField[]>({
     queryKey: ['/api/custom-fields', workspaceId],
     queryFn: async () => {
-      const response = await fetch(`/api/custom-fields?workspace_id=${workspaceId}`,{
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,  // ✅ Added headers
-      },});
+      const response = await fetch(`/api/custom-fields?workspace_id=${workspaceId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,  // ✅ Added headers
+        },
+      });
       if (!response.ok) throw new Error('Failed to fetch custom fields');
       const data = await response.json();
       // Handle both old and new API response formats
@@ -131,7 +135,7 @@ export default function ContactsTable({ workspaceId, onSettingsClick }: Contacts
     mutationFn: async ({ contactId, updates }: { contactId: string; updates: Partial<Contact> }) => {
       const response = await fetch(`/api/contacts/${contactId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json','Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(updates),
       });
       if (!response.ok) throw new Error('Failed to update contact');
@@ -186,7 +190,7 @@ export default function ContactsTable({ workspaceId, onSettingsClick }: Contacts
     if (fieldConfig?.readonly) {
       return; // Don't allow editing readonly fields
     }
-    
+
     setEditingCell({ contactId, field });
     setEditValue(currentValue || '');
   };
@@ -228,11 +232,11 @@ export default function ContactsTable({ workspaceId, onSettingsClick }: Contacts
     }
 
     const value = contact[field.key as keyof Contact];
-    
+
     if (field.type === 'date' && value) {
       return new Date(value as string).toLocaleDateString();
     }
-    
+
     return value || '';
   };
 
@@ -261,7 +265,7 @@ export default function ContactsTable({ workspaceId, onSettingsClick }: Contacts
                     <Checkbox
                       id={field.key}
                       checked={visibleFields.includes(field.key)}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked) =>
                         handleFieldVisibilityChange(field.key, checked as boolean)
                       }
                     />
@@ -277,6 +281,7 @@ export default function ContactsTable({ workspaceId, onSettingsClick }: Contacts
             </DialogContent>
           </Dialog>
 
+
           <Button
             size="sm"
             onClick={handleCreateContact}
@@ -284,6 +289,16 @@ export default function ContactsTable({ workspaceId, onSettingsClick }: Contacts
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Contact
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setAIDrawerOpen(true)}
+            className="border-slate-600 text-indigo-400 hover:bg-slate-700 flex items-center gap-2"
+          >
+            <Sliders className="h-4 w-4 mr-2" />
+            AI Search
           </Button>
 
           {onSettingsClick && (
@@ -341,8 +356,8 @@ export default function ContactsTable({ workspaceId, onSettingsClick }: Contacts
           <TableBody>
             {contactsLoading ? (
               <TableRow>
-                <TableCell 
-                  colSpan={visibleFields.length + 1} 
+                <TableCell
+                  colSpan={visibleFields.length + 1}
                   className="text-center py-8 text-slate-400"
                 >
                   Loading contacts...
@@ -350,8 +365,8 @@ export default function ContactsTable({ workspaceId, onSettingsClick }: Contacts
               </TableRow>
             ) : contactsData?.contacts.length === 0 ? (
               <TableRow>
-                <TableCell 
-                  colSpan={visibleFields.length + 1} 
+                <TableCell
+                  colSpan={visibleFields.length + 1}
                   className="text-center py-8 text-slate-400"
                 >
                   No contacts found
@@ -389,12 +404,11 @@ export default function ContactsTable({ workspaceId, onSettingsClick }: Contacts
                             </Button>
                           </div>
                         ) : (
-                          <div 
-                            className={`p-1 rounded flex items-center gap-2 ${
-                              field.readonly 
-                                ? 'text-slate-400 cursor-not-allowed' 
-                                : 'cursor-pointer hover:bg-slate-700'
-                            }`}
+                          <div
+                            className={`p-1 rounded flex items-center gap-2 ${field.readonly
+                              ? 'text-slate-400 cursor-not-allowed'
+                              : 'cursor-pointer hover:bg-slate-700'
+                              }`}
                             onClick={() => !field.readonly && handleCellEdit(contact.id, field.key, formatCellValue(contact, field))}
                           >
                             <span>{formatCellValue(contact, field)}</span>
@@ -456,6 +470,12 @@ export default function ContactsTable({ workspaceId, onSettingsClick }: Contacts
         contact={selectedContact}
         workspaceId={workspaceId}
         mode={drawerMode}
+      />
+
+      {/* AI Search Drawer */}
+      <AISearchDrawer
+        isOpen={aiDrawerOpen}
+        onClose={() => setAIDrawerOpen(false)}
       />
     </div>
   );

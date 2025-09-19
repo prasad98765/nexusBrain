@@ -51,14 +51,6 @@ export default function LLM() {
                             <span className="text-lg sm:text-xl font-bold text-slate-100">Nexus AI Hub</span>
                         </div>
 
-                        <nav className="hidden md:flex items-center gap-6">
-                            <a onClick={() => { setLocation('/landing-page'); }} className="text-slate-300 hover:text-slate-100 transition-colors">Agent Bots</a>
-                            <a onClick={() => { setLocation('/landing-page'); }} className="text-slate-300 hover:text-slate-100 transition-colors">AI Search</a>
-                            <a onClick={() => { setLocation('/landing-page'); }} className="text-slate-300 hover:text-slate-100 transition-colors">Technology</a>
-                            <a onClick={() => { setLocation('/landing-page'); }} className="text-slate-300 hover:text-slate-100 transition-colors">How It Works</a>
-                            <a onClick={() => { setLocation('/About/AI'); }} className="text-slate-300 hover:text-slate-100 transition-colors">About AI</a>
-                        </nav>
-
                         <div className="flex items-center gap-4">
                             <Button
                                 onClick={handleGetStarted}

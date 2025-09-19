@@ -16,6 +16,7 @@ import {
   Shield,
   Clock,
   Code,
+  Code2,
   Database,
   Cpu,
   Network,
@@ -45,6 +46,7 @@ import {
 import '../styles/landing-animations.css';
 import UniversalTranslator from '@/components/UniversalTranslator';
 import { Outlet, useNavigate } from "react-router-dom";
+import HtmlPageGenerator from '@/components/HtmlPageGenerator';
 
 export default function LandingPageEnhanced() {
   const [location, setLocation] = useLocation();
@@ -56,6 +58,7 @@ export default function LandingPageEnhanced() {
   const [typedText, setTypedText] = useState('');
   const [typeIndex, setTypeIndex] = useState(0);
   const [translatorOpen, setTranslatorOpen] = useState(false);
+  const [htmlGeneratorOpen, setHtmlGeneratorOpen] = useState(false);
 
   const heroText = "Welcome to Nexus AI Hub – Your All-in-One AI Superpower";
   const navigate = useNavigate();
@@ -95,6 +98,7 @@ export default function LandingPageEnhanced() {
     { icon: Type, name: 'Format Text', description: 'Instantly clean and format messy text', color: 'from-blue-500 to-indigo-600' },
     { icon: Mail, name: 'Email Writer', description: 'Write professional emails in seconds', color: 'from-indigo-500 to-purple-600' },
     { icon: Languages, name: 'Language Translator', description: 'Convert text to any language', color: 'from-purple-500 to-pink-600' },
+    { icon: Code2, name: 'HTML Page Generator', description: 'Create beautiful websites from text prompts', color: 'from-emerald-500 to-teal-600' },
     { icon: Volume2, name: 'Text-to-Speech', description: 'Natural AI voice for your text', color: 'from-pink-500 to-red-600' },
     { icon: Mic, name: 'Speech-to-Text', description: 'Turn voice into accurate text', color: 'from-red-500 to-orange-600' },
     { icon: CheckCircle, name: 'Grammar Checker', description: 'Catch errors in real-time', color: 'from-orange-500 to-yellow-600' },
@@ -166,6 +170,8 @@ export default function LandingPageEnhanced() {
               <a href="#demo" className="text-slate-300 hover:text-slate-100 transition-colors">Demo</a>
               <a href="#testimonials" className="text-slate-300 hover:text-slate-100 transition-colors">Reviews</a>
               <a href="#pricing" className="text-slate-300 hover:text-slate-100 transition-colors">Pricing</a>
+              {/* redirect to About AI */}
+              <a onClick={() => { window.location.href = '/About/AI'; }} style={{ cursor: 'pointer' }} className="text-slate-300 hover:text-slate-100 transition-colors">About AI</a>
             </nav>
 
             <div className="flex items-center gap-4">
@@ -293,6 +299,10 @@ export default function LandingPageEnhanced() {
                     // Open Universal Translator when Language Translator card is clicked (index 2)
                     if (index === 2 && tool.name === 'Language Translator') {
                       setTranslatorOpen(true);
+                    }
+                    // Open HTML Page Generator when HTML Page Generator card is clicked (index 3)
+                    if (index === 3 && tool.name === 'HTML Page Generator') {
+                      setHtmlGeneratorOpen(true);
                     }
                   }}
                   data-testid={`feature-card-${index}`}
@@ -739,6 +749,12 @@ export default function LandingPageEnhanced() {
       <UniversalTranslator
         isOpen={translatorOpen}
         onClose={() => setTranslatorOpen(false)}
+      />
+
+      {/* HTML Page Generator */}
+      <HtmlPageGenerator
+        isOpen={htmlGeneratorOpen}
+        onClose={() => setHtmlGeneratorOpen(false)}
       />
     </div>
   );

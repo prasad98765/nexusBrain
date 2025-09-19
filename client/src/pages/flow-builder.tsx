@@ -58,7 +58,7 @@ function FlowBuilderInner({ agentId, onBackClick }: FlowBuilderProps) {
   const { toast } = useToast();
   const { user, token } = useAuth();
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds:any) => addEdge(params, eds)),
+    (params: Connection) => setEdges((eds: any) => addEdge(params, eds)),
     [setEdges]
   );
 
@@ -87,15 +87,15 @@ function FlowBuilderInner({ agentId, onBackClick }: FlowBuilderProps) {
         id: `${type}-${Date.now()}`,
         type,
         position,
-        data: { 
+        data: {
           label: type === 'startNode' ? 'Start' :
-                 type === 'inputNode' ? 'User Input' :
-                 type === 'botKnowledgeNode' ? 'Bot Knowledge' :
-                 'End'
+            type === 'inputNode' ? 'User Input' :
+              type === 'botKnowledgeNode' ? 'Bot Knowledge' :
+                'End'
         },
       };
 
-      setNodes((nds:any) => nds.concat(newNode));
+      setNodes((nds: any) => nds.concat(newNode));
     },
     [reactFlowInstance, setNodes]
   );
@@ -114,7 +114,7 @@ function FlowBuilderInner({ agentId, onBackClick }: FlowBuilderProps) {
   useEffect(() => {
     const loadFlow = async () => {
       try {
-        const response = await fetch(`/api/agents/${agentId}/flow`,{
+        const response = await fetch(`/api/agents/${agentId}/flow`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -154,7 +154,7 @@ function FlowBuilderInner({ agentId, onBackClick }: FlowBuilderProps) {
         },
         body: JSON.stringify({ flow }),
       });
-      
+
       if (response.ok) {
         toast({
           title: 'Flow saved',
@@ -177,10 +177,10 @@ function FlowBuilderInner({ agentId, onBackClick }: FlowBuilderProps) {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800/50">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={onBackClick}>
+          {/* <Button variant="ghost" size="sm" onClick={onBackClick}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Agent
-          </Button>
+          </Button> */}
           <h1 className="text-xl font-bold text-slate-100">Flow Builder</h1>
         </div>
         <Button onClick={saveFlow} className="bg-indigo-600 hover:bg-indigo-700">
@@ -216,8 +216,8 @@ function FlowBuilderInner({ agentId, onBackClick }: FlowBuilderProps) {
             nodeTypes={nodeTypes}
             fitView
           >
-            <Controls />
-            <MiniMap />
+            {/* <Controls /> */}
+            {/* <MiniMap /> */}
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
           </ReactFlow>
         </div>
@@ -230,8 +230,8 @@ function FlowBuilderInner({ agentId, onBackClick }: FlowBuilderProps) {
         nodeId={selectedKnowledgeNode}
         onUpdate={(data) => {
           if (selectedKnowledgeNode) {
-            setNodes((nds:any) =>
-              nds.map((node:any) =>
+            setNodes((nds: any) =>
+              nds.map((node: any) =>
                 node.id === selectedKnowledgeNode
                   ? { ...node, data: { ...node.data, ...data } }
                   : node

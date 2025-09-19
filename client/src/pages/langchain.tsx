@@ -8,39 +8,39 @@ import { useLocation } from "wouter";
 
 
 export default function LangChain() {
-      const [location, setLocation] = useLocation();
-      const [activeFeature, setActiveFeature] = useState(0);
-      const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    
-      useEffect(() => {
-        if (window.location.hash) {
-          setTimeout(() => {
-            const el = document.getElementById(window.location.hash.substring(1));
-            if (el) {
-              el.scrollIntoView({ behavior: "smooth" });
-            }
-          }, 100);
+  const [location, setLocation] = useLocation();
+  const [activeFeature, setActiveFeature] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (window.location.hash) {
+      setTimeout(() => {
+        const el = document.getElementById(window.location.hash.substring(1));
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth" });
         }
-      }, [location]);
-    
-      const handleNav = (path: string) => {
-        setLocation(path);
-      };
-    
-      const handleGetStarted = () => {
-        setLocation('/auth');
-      };
-    
-      // Auto-rotate features
-      useEffect(() => {
-        const interval = setInterval(() => {
-          setActiveFeature((prev: any) => (prev + 1) % 3);
-        }, 4000);
-        return () => clearInterval(interval);
-      }, []);
+      }, 100);
+    }
+  }, [location]);
+
+  const handleNav = (path: string) => {
+    setLocation(path);
+  };
+
+  const handleGetStarted = () => {
+    setLocation('/auth');
+  };
+
+  // Auto-rotate features
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveFeature((prev: any) => (prev + 1) % 3);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
   return (
-    <div className="min-h-screen bg-background" style={{color:"white"}}>
-              <header className="w-full bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
+    <div className="min-h-screen bg-background" style={{ color: "white" }}>
+      <header className="w-full bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3" onClick={() => handleNav('/landing-page')} style={{ cursor: 'pointer' }}>
@@ -49,14 +49,6 @@ export default function LangChain() {
               </div>
               <span className="text-lg sm:text-xl font-bold text-slate-100">Nexus AI Hub</span>
             </div>
-
-            <nav className="hidden md:flex items-center gap-6">
-              <a onClick={() => { setLocation('/landing-page'); }} className="text-slate-300 hover:text-slate-100 transition-colors">Agent Bots</a>
-              <a onClick={() => { setLocation('/landing-page'); }} className="text-slate-300 hover:text-slate-100 transition-colors">AI Search</a>
-              <a onClick={() => { setLocation('/landing-page'); }} className="text-slate-300 hover:text-slate-100 transition-colors">Technology</a>
-              <a onClick={() => { setLocation('/landing-page'); }} className="text-slate-300 hover:text-slate-100 transition-colors">How It Works</a>
-              <a onClick={() => { setLocation('/About/AI'); }} className="text-slate-300 hover:text-slate-100 transition-colors">About AI</a>
-            </nav>
 
             <div className="flex items-center gap-4">
               <Button
@@ -221,7 +213,7 @@ export default function LangChain() {
                   <p className="">
                     With LangChain, developers can adapt a language model flexibly to specific business contexts by designating steps required to produce the desired outcome.
                   </p>
-                  
+
                   <div className="grid md:grid-cols-2 gap-8">
                     <div className="bg-card/50 rounded-lg p-6">
                       <div className="flex items-center mb-4">
@@ -238,7 +230,7 @@ export default function LangChain() {
                         <p className="text-sm ">• Answering user queries</p>
                       </div>
                     </div>
-                    
+
                     <div className="bg-card/50 rounded-lg p-6">
                       <div className="flex items-center mb-4">
                         <Cog className="w-8 h-8 text-accent-secondary mr-3" />
@@ -284,7 +276,7 @@ export default function LangChain() {
                         Provides APIs to connect and query LLMs from code. Developers can interface with public and proprietary models like GPT, Bard, and PaLM with simple API calls.
                       </p>
                     </div>
-                    
+
                     <div className="bg-card/50 rounded-lg p-6">
                       <div className="w-12 h-12 bg-accent-secondary/20 rounded-lg flex items-center justify-center mb-4">
                         <Database className="w-6 h-6 text-accent-secondary" />
@@ -305,7 +297,7 @@ export default function LangChain() {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-6">
                     <div className="bg-card/50 rounded-lg p-6">
                       <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center mb-4">
@@ -316,7 +308,7 @@ export default function LangChain() {
                         Tools to transform, store, search, and retrieve information that refine language model responses. Create semantic representations with word embeddings and vector databases.
                       </p>
                     </div>
-                    
+
                     <div className="bg-card/50 rounded-lg p-6">
                       <div className="w-12 h-12 bg-accent-secondary/20 rounded-lg flex items-center justify-center mb-4">
                         <CheckCircle className="w-6 h-6 text-accent-secondary" />
