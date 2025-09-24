@@ -25,6 +25,7 @@ import AgentsPage from "./pages/agents-page";
 import Layout from "./pages/Layout";
 import SettingsPage from "./pages/settings-page";
 import FlowBuilderInner from "@/pages/flow-builder";
+import APIIntegrationsPage from "@/pages/API-integrations";
 
 function Router() {
   const { isAuthenticated, isLoading, token } = useAuth();
@@ -104,6 +105,7 @@ function Router() {
             <Route path="flow-builder" element={<FlowBuilderInner agentId={""} onBackClick={function (): void {
               throw new Error("Function not implemented.");
             }} />} />
+            <Route path="API-integrations" element={<APIIntegrationsPage />} />
           </Route>
           <Route path="/business-info" Component={BusinessInfoPage} />
           <Route path="/settings/contact-properties" Component={ContactPropertiesPage} />

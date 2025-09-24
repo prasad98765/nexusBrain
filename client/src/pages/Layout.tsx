@@ -1,6 +1,6 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu, Bot, Users, Settings, Workflow } from "lucide-react";
+import { LogOut, Menu, Bot, Users, Settings, Workflow, ChevronsLeftRightEllipsis } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 
@@ -89,6 +89,17 @@ export default function Layout() {
             }}
           >
             <Workflow className={`h-5 w-5 ${active === 'flow-builder' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
+              }`} />
+          </button>
+          <button
+            className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${active === 'API-integrations' ? 'bg-slate-700' : ''
+              }`}
+            onClick={() => {
+              setActive("API-integrations");
+              navigate("/nexus/api-integrations");
+            }}
+          >
+            <ChevronsLeftRightEllipsis className={`h-5 w-5 ${active === 'API-integrations' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
               }`} />
           </button>
           <div className="mt-auto flex flex-col gap-4">
