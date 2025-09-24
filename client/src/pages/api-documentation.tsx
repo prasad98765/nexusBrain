@@ -401,35 +401,221 @@ export default function ApiDocumentation() {
                 <div>
                   <h1 className="text-3xl font-bold mb-4">Error Responses</h1>
                   <p className="text-slate-300 text-lg leading-relaxed">
-                    Common error responses and how to handle them in your application.
+                    For errors, Nexus AI Hub returns a JSON response with the following shape:
                   </p>
                 </div>
 
-                <div className="space-y-4">
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader>
+                    <CardTitle>Error Response Format</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-slate-900 rounded-lg p-4 font-mono text-sm">
+                      <pre className="text-slate-300 whitespace-pre-wrap">
+{`type ErrorResponse = {
+  error: {
+    code: number;
+    message: string;
+    metadata?: Record<string, unknown>;
+  };
+};`}
+                      </pre>
+                    </div>
+                    <p className="text-slate-400 text-sm mt-3">
+                      The HTTP Response will have the same status code as `error.code`, forming a request error if your original request is invalid or your API key/account is out of credits.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">Error Codes</h3>
+                  <div className="space-y-4">
+                    <Card className="bg-slate-800/50 border-slate-700">
+                      <CardHeader>
+                        <CardTitle className="text-red-400">400 - Bad Request</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-slate-300">Invalid or missing params, CORS issues</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-slate-800/50 border-slate-700">
+                      <CardHeader>
+                        <CardTitle className="text-red-400">401 - Invalid Credentials</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-slate-300">OAuth session expired, disabled/invalid API key</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-slate-800/50 border-slate-700">
+                      <CardHeader>
+                        <CardTitle className="text-orange-400">402 - Insufficient Credits</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-slate-300">Your account or API key has insufficient credits. Add more credits and retry the request.</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-slate-800/50 border-slate-700">
+                      <CardHeader>
+                        <CardTitle className="text-orange-400">403 - Content Moderation</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-slate-300">Your chosen model requires moderation and your input was flagged</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-slate-800/50 border-slate-700">
+                      <CardHeader>
+                        <CardTitle className="text-yellow-400">408 - Request Timeout</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-slate-300">Your request timed out</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-slate-800/50 border-slate-700">
+                      <CardHeader>
+                        <CardTitle className="text-yellow-400">429 - Rate Limited</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-slate-300">You are being rate limited</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-slate-800/50 border-slate-700">
+                      <CardHeader>
+                        <CardTitle className="text-red-400">502 - Model Unavailable</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-slate-300">Your chosen model is down or we received an invalid response from it</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-slate-800/50 border-slate-700">
+                      <CardHeader>
+                        <CardTitle className="text-red-400">503 - No Available Provider</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-slate-300">There is no available model provider that meets your routing requirements</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">JavaScript Error Handling Example</h3>
                   <Card className="bg-slate-800/50 border-slate-700">
-                    <CardHeader>
-                      <CardTitle className="text-red-400">401 Unauthorized</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-slate-300">Invalid or missing API key in the Authorization header.</p>
+                    <CardContent className="p-4">
+                      <div className="bg-slate-900 rounded-lg p-4 font-mono text-sm">
+                        <pre className="text-slate-300 whitespace-pre-wrap">
+{`const request = await fetch('https://nexusai.hub/api/v1/chat/create', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(requestData)
+});
+
+console.log(request.status); // Will be an error code unless the model started processing
+const response = await request.json();
+console.error(response.error?.code); // Will be an error code
+console.error(response.error?.message);`}
+                        </pre>
+                      </div>
                     </CardContent>
                   </Card>
+                </div>
 
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">Streaming Error Formats</h3>
+                  <p className="text-slate-300 mb-4">
+                    When using streaming mode (`stream: true`), errors are handled differently depending on when they occur:
+                  </p>
+                  
+                  <div className="space-y-4">
+                    <Card className="bg-slate-800/50 border-slate-700">
+                      <CardHeader>
+                        <CardTitle>Pre-Stream Errors</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-slate-300">
+                          Errors that occur before any tokens are sent follow the standard error format above, with appropriate HTTP status codes.
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-slate-800/50 border-slate-700">
+                      <CardHeader>
+                        <CardTitle>Mid-Stream Errors</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-slate-300 mb-3">
+                          Errors that occur after streaming has begun are sent as Server-Sent Events (SSE):
+                        </p>
+                        <div className="bg-slate-900 rounded-lg p-4 font-mono text-xs">
+                          <pre className="text-slate-300 whitespace-pre-wrap">
+{`type MidStreamError = {
+  id: string;
+  object: 'chat.completion.chunk';
+  created: number;
+  model: string;
+  provider: string;
+  error: {
+    code: string | number;
+    message: string;
+  };
+  choices: [{
+    index: 0;
+    delta: { content: '' };
+    finish_reason: 'error';
+  }];
+};`}
+                          </pre>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">Moderation Errors</h3>
+                  <p className="text-slate-300 mb-4">
+                    If your input was flagged, the `error.metadata` will contain information about the issue:
+                  </p>
                   <Card className="bg-slate-800/50 border-slate-700">
-                    <CardHeader>
-                      <CardTitle className="text-orange-400">400 Bad Request</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-slate-300">Invalid request format or missing required parameters.</p>
+                    <CardContent className="p-4">
+                      <div className="bg-slate-900 rounded-lg p-4 font-mono text-sm">
+                        <pre className="text-slate-300 whitespace-pre-wrap">
+{`type ModerationErrorMetadata = {
+  reasons: string[]; // Why your input was flagged
+  flagged_input: string; // The flagged text segment (limited to 100 characters)
+  provider_name: string; // The provider that requested moderation
+  model_slug: string;
+};`}
+                        </pre>
+                      </div>
                     </CardContent>
                   </Card>
+                </div>
 
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">When No Content is Generated</h3>
                   <Card className="bg-slate-800/50 border-slate-700">
-                    <CardHeader>
-                      <CardTitle className="text-yellow-400">429 Rate Limited</CardTitle>
-                    </CardHeader>
                     <CardContent>
-                      <p className="text-slate-300">Too many requests. Please slow down your request rate.</p>
+                      <p className="text-slate-300 mb-3">
+                        Occasionally, the model may not generate any content. This typically occurs when:
+                      </p>
+                      <ul className="text-slate-300 list-disc list-inside space-y-2">
+                        <li>The model is warming up from a cold start</li>
+                        <li>The system is scaling up to handle more requests</li>
+                      </ul>
+                      <p className="text-slate-300 mt-3">
+                        Warm-up times usually range from a few seconds to a few minutes, depending on the model and provider. 
+                        Consider implementing a simple retry mechanism or trying a different model with more recent activity.
+                      </p>
                     </CardContent>
                   </Card>
                 </div>
