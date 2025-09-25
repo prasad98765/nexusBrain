@@ -27,6 +27,7 @@ import SettingsPage from "./pages/settings-page";
 import FlowBuilderInner from "@/pages/flow-builder";
 import APIIntegrationsPage from "@/pages/API-integrations";
 import ApiDocumentation from "@/pages/api-documentation";
+import ApiTesting from "@/pages/api-testing";
 
 function Router() {
   const { isAuthenticated, isLoading, token } = useAuth();
@@ -87,6 +88,7 @@ function Router() {
 
       {/* API Documentation - Always accessible */}
       <Route path="/docs/api-reference" Component={ApiDocumentation} />
+      <Route path="/docs/api-reference/test" Component={ApiTesting} />
 
       {/* Chatbot Interface - Always accessible for embedded use */}
       <Route path="/chatbot" Component={ChatbotPage} />
