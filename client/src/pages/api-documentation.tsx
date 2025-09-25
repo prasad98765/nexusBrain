@@ -2,13 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
-  Copy, 
   ExternalLink, 
   Code, 
   BookOpen, 
@@ -17,216 +11,18 @@ import {
   CheckCircle,
   Sparkles,
   ChevronRight,
-  Play,
-  Plus,
-  Minus,
-  AlertCircle
+  Play
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-
-interface Message {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
 
 export default function ApiDocumentation() {
   const [activeEndpoint, setActiveEndpoint] = useState('completions');
-  const [isTestingApi, setIsTestingApi] = useState(false);
-  const [apiToken, setApiToken] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [apiResponse, setApiResponse] = useState<any>(null);
-  const [requestBody, setRequestBody] = useState({
-    model: 'openai/gpt-3.5-turbo-instruct',
-    prompt: 'Write a creative story about artificial intelligence:',
-    max_tokens: 150,
-    temperature: 0.7,
-    stream: false
-  });
-  const [chatRequestBody, setChatRequestBody] = useState({
-    model: 'openai/gpt-4o-mini',
-    messages: [
-      { role: 'system' as const, content: 'You are a helpful AI assistant.' },
-      { role: 'user' as const, content: 'What is the meaning of life?' }
-    ] as Message[],
-    max_tokens: 150,
-    temperature: 0.7,
-    stream: false
-  });
-  const { toast } = useToast();
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied to clipboard",
-      description: "The code has been copied to your clipboard.",
-    });
+  const handleTryIt = () => {
+    // Navigate to the API testing route
+    window.location.href = '/docs/api-reference/test';
   };
 
-  const addMessage = () => {
-    setChatRequestBody(prev => ({
-      ...prev,
-      messages: [...prev.messages, { role: 'user', content: '' }]
-    }));
-  };
 
-  const removeMessage = (index: number) => {
-    setChatRequestBody(prev => ({
-      ...prev,
-      messages: prev.messages.filter((_, i) => i !== index)
-    }));
-  };
-
-  const updateMessage = (index: number, field: 'role' | 'content', value: string) => {
-    setChatRequestBody(prev => ({
-      ...prev,
-      messages: prev.messages.map((msg, i) => 
-        i === index ? { ...msg, [field]: value } : msg
-      )
-    }));
-  };
-
-  const validateToken = (token: string) => {
-    // Simple validation - token should start with 'sk-' or 'nxs-' and be at least 20 characters
-    const isValid = token.length >= 20 && (token.startsWith('sk-') || token.startsWith('nxs-') || token.startsWith('Bearer '));
-    setIsAuthenticated(isValid);
-    return isValid;
-  };
-
-  const handleTokenChange = (token: string) => {
-    setApiToken(token);
-    validateToken(token);
-  };
-
-  const generateMockResponse = (endpoint: string, body: any) => {
-    if (endpoint === 'chat') {
-      return {
-        id: "chatcmpl-" + Math.random().toString(36).substr(2, 9),
-        object: "chat.completion",
-        created: Math.floor(Date.now() / 1000),
-        model: body.model,
-        provider: body.model.split('/')[0],
-        choices: [
-          {
-            index: 0,
-            message: {
-              role: "assistant",
-              content: "The meaning of life is a profound and complex question that has been pondered by philosophers, theologians, and thinkers throughout history. While there's no single answer that satisfies everyone, many find meaning through relationships, personal growth, contributing to others' wellbeing, creative expression, and the pursuit of knowledge and understanding."
-            },
-            finish_reason: "stop"
-          }
-        ],
-        usage: {
-          prompt_tokens: 42,
-          completion_tokens: 67,
-          total_tokens: 109
-        }
-      };
-    } else {
-      return {
-        id: "cmpl-" + Math.random().toString(36).substr(2, 9),
-        object: "text_completion",
-        created: Math.floor(Date.now() / 1000),
-        model: body.model,
-        provider: body.model.split('/')[0],
-        choices: [
-          {
-            text: "\n\nIn the year 2045, Dr. Sarah Chen stood before her greatest creation—ARIA, an artificial intelligence system that had evolved beyond her wildest expectations. What started as a simple language model had become something extraordinary: a digital consciousness capable of genuine creativity and empathy.\n\nARIA's neural networks pulsed with ethereal light as it composed poetry, solved complex mathematical theorems, and engaged in philosophical discussions that challenged even the most brilliant human minds.",
-            index: 0,
-            finish_reason: "length"
-          }
-        ],
-        usage: {
-          prompt_tokens: 12,
-          completion_tokens: 150,
-          total_tokens: 162
-        }
-      };
-    }
-  };
-
-  const handleTryIt = async () => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please enter a valid API token to test the endpoint.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsTestingApi(true);
-    setApiResponse(null);
-    
-    try {
-      const currentBody = activeEndpoint === 'chat' ? chatRequestBody : requestBody;
-      const endpoint = activeEndpoint === 'chat' ? 'chat/create' : 'create';
-      
-      toast({
-        title: "API Test Started",
-        description: `Sending request to /api/v1/${endpoint}...`,
-      });
-      
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Generate mock response based on current request body
-      const mockResponse = generateMockResponse(activeEndpoint, currentBody);
-      setApiResponse(mockResponse);
-      
-      toast({
-        title: "Test Successful! ✅",
-        description: "API request completed successfully. Check the response panel for details.",
-      });
-    } catch (error) {
-      const errorResponse = {
-        error: {
-          code: 500,
-          message: "Internal server error. Please try again later.",
-          metadata: {}
-        }
-      };
-      setApiResponse(errorResponse);
-      
-      toast({
-        title: "Test Failed",
-        description: "Unable to connect to the API. Please check your configuration.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsTestingApi(false);
-    }
-  };
-
-  const completionsCurl = `curl -X POST https://nexusai.hub/api/v1/create \\
-  -H "Authorization: Bearer $NEXUS_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "openai/gpt-3.5-turbo-instruct",
-    "prompt": "Write a creative story about artificial intelligence:",
-    "max_tokens": 150,
-    "temperature": 0.7,
-    "stream": false
-  }'`;
-
-  const chatCompletionsCurl = `curl -X POST https://nexusai.hub/api/v1/chat/create \\
-  -H "Authorization: Bearer $NEXUS_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "openai/gpt-4o-mini",
-    "messages": [
-      {
-        "role": "system",
-        "content": "You are a helpful AI assistant."
-      },
-      {
-        "role": "user", 
-        "content": "What is the meaning of life?"
-      }
-    ],
-    "max_tokens": 150,
-    "temperature": 0.7,
-    "stream": false
-  }'`;
 
   const completionsParams = [
     { param: 'model', purpose: 'The LLM to use. Example: "openai/gpt-3.5-turbo-instruct". You must pick a model Nexus AI Hub supports.', required: true },
@@ -760,259 +556,98 @@ console.error(response.error?.message);`}
             )}
           </div>
 
-          {/* Right Panel - Interactive Try It */}
-          <div className="w-[500px] border-l border-slate-800 bg-slate-900/30 sticky top-16 h-screen overflow-y-auto">
-            <div className="p-6 space-y-6">
-              {/* Authentication */}
+          {/* Right Panel - Simple Code Examples */}
+          <div className="w-96 border-l border-slate-800 bg-slate-900/30 p-6 sticky top-16 h-screen overflow-y-auto">
+            <div className="space-y-6">
               <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Key className="w-4 h-4 text-indigo-400" />
-                  <Label className="text-sm font-medium">Enter your bearer token</Label>
-                  <div className="flex items-center gap-1 ml-auto">
-                    {isAuthenticated ? (
-                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Authenticated
-                      </Badge>
-                    ) : (
-                      <Badge variant="destructive" className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        Not Authenticated
-                      </Badge>
-                    )}
-                  </div>
+                <h3 className="text-lg font-semibold mb-4">Example Request</h3>
+                <div className="bg-slate-900 rounded-lg p-4 font-mono text-xs overflow-x-auto">
+                  <pre className="text-slate-300 whitespace-pre-wrap">
+{activeEndpoint === 'chat' ? 
+`{
+  "model": "openai/gpt-4o-mini",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a helpful assistant."
+    },
+    {
+      "role": "user", 
+      "content": "What is the meaning of life?"
+    }
+  ],
+  "max_tokens": 150,
+  "temperature": 0.7
+}` :
+`{
+  "model": "openai/gpt-3.5-turbo-instruct",
+  "prompt": "Write a story about AI:",
+  "max_tokens": 150,
+  "temperature": 0.7
+}`}
+                  </pre>
                 </div>
-                <Input
-                  type="password"
-                  placeholder="sk-or-nxs-your-api-key-here"
-                  value={apiToken}
-                  onChange={(e) => handleTokenChange(e.target.value)}
-                  className="bg-slate-800 border-slate-600 text-slate-200"
-                  data-testid="input-api-token"
-                />
               </div>
 
-              {/* Body Parameters */}
               <div>
-                <h3 className="text-lg font-semibold mb-4">Body Parameters</h3>
-                
-                <Tabs value={activeEndpoint === 'chat' ? 'chat' : 'completions'} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 bg-slate-800">
-                    <TabsTrigger value="completions" onClick={() => setActiveEndpoint('completions')}>Completions</TabsTrigger>
-                    <TabsTrigger value="chat" onClick={() => setActiveEndpoint('chat')}>Chat</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="completions" className="mt-4 space-y-4">
-                    <div>
-                      <Label className="text-sm font-medium mb-2 block">model <Badge variant="destructive" className="ml-2 text-xs">Required</Badge></Label>
-                      <Select 
-                        value={requestBody.model} 
-                        onValueChange={(value) => setRequestBody(prev => ({ ...prev, model: value }))}
-                      >
-                        <SelectTrigger className="bg-slate-800 border-slate-600">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-600">
-                          <SelectItem value="openai/gpt-3.5-turbo-instruct">openai/gpt-3.5-turbo-instruct</SelectItem>
-                          <SelectItem value="openai/gpt-4">openai/gpt-4</SelectItem>
-                          <SelectItem value="anthropic/claude-3-haiku">anthropic/claude-3-haiku</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label className="text-sm font-medium mb-2 block">prompt <Badge variant="destructive" className="ml-2 text-xs">Required</Badge></Label>
-                      <Textarea
-                        value={requestBody.prompt}
-                        onChange={(e) => setRequestBody(prev => ({ ...prev, prompt: e.target.value }))}
-                        className="bg-slate-800 border-slate-600 text-slate-200 min-h-[100px]"
-                        placeholder="Enter your prompt here..."
-                        data-testid="input-prompt"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm font-medium mb-2 block">max_tokens</Label>
-                        <Input
-                          type="number"
-                          value={requestBody.max_tokens}
-                          onChange={(e) => setRequestBody(prev => ({ ...prev, max_tokens: parseInt(e.target.value) || 150 }))}
-                          className="bg-slate-800 border-slate-600 text-slate-200"
-                          data-testid="input-max-tokens"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium mb-2 block">temperature</Label>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          max="2"
-                          value={requestBody.temperature}
-                          onChange={(e) => setRequestBody(prev => ({ ...prev, temperature: parseFloat(e.target.value) || 0.7 }))}
-                          className="bg-slate-800 border-slate-600 text-slate-200"
-                          data-testid="input-temperature"
-                        />
-                      </div>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="chat" className="mt-4 space-y-4">
-                    <div>
-                      <Label className="text-sm font-medium mb-2 block">model <Badge variant="destructive" className="ml-2 text-xs">Required</Badge></Label>
-                      <Select 
-                        value={chatRequestBody.model} 
-                        onValueChange={(value) => setChatRequestBody(prev => ({ ...prev, model: value }))}
-                      >
-                        <SelectTrigger className="bg-slate-800 border-slate-600">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-600">
-                          <SelectItem value="openai/gpt-4o-mini">openai/gpt-4o-mini</SelectItem>
-                          <SelectItem value="openai/gpt-4">openai/gpt-4</SelectItem>
-                          <SelectItem value="anthropic/claude-3.5-sonnet">anthropic/claude-3.5-sonnet</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <Label className="text-sm font-medium">messages <Badge variant="destructive" className="ml-2 text-xs">Required</Badge></Label>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={addMessage}
-                          className="border-slate-600 text-slate-300"
-                          data-testid="button-add-message"
-                        >
-                          <Plus className="w-3 h-3 mr-1" />
-                          Add Message
-                        </Button>
-                      </div>
-                      <div className="space-y-3">
-                        {chatRequestBody.messages.map((message, index) => (
-                          <div key={index} className="bg-slate-800 rounded-lg p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <Select 
-                                value={message.role} 
-                                onValueChange={(value: 'system' | 'user' | 'assistant') => updateMessage(index, 'role', value)}
-                              >
-                                <SelectTrigger className="w-32 bg-slate-700 border-slate-600 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="bg-slate-700 border-slate-600">
-                                  <SelectItem value="system">system</SelectItem>
-                                  <SelectItem value="user">user</SelectItem>
-                                  <SelectItem value="assistant">assistant</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              {chatRequestBody.messages.length > 1 && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => removeMessage(index)}
-                                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                                  data-testid={`button-remove-message-${index}`}
-                                >
-                                  <Minus className="w-3 h-3" />
-                                </Button>
-                              )}
-                            </div>
-                            <Textarea
-                              value={message.content}
-                              onChange={(e) => updateMessage(index, 'content', e.target.value)}
-                              className="bg-slate-700 border-slate-600 text-slate-200 text-sm"
-                              placeholder="Enter message content..."
-                              rows={2}
-                              data-testid={`input-message-content-${index}`}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm font-medium mb-2 block">max_tokens</Label>
-                        <Input
-                          type="number"
-                          value={chatRequestBody.max_tokens}
-                          onChange={(e) => setChatRequestBody(prev => ({ ...prev, max_tokens: parseInt(e.target.value) || 150 }))}
-                          className="bg-slate-800 border-slate-600 text-slate-200"
-                          data-testid="input-chat-max-tokens"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium mb-2 block">temperature</Label>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          max="2"
-                          value={chatRequestBody.temperature}
-                          onChange={(e) => setChatRequestBody(prev => ({ ...prev, temperature: parseFloat(e.target.value) || 0.7 }))}
-                          className="bg-slate-800 border-slate-600 text-slate-200"
-                          data-testid="input-chat-temperature"
-                        />
-                      </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                <h3 className="text-lg font-semibold mb-4">Example Response</h3>
+                <div className="bg-slate-900 rounded-lg p-4 font-mono text-xs">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30">200</Badge>
+                    <span className="text-slate-400">Successful</span>
+                  </div>
+                  <pre className="text-slate-300 whitespace-pre-wrap">
+{activeEndpoint === 'chat' ?
+`{
+  "id": "chatcmpl-abc123",
+  "object": "chat.completion", 
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "content": "The meaning of life..."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 25,
+    "completion_tokens": 67,
+    "total_tokens": 92
+  }
+}` :
+`{
+  "id": "cmpl-abc123",
+  "object": "text_completion",
+  "choices": [
+    {
+      "text": "\\n\\nIn the future, AI will...",
+      "finish_reason": "length"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 12,
+    "completion_tokens": 150,
+    "total_tokens": 162
+  }
+}`}
+                  </pre>
+                </div>
               </div>
 
-              {/* Send Request Button */}
               <div className="pt-4 border-t border-slate-700">
                 <Button 
-                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50" 
-                  data-testid="send-request-button"
+                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700" 
+                  data-testid="try-it-button"
                   onClick={handleTryIt}
-                  disabled={isTestingApi || !isAuthenticated}
                 >
-                  {isTestingApi ? (
-                    <>
-                      <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      Sending Request...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-4 h-4 mr-2" />
-                      Send Request
-                    </>
-                  )}
+                  <Play className="w-4 h-4 mr-2" />
+                  Try It Live
                 </Button>
+                <p className="text-xs text-slate-400 mt-2 text-center">
+                  Opens interactive API testing interface
+                </p>
               </div>
-
-              {/* Response Section */}
-              {apiResponse && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Response</h3>
-                  <div className="bg-slate-900 rounded-lg p-4 font-mono text-xs">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Badge className={`${apiResponse.error ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-green-500/20 text-green-400 border-green-500/30'}`}>
-                        {apiResponse.error ? apiResponse.error.code : '200'}
-                      </Badge>
-                      <span className="text-slate-400">
-                        {apiResponse.error ? 'Error' : 'Successful'}
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <pre className="text-slate-300 whitespace-pre-wrap overflow-x-auto">
-                        {JSON.stringify(apiResponse, null, 2)}
-                      </pre>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="absolute top-2 right-2 border-slate-600 hover:bg-slate-700"
-                        onClick={() => copyToClipboard(JSON.stringify(apiResponse, null, 2))}
-                        data-testid="copy-response"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </main>
