@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,6 +66,7 @@ export default function APIIntegrationsPage() {
     const [fromDate, setFromDate] = useState<Date>();
     const [toDate, setToDate] = useState<Date>();
     const [showFilters, setShowFilters] = useState(false);
+    const searchInputRef = useRef<HTMLInputElement>(null);
     const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
     const { toast } = useToast();
     const { user, token } = useAuth();
@@ -555,45 +556,155 @@ export default function APIIntegrationsPage() {
                 </div>
             );
         }
-
         const logs = logsData?.logs || [];
-
         return (
-            <div className="space-y-4">
-                {/* Simple Filter Bar */}
-                <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <Label className="text-sm text-slate-600">From:</Label>
-                            <Input
-                                type="date"
-                                value={fromDate ? format(fromDate, 'yyyy-MM-dd') : ''}
-                                onChange={(e) => setFromDate(e.target.value ? new Date(e.target.value) : undefined)}
-                                className="w-36 text-sm"
-                                data-testid="input-from-date"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Label className="text-sm text-slate-600">To:</Label>
-                            <Input
-                                type="date"
-                                value={toDate ? format(toDate, 'yyyy-MM-dd') : ''}
-                                onChange={(e) => setToDate(e.target.value ? new Date(e.target.value) : undefined)}
-                                className="w-36 text-sm"
-                                data-testid="input-to-date"
-                            />
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" data-testid="button-filters">
-                            <Filter className="w-4 h-4 mr-2" />
-                            Filters
-                        </Button>
-                        <Button variant="outline" size="sm" data-testid="button-export">
-                            <Download className="w-4 h-4 mr-2" />
-                            Export
-                        </Button>
-                    </div>
+            <div className="space-y-6">
+                {/* Search Bar */}
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <Input
+                        ref={searchInputRef}
+                        placeholder="Search models, endpoints, or usage..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            // If there's a space (indicating first word is complete), blur the input
+                            if (e.target.value.includes(' ')) {
+                                searchInputRef.current?.blur();
+                            }
+                        }}
+                        className="pl-10"
+                        data-testid="search-logs"
+                    />
+                </div>
+
+                {/* Filter Sections */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card>
+                        <CardContent className="p-4">
+                            <div className="space-y-3">
+                                <Label className="text-sm font-medium">Models</Label>
+                                <Select value={selectedModel} onValueChange={setSelectedModel}>
+                                    <SelectTrigger data-testid="select-model">
+                                        <SelectValue placeholder="All Models" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Models</SelectItem>
+                                        {modelOptions.map((model: any) => (
+                                            <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardContent className="p-4">
+                            <div className="space-y-3">
+                                <Label className="text-sm font-medium">Usage Level</Label>
+                                <Select value={filterType} onValueChange={setFilterType}>
+                                    <SelectTrigger data-testid="select-usage-level">
+                                        <SelectValue placeholder="All Requests" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Requests</SelectItem>
+                                        <SelectItem value="high">High Usage (1000+ tokens)</SelectItem>
+                                        <SelectItem value="low">Low Usage (≤100 tokens)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardContent className="p-4">
+                            <div className="space-y-3">
+                                <Label className="text-sm font-medium">Date Range</Label>
+                                <Select value={dateRange} onValueChange={setDateRange}>
+                                    <SelectTrigger data-testid="select-date-range">
+                                        <SelectValue placeholder="Last 30 Days" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="last30">Last 30 Days</SelectItem>
+                                        <SelectItem value="last7">Last 7 Days</SelectItem>
+                                        <SelectItem value="last24">Last 24 Hours</SelectItem>
+                                        <SelectItem value="custom">Custom Range</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Custom Date Range */}
+                {dateRange === 'custom' && (
+                    <Card>
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium">From</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                className={`w-40 justify-start text-left font-normal ${!fromDate && "text-muted-foreground"
+                                                    }`}
+                                                data-testid="select-from-date"
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {fromDate ? format(fromDate, "PPP") : "Pick a date"}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0">
+                                            <Calendar
+                                                mode="single"
+                                                selected={fromDate}
+                                                onSelect={setFromDate}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium">To</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                className={`w-40 justify-start text-left font-normal ${!toDate && "text-muted-foreground"
+                                                    }`}
+                                                data-testid="select-to-date"
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {toDate ? format(toDate, "PPP") : "Pick a date"}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0">
+                                            <Calendar
+                                                mode="single"
+                                                selected={toDate}
+                                                onSelect={setToDate}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={() => setShowFilters(!showFilters)} data-testid="toggle-filters">
+                        <Filter className="w-4 h-4 mr-2" />
+                        Filters
+                    </Button>
+                    <Button variant="outline" data-testid="export-logs">
+                        <Download className="w-4 h-4 mr-2" />
+                        Export
+                    </Button>
                 </div>
 
                 <Card>

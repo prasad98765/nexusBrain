@@ -75,7 +75,7 @@ export default function ApiDocumentation() {
         fetch('https://openrouter.ai/api/v1/models'),
         fetch('https://openrouter.ai/api/v1/providers')
       ]);
-      
+
       if (modelsResponse.ok && providersResponse.ok) {
         const modelsData = await modelsResponse.json();
         const providersData = await providersResponse.json();
@@ -98,12 +98,12 @@ export default function ApiDocumentation() {
   const filteredModels = models.filter(model => {
     // Search filter
     const matchesSearch = model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         model.id.toLowerCase().includes(searchQuery.toLowerCase());
-    
+      model.id.toLowerCase().includes(searchQuery.toLowerCase());
+
     // Provider filter
     const providerSlug = model.id.split('/')[0];
     const matchesProvider = selectedProvider === 'all' || providerSlug === selectedProvider;
-    
+
     return matchesSearch && matchesProvider;
   });
 
@@ -122,7 +122,9 @@ export default function ApiDocumentation() {
 
   const getProviderInfo = (modelId: string) => {
     const providerSlug = modelId.split('/')[0];
-    return providers.find(p => p.slug === providerSlug);
+    console.log("providerSlug", providerSlug);
+
+    return providers.find(p => p.slug.includes(providerSlug.toLowerCase()));
   };
 
   // Group models by provider for accordion display
@@ -136,7 +138,7 @@ export default function ApiDocumentation() {
   }, {} as Record<string, Model[]>);
 
   // Get unique providers from filtered models
-  const availableProviders = [...new Set(models.map(m => m.id.split('/')[0]))];
+  const availableProviders = Array.from(new Set(models.map(m => m.id.split('/')[0])));
 
   const getProviderDisplayName = (slug: string) => {
     const provider = providers.find(p => p.slug === slug);
@@ -228,7 +230,7 @@ export default function ApiDocumentation() {
                         {sortedModels.length} models from {Object.keys(modelsByProvider).length} providers
                       </div>
                     </div>
-                    
+
                     {/* Filters */}
                     <div className="grid grid-cols-4 gap-4">
                       <div className="relative">
@@ -239,9 +241,10 @@ export default function ApiDocumentation() {
                           onChange={(e) => setSearchQuery(e.target.value)}
                           className="pl-10 bg-slate-800 border-slate-600 text-slate-100"
                           data-testid="input-search-models"
+                          style={{ height: "39px" }}
                         />
                       </div>
-                      
+
                       <Select value={selectedProvider} onValueChange={setSelectedProvider}>
                         <SelectTrigger className="bg-slate-800 border-slate-600 text-slate-100">
                           <SelectValue placeholder="All Providers" />
@@ -255,7 +258,7 @@ export default function ApiDocumentation() {
                           ))}
                         </SelectContent>
                       </Select>
-                      
+
                       <Select value={costSort} onValueChange={setCostSort}>
                         <SelectTrigger className="bg-slate-800 border-slate-600 text-slate-100">
                           <SelectValue placeholder="Sort by Cost" />
@@ -266,17 +269,17 @@ export default function ApiDocumentation() {
                           <SelectItem value="high-to-low">Cost: High to Low</SelectItem>
                         </SelectContent>
                       </Select>
-                      
-                      <Button
+
+                      {/* <Button
                         variant={showPopular ? "default" : "outline"}
                         onClick={() => setShowPopular(!showPopular)}
                         className="border-slate-600"
                       >
                         <TrendingUp className="w-4 h-4 mr-2" />
                         Popular
-                      </Button>
+                      </Button> */}
                     </div>
-                    
+
                     {loadingModels ? (
                       <div className="flex items-center justify-center h-32">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
@@ -287,8 +290,8 @@ export default function ApiDocumentation() {
                           {Object.entries(modelsByProvider).map(([providerSlug, models]) => {
                             const provider = getProviderInfo(models[0].id);
                             return (
-                              <AccordionItem 
-                                key={providerSlug} 
+                              <AccordionItem
+                                key={providerSlug}
                                 value={providerSlug}
                                 className="bg-slate-800/30 border border-slate-700 rounded-lg"
                               >
@@ -305,9 +308,9 @@ export default function ApiDocumentation() {
                                     </div>
                                     <div className="flex items-center gap-2">
                                       {provider?.privacy_policy_url && (
-                                        <a 
-                                          href={provider.privacy_policy_url} 
-                                          target="_blank" 
+                                        <a
+                                          href={provider.privacy_policy_url}
+                                          target="_blank"
                                           rel="noopener noreferrer"
                                           className="text-indigo-400 hover:text-indigo-300"
                                           onClick={(e) => e.stopPropagation()}
@@ -327,20 +330,20 @@ export default function ApiDocumentation() {
                                             <h4 className="font-medium text-slate-100 mb-1">{provider.name}</h4>
                                             <div className="flex items-center gap-4 text-xs text-slate-400">
                                               {provider.privacy_policy_url && (
-                                                <a href={provider.privacy_policy_url} target="_blank" rel="noopener noreferrer" 
-                                                   className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+                                                <a href={provider.privacy_policy_url} target="_blank" rel="noopener noreferrer"
+                                                  className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
                                                   Privacy Policy <ExternalLink className="w-3 h-3" />
                                                 </a>
                                               )}
                                               {provider.terms_of_service_url && (
-                                                <a href={provider.terms_of_service_url} target="_blank" rel="noopener noreferrer" 
-                                                   className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+                                                <a href={provider.terms_of_service_url} target="_blank" rel="noopener noreferrer"
+                                                  className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
                                                   Terms of Service <ExternalLink className="w-3 h-3" />
                                                 </a>
                                               )}
                                               {provider.status_page_url && (
-                                                <a href={provider.status_page_url} target="_blank" rel="noopener noreferrer" 
-                                                   className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+                                                <a href={provider.status_page_url} target="_blank" rel="noopener noreferrer"
+                                                  className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
                                                   Status Page <ExternalLink className="w-3 h-3" />
                                                 </a>
                                               )}
@@ -349,7 +352,7 @@ export default function ApiDocumentation() {
                                         </div>
                                       </div>
                                     )}
-                                    
+
                                     {models.map((model) => (
                                       <Card key={model.id} className="bg-slate-800/50 border-slate-700">
                                         <CardContent className="p-4">
@@ -373,7 +376,7 @@ export default function ApiDocumentation() {
                                                 </div>
                                               </div>
                                             </div>
-                                            
+
                                             <div className="grid grid-cols-3 gap-4 text-xs">
                                               <div className="space-y-2">
                                                 <div className="text-slate-400">Pricing (per 1M tokens)</div>
@@ -388,7 +391,7 @@ export default function ApiDocumentation() {
                                                   </div>
                                                 </div>
                                               </div>
-                                              
+
                                               <div className="space-y-2">
                                                 <div className="text-slate-400">Technical Details</div>
                                                 <div className="space-y-1">
@@ -404,7 +407,7 @@ export default function ApiDocumentation() {
                                                   </div>
                                                 </div>
                                               </div>
-                                              
+
                                               <div className="space-y-2">
                                                 <div className="text-slate-400">Capabilities</div>
                                                 <div className="space-y-1">
@@ -438,7 +441,7 @@ export default function ApiDocumentation() {
                   </div>
                 </PopoverContent>
               </Popover>
-              
+
               <Button
                 variant="outline"
                 size="sm"
