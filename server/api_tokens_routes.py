@@ -7,8 +7,11 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy import or_, func
 
 from .models import db, ApiToken, ApiUsageLog, Workspace
-from .auth import require_auth
-
+from .auth_utils import (
+    generate_password_hash, check_password_hash, generate_jwt_token, 
+    decode_jwt_token, generate_verification_token, generate_reset_token, verify_google_token,
+    require_auth, require_verified_user
+)
 api_tokens_bp = Blueprint('api_tokens', __name__)
 
 def generate_token():
@@ -24,9 +27,8 @@ def hash_token(token: str) -> str:
 def get_api_tokens():
     """Get API tokens for a workspace (excluding actual token values)"""
     try:
-        user_data: Dict[str, Any] = getattr(request, 'user', {})
-        workspace_id = user_data.get('workspace_id')
-        
+        workspace_id = request.user.get('workspace_id')
+        print(workspace_id," workspace_id")
         if not workspace_id:
             return jsonify({'error': 'workspace_id is required'}), 400
         
@@ -35,7 +37,8 @@ def get_api_tokens():
             workspace_id=workspace_id, 
             is_active=True
         ).order_by(ApiToken.created_at.desc()).all()
-        
+
+        print(tokens," tokens")
         tokens_data = []
         for token in tokens:
             tokens_data.append({
@@ -65,7 +68,7 @@ def create_api_token():
     try:
         data = request.get_json()
         user_data: Dict[str, Any] = getattr(request, 'user', {})
-        workspace_id = user_data.get('workspace_id')
+        workspace_id = request.user.get('workspace_id')
         user_id = user_data.get('user_id')
         
         if not workspace_id or not user_id:
@@ -118,7 +121,7 @@ def update_api_token(token_id):
     try:
         data = request.get_json()
         user_data: Dict[str, Any] = getattr(request, 'user', {})
-        workspace_id = user_data.get('workspace_id')
+        workspace_id = request.user.get('workspace_id')
         
         if not workspace_id:
             return jsonify({'error': 'workspace_id is required'}), 400
@@ -163,7 +166,7 @@ def regenerate_api_token(token_id):
     try:
         data = request.get_json()
         user_data: Dict[str, Any] = getattr(request, 'user', {})
-        workspace_id = user_data.get('workspace_id')
+        workspace_id = request.user.get('workspace_id')
         user_id = user_data.get('user_id')
         
         if not workspace_id or not user_id:
@@ -218,7 +221,7 @@ def deactivate_api_token(token_id):
     """Deactivate an API token"""
     try:
         user_data: Dict[str, Any] = getattr(request, 'user', {})
-        workspace_id = user_data.get('workspace_id')
+        workspace_id = request.user.get('workspace_id')
         
         if not workspace_id:
             return jsonify({'error': 'workspace_id is required'}), 400
@@ -247,7 +250,7 @@ def get_usage_logs():
     """Get API usage logs for a workspace"""
     try:
         user_data: Dict[str, Any] = getattr(request, 'user', {})
-        workspace_id = user_data.get('workspace_id')
+        workspace_id = request.user.get('workspace_id')
         
         if not workspace_id:
             return jsonify({'error': 'workspace_id is required'}), 400
@@ -333,7 +336,7 @@ def get_usage_analytics():
     """Get API usage analytics for a workspace"""
     try:
         user_data: Dict[str, Any] = getattr(request, 'user', {})
-        workspace_id = user_data.get('workspace_id')
+        workspace_id = request.user.get('workspace_id')
         
         if not workspace_id:
             return jsonify({'error': 'workspace_id is required'}), 400

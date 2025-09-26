@@ -27,12 +27,12 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { 
-    Copy, 
-    ExternalLink, 
-    Key, 
-    AlertTriangle, 
-    CheckCircle, 
+import {
+    Copy,
+    ExternalLink,
+    Key,
+    AlertTriangle,
+    CheckCircle,
     RotateCcw,
     Eye,
     EyeOff,
@@ -45,9 +45,10 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import type { ApiToken, ApiUsageLog, ApiTokenResponse, InsertApiToken, UsageAnalytics } from '@shared/schema';
+import { useAuth } from '@/hooks/useAuth';
+import axios from 'axios';
 
 export default function APIIntegrationsPage() {
-    const [tokenName, setTokenName] = useState('My API Token');
     const [cachingEnabled, setCachingEnabled] = useState(true);
     const [showNewToken, setShowNewToken] = useState(false);
     const [newTokenValue, setNewTokenValue] = useState('');
@@ -56,71 +57,168 @@ export default function APIIntegrationsPage() {
     const [filterType, setFilterType] = useState('all');
     const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
     const { toast } = useToast();
+    const { user, token } = useAuth();
 
     // Queries
-    const { data: tokenData, isLoading: tokenLoading, error: tokenError } = useQuery<{tokens: ApiToken[], hasToken: boolean}>({
-        queryKey: ['/api/api-tokens'],
-        staleTime: 5 * 60 * 1000, // 5 minutes
-    });
+    const { data: tokenData, isLoading: tokenLoading, error: tokenError } =
+        useQuery<{ tokens: ApiToken[]; hasToken: boolean }>({
+            queryKey: ["/api/api-tokens"],
+            queryFn: async () => {
+                const response = await axios.get<{ tokens: ApiToken[]; hasToken: boolean }>(
+                    "/api/api-tokens",
+                    {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }
+                );
+                return response.data;
+            },
+            staleTime: 5 * 60 * 1000, // 5 minutes
+        });
 
-    const { data: logsData, isLoading: logsLoading } = useQuery<{logs: ApiUsageLog[], total: number, page: number, limit: number, totalPages: number}>({
-        queryKey: ['/api/api-tokens/usage-logs', { selectedModel, dateRange, filterType }],
+    const { data: logsData, isLoading: logsLoading } = useQuery<{
+        logs: ApiUsageLog[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    }>({
+        queryKey: [
+            "/api/api-tokens/usage-logs",
+            { selectedModel, dateRange, filterType },
+        ],
+        queryFn: async () => {
+            const response = await axios.get<{
+                logs: ApiUsageLog[];
+                total: number;
+                page: number;
+                limit: number;
+                totalPages: number;
+            }>("/api/api-tokens/usage-logs", {
+                params: { selectedModel, dateRange, filterType }, // Axios handles query params
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            return response.data;
+        },
         enabled: tokenData?.hasToken,
         staleTime: 2 * 60 * 1000, // 2 minutes
     });
 
     const { data: analyticsData } = useQuery<UsageAnalytics>({
-        queryKey: ['/api/api-tokens/analytics', { dateRange }],
+        queryKey: ["/api/api-tokens/analytics", { dateRange }],
+        queryFn: async () => {
+            const response = await axios.get<UsageAnalytics>(
+                "/api/api-tokens/analytics",
+                {
+                    params: { dateRange },
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            return response.data;
+        },
         enabled: tokenData?.hasToken,
         staleTime: 5 * 60 * 1000,
     });
+    // call /v1/models api and set model as one set and use this in select model dropdown
+    const { data: modelData, isLoading: modelLoading, error: modelError } =
+        useQuery<{ models: string[] }>({
+            queryKey: ["/api/v1/models"],
+            queryFn: async () => {
+                const response = await axios.get<{ data: { id: string }[] }>(
+                    "/api/v1/models",
+                    {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }
+                );
+
+                // Extract the object has id and name property
+                const models: any = response.data.data.map((m: any) => ({
+                    id: m.id,
+                    name: m.name,
+                }));
+
+                return { models };
+            },
+            staleTime: 5 * 60 * 1000, // 5 minutes
+        });
+
+    console.log("modelData", modelData?.models);
+
+    const modelOptions = modelData?.models || [];
+    console.log("modelOptions", modelOptions);
+
 
     // Mutations
     const createTokenMutation = useMutation({
         mutationFn: async (data: InsertApiToken) => {
-            const response = await apiRequest('POST', '/api/api-tokens', data);
-            return response.json();
+            const response = await axios.post<ApiTokenResponse>(
+                "/api/api-tokens",
+                data,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            return response.data;
         },
-        onSuccess: (response: ApiTokenResponse) => {
+        onSuccess: (response) => {
             setNewTokenValue(response.plainToken);
             setShowNewToken(true);
-            queryClient.invalidateQueries({ queryKey: ['/api/api-tokens'] });
+            queryClient.invalidateQueries({ queryKey: ["/api/api-tokens"] });
             toast({
                 title: "Token Created Successfully! ✅",
-                description: "Your API token has been created. Make sure to copy it now as you won't see it again.",
+                description:
+                    "Your API token has been created. Make sure to copy it now as you won't see it again.",
             });
         },
         onError: (error: any) => {
             toast({
                 title: "Failed to Create Token",
-                description: error.message || "An error occurred while creating the token.",
-                variant: "destructive"
+                description:
+                    error.response?.data?.message ||
+                    error.message ||
+                    "An error occurred while creating the token.",
+                variant: "destructive",
             });
-        }
+        },
     });
 
     const regenerateTokenMutation = useMutation({
-        mutationFn: async ({ tokenId, data }: { tokenId: string; data: InsertApiToken }) => {
-            const response = await apiRequest('POST', `/api/api-tokens/${tokenId}/regenerate`, data);
-            return response.json();
+        mutationFn: async ({
+            tokenId,
+            data,
+        }: {
+            tokenId: string;
+            data: InsertApiToken;
+        }) => {
+            const response = await axios.post<ApiTokenResponse>(
+                `/api/api-tokens/${tokenId}/regenerate`,
+                data,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            return response.data;
         },
-        onSuccess: (response: ApiTokenResponse) => {
+        onSuccess: (response) => {
             setNewTokenValue(response.plainToken);
             setShowNewToken(true);
             setIsRegenerateDialogOpen(false);
-            queryClient.invalidateQueries({ queryKey: ['/api/api-tokens'] });
+            queryClient.invalidateQueries({ queryKey: ["/api/api-tokens"] });
             toast({
                 title: "Token Regenerated Successfully! ✅",
-                description: "Your new API token has been created. The old token is now inactive.",
+                description:
+                    "Your new API token has been created. The old token is now inactive.",
             });
         },
         onError: (error: any) => {
             toast({
                 title: "Failed to Regenerate Token",
-                description: error.message || "An error occurred while regenerating the token.",
-                variant: "destructive"
+                description:
+                    error.response?.data?.message ||
+                    error.message ||
+                    "An error occurred while regenerating the token.",
+                variant: "destructive",
             });
-        }
+        },
     });
 
     const copyToClipboard = (text: string) => {
@@ -133,7 +231,6 @@ export default function APIIntegrationsPage() {
 
     const handleCreateToken = async () => {
         createTokenMutation.mutate({
-            name: tokenName,
             cachingEnabled: cachingEnabled,
             workspaceId: 'temp', // This will be set by the backend from auth
             userId: 'temp' // This will be set by the backend from auth
@@ -147,7 +244,6 @@ export default function APIIntegrationsPage() {
         regenerateTokenMutation.mutate({
             tokenId: existingToken.id,
             data: {
-                name: tokenName,
                 cachingEnabled: cachingEnabled,
                 workspaceId: 'temp',
                 userId: 'temp'
@@ -182,18 +278,17 @@ export default function APIIntegrationsPage() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20">
-                            <AlertTriangle className="h-4 w-4" />
                             <AlertDescription className="text-yellow-700 dark:text-yellow-400">
                                 ⚠️ <strong>Important:</strong> This API token will only be shown once. Please copy and store it somewhere safe immediately.
                             </AlertDescription>
                         </Alert>
 
-                        <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-lg">
+                        <div className="dark:bg-slate-800 p-4 rounded-lg">
                             <div className="flex items-center justify-between mb-2">
                                 <Label className="text-sm font-medium">Your API Token</Label>
                                 <Badge variant="secondary" className="text-xs">Only shown once</Badge>
                             </div>
-                            <div className="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 border rounded-md">
+                            <div className="flex items-center gap-2 p-3 dark:bg-slate-900 border rounded-md">
                                 <code className="flex-1 font-mono text-sm break-all">{newTokenValue}</code>
                                 <Button
                                     variant="outline"
@@ -206,27 +301,9 @@ export default function APIIntegrationsPage() {
                             </div>
                         </div>
 
-                        <div className="space-y-3">
-                            <Label className="text-sm font-medium">Quick Start - cURL Example</Label>
-                            <div className="bg-slate-900 p-4 rounded-lg relative overflow-x-auto">
-                                <pre className="text-slate-300 text-sm whitespace-pre-wrap font-mono">
-                                    {curlCommand}
-                                </pre>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="absolute top-2 right-2 bg-slate-800 border-slate-600"
-                                    onClick={() => copyToClipboard(curlCommand)}
-                                    data-testid="copy-curl"
-                                >
-                                    <Copy className="h-3 w-3" />
-                                </Button>
-                            </div>
-                        </div>
-
                         <div className="flex gap-3">
-                            <Button 
-                                className="flex-1" 
+                            <Button
+                                className="flex-1"
                                 onClick={() => {
                                     setShowNewToken(false);
                                     setNewTokenValue('');
@@ -235,7 +312,7 @@ export default function APIIntegrationsPage() {
                             >
                                 Continue to Dashboard
                             </Button>
-                            <Button 
+                            <Button
                                 variant="outline"
                                 onClick={() => window.open('/docs/api-reference', '_blank')}
                                 data-testid="view-docs"
@@ -262,19 +339,6 @@ export default function APIIntegrationsPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="space-y-4">
-                        <div>
-                            <Label htmlFor="token-name" className="text-sm font-medium">Token Name (Optional)</Label>
-                            <Input
-                                id="token-name"
-                                value={tokenName}
-                                onChange={(e) => setTokenName(e.target.value)}
-                                placeholder="My API Token"
-                                className="mt-1"
-                                data-testid="input-token-name"
-                            />
-                            <p className="text-xs text-slate-500 mt-1">Give your token a memorable name for easy identification</p>
-                        </div>
-
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
                                 <div className="space-y-1">
@@ -287,10 +351,10 @@ export default function APIIntegrationsPage() {
                                     data-testid="toggle-caching"
                                 />
                             </div>
-                            
-                            <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-900/20">
+
+                            <Alert className="border-blue-200 dark:bg-blue-900/20">
                                 <Info className="h-4 w-4" />
-                                <AlertDescription className="text-blue-700 dark:text-blue-400 text-sm">
+                                <AlertDescription className="text-white-700 dark:text-white-400 text-sm">
                                     <strong>Why enable caching?</strong>
                                     <ul className="mt-2 ml-4 list-disc space-y-1 text-xs">
                                         <li><strong>Faster responses:</strong> Cached results return instantly</li>
@@ -304,8 +368,8 @@ export default function APIIntegrationsPage() {
                     </div>
 
                     <div className="pt-4">
-                        <Button 
-                            className="w-full" 
+                        <Button
+                            className="w-full"
                             onClick={handleCreateToken}
                             disabled={createTokenMutation.isPending}
                             data-testid="create-token-button"
@@ -325,8 +389,8 @@ export default function APIIntegrationsPage() {
                     </div>
 
                     <div className="text-center">
-                        <Button 
-                            variant="link" 
+                        <Button
+                            variant="link"
                             onClick={() => window.open('/docs/api-reference', '_blank')}
                             className="text-sm"
                             data-testid="preview-docs"
@@ -368,6 +432,14 @@ export default function APIIntegrationsPage() {
                         </div>
                         <div className="flex gap-2">
                             <AlertDialog open={isRegenerateDialogOpen} onOpenChange={setIsRegenerateDialogOpen}>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => window.open('/docs/api-reference', '_blank')}
+                                    data-testid="view-docs"
+                                >
+                                    <ExternalLink className="w-4 h-4 mr-2" />
+                                    View Docs
+                                </Button>
                                 <AlertDialogTrigger asChild>
                                     <Button variant="outline" size="sm" data-testid="regenerate-token">
                                         <RotateCcw className="w-4 h-4 mr-2" />
@@ -378,20 +450,11 @@ export default function APIIntegrationsPage() {
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Regenerate API Token</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            This will create a new token and immediately deactivate the current one. 
+                                            This will create a new token and immediately deactivate the current one.
                                             Any applications using the current token will stop working until you update them with the new token.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <div className="space-y-4 py-4">
-                                        <div>
-                                            <Label htmlFor="new-token-name">Token Name</Label>
-                                            <Input
-                                                id="new-token-name"
-                                                value={tokenName}
-                                                onChange={(e) => setTokenName(e.target.value)}
-                                                placeholder="Enter new token name"
-                                            />
-                                        </div>
                                         <div className="flex items-center space-x-2">
                                             <Switch
                                                 id="new-caching"
@@ -403,7 +466,7 @@ export default function APIIntegrationsPage() {
                                     </div>
                                     <AlertDialogFooter>
                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction 
+                                        <AlertDialogAction
                                             onClick={handleRegenerateToken}
                                             disabled={regenerateTokenMutation.isPending}
                                             className="bg-red-600 hover:bg-red-700"
@@ -493,9 +556,9 @@ export default function APIIntegrationsPage() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Models</SelectItem>
-                            <SelectItem value="openai/gpt-4o-mini">GPT-4o Mini</SelectItem>
-                            <SelectItem value="openai/gpt-4">GPT-4</SelectItem>
-                            <SelectItem value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</SelectItem>
+                            {modelOptions.map((model: any) => (
+                                <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                     <Select value={dateRange} onValueChange={setDateRange}>
@@ -519,7 +582,7 @@ export default function APIIntegrationsPage() {
                         </SelectContent>
                     </Select>
                 </div>
-                
+
                 <Card>
                     <CardContent className="p-0">
                         {logs.length > 0 ? (
@@ -539,7 +602,7 @@ export default function APIIntegrationsPage() {
                                         {logs.map((log, index) => (
                                             <tr key={log.id} className={index % 2 === 0 ? 'bg-white dark:bg-slate-950' : 'bg-slate-50 dark:bg-slate-900'}>
                                                 <td className="p-3 text-sm">
-                                                    {new Date(log.createdAt).toLocaleDateString()}<br/>
+                                                    {new Date(log.createdAt).toLocaleDateString()}<br />
                                                     <span className="text-xs text-slate-500">
                                                         {new Date(log.createdAt).toLocaleTimeString()}
                                                     </span>
@@ -551,12 +614,11 @@ export default function APIIntegrationsPage() {
                                                     </Badge>
                                                 </td>
                                                 <td className="p-3">
-                                                    <Badge 
-                                                        className={`text-xs ${
-                                                            log.statusCode === 200 
-                                                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-400' 
-                                                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-400'
-                                                        }`}
+                                                    <Badge
+                                                        className={`text-xs ${log.statusCode === 200
+                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-400'
+                                                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-400'
+                                                            }`}
                                                     >
                                                         {log.statusCode}
                                                     </Badge>
@@ -581,7 +643,7 @@ export default function APIIntegrationsPage() {
                         )}
                     </CardContent>
                 </Card>
-                
+
                 {logs.length > 0 && logsData && logsData.totalPages > 1 && (
                     <div className="flex items-center justify-between">
                         <p className="text-sm text-slate-500">
@@ -652,10 +714,10 @@ export default function APIIntegrationsPage() {
                                             <span className="text-slate-600">{new Date(item.date).toLocaleDateString()}</span>
                                             <div className="flex items-center gap-2">
                                                 <div className="w-16 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                                                    <div 
+                                                    <div
                                                         className="h-2 bg-indigo-500 rounded-full"
-                                                        style={{ 
-                                                            width: `${Math.max((item.requests / Math.max(...analyticsData.requestsOverTime!.map(r => r.requests))) * 100, 5)}%` 
+                                                        style={{
+                                                            width: `${Math.max((item.requests / Math.max(...analyticsData.requestsOverTime!.map(r => r.requests))) * 100, 5)}%`
                                                         }}
                                                     />
                                                 </div>
@@ -711,26 +773,6 @@ export default function APIIntegrationsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 p-6 rounded-lg text-white">
-                <div className="flex justify-between items-start">
-                    <div>
-                        <h1 className="text-2xl font-bold">API Integration</h1>
-                        <p className="text-indigo-100 mt-1">Manage your API tokens and monitor usage</p>
-                    </div>
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            onClick={handleViewDocs}
-                            className="border-white/20 text-white hover:bg-white/10"
-                            data-testid="view-docs-header"
-                        >
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            View Documentation
-                        </Button>
-                    </div>
-                </div>
-            </div>
-
             {showNewToken && newTokenValue ? (
                 <TokenCreationCard />
             ) : hasExistingToken ? (

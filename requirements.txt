@@ -13,3 +13,4 @@ sendgrid==6.11.0
 pymongo==4.7.2
 PyJWT==2.8.0
 psycopg2-binary
+authlib
