@@ -3,6 +3,7 @@ import json
 import hashlib
 import time
 import logging
+import ssl
 from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass
 
@@ -47,6 +48,29 @@ class RedisCacheService:
         self.redis_client = None
         if REDIS_AVAILABLE and self.redis_url:
             try:
+                # Configure SSL properly for security
+                ssl_options = {}
+                if self.redis_url.startswith('rediss://'):
+                    # For SSL connections, require certificate validation by default
+                    # Only disable for explicit local development (via env var)
+                    disable_ssl_verification = os.getenv('REDIS_DISABLE_SSL_VERIFICATION', 'false').lower() == 'true'
+                    
+                    if disable_ssl_verification:
+                        logger.warning("SSL certificate verification disabled for Redis - not recommended for production!")
+                        ssl_options['ssl_cert_reqs'] = ssl.CERT_NONE
+                    else:
+                        # Secure by default - validate certificates using proper SSL constants
+                        ssl_options['ssl_cert_reqs'] = ssl.CERT_REQUIRED
+                        logger.info("SSL certificate verification enabled for Redis connection")
+                        
+                        # Try to use system CA bundle for better compatibility with managed Redis services
+                        try:
+                            import certifi
+                            ssl_options['ssl_ca_certs'] = certifi.where()
+                            logger.info(f"Using CA bundle: {ssl_options['ssl_ca_certs']}")
+                        except ImportError:
+                            logger.info("certifi not available, using system default CA bundle")
+                
                 # Use redis.from_url which properly handles authentication and SSL
                 self.redis_client = redis.from_url(
                     self.redis_url,
@@ -55,8 +79,7 @@ class RedisCacheService:
                     socket_timeout=10,
                     retry_on_timeout=True,
                     health_check_interval=30,
-                    # Enable SSL if URL starts with rediss:// or if it's Redis Cloud
-                    ssl_cert_reqs=None if 'rediss://' in self.redis_url or 'redis-cloud.com' in self.redis_url else None
+                    **ssl_options
                 )
                 
                 # Test connection
