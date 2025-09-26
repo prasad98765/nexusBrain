@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   ExternalLink,
   Code,
@@ -11,44 +14,128 @@ import {
   CheckCircle,
   Sparkles,
   ChevronRight,
-  Play
+  Play,
+  Search,
+  Info,
+  Layers
 } from 'lucide-react';
+
+interface Model {
+  id: string;
+  name: string;
+  description: string;
+  context_length: number;
+  pricing: {
+    prompt: string;
+    completion: string;
+  };
+  top_provider: {
+    max_completion_tokens?: number;
+    is_moderated: boolean;
+  };
+  architecture: {
+    modality: string;
+    tokenizer: string;
+    instruct_type?: string;
+  };
+}
+
+interface Provider {
+  name: string;
+  slug: string;
+  privacy_policy_url?: string;
+  status_page_url?: string;
+  terms_of_service_url?: string;
+}
 
 export default function ApiDocumentation() {
   const [activeEndpoint, setActiveEndpoint] = useState('completions');
+  const [models, setModels] = useState<Model[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [isLlmDetailsOpen, setIsLlmDetailsOpen] = useState(false);
 
   const handleTryIt = () => {
     // Navigate to the API testing route
     window.location.href = '/docs/api-reference/test';
   };
 
+  const fetchModelsAndProviders = async () => {
+    setLoadingModels(true);
+    try {
+      const [modelsResponse, providersResponse] = await Promise.all([
+        fetch('https://openrouter.ai/api/v1/models'),
+        fetch('https://openrouter.ai/api/v1/providers')
+      ]);
+      
+      if (modelsResponse.ok && providersResponse.ok) {
+        const modelsData = await modelsResponse.json();
+        const providersData = await providersResponse.json();
+        setModels(modelsData.data || []);
+        setProviders(providersData.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch models and providers:', error);
+    } finally {
+      setLoadingModels(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isLlmDetailsOpen && models.length === 0) {
+      fetchModelsAndProviders();
+    }
+  }, [isLlmDetailsOpen, models.length]);
+
+  const filteredModels = models.filter(model => 
+    model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    model.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const getProviderInfo = (modelId: string) => {
+    const providerSlug = modelId.split('/')[0];
+    return providers.find(p => p.slug === providerSlug);
+  };
+
 
 
   const completionsParams = [
-    { param: 'model', purpose: 'The LLM to use. Example: "openai/gpt-3.5-turbo-instruct". You must pick a model Nexus AI Hub supports.', required: true },
-    { param: 'prompt', purpose: 'Your input text (for completions).', required: true },
-    { param: 'max_tokens', purpose: 'Max length of the reply. Larger = longer answers.', required: false },
-    { param: 'temperature', purpose: 'Controls creativity. 0 = deterministic, 1 = creative.', required: false },
-    { param: 'top_p', purpose: 'Probability sampling. Usually keep at 0.9.', required: false },
-    { param: 'frequency_penalty', purpose: 'Discourages repeating phrases.', required: false },
-    { param: 'presence_penalty', purpose: 'Encourages mentioning new concepts.', required: false },
-    { param: 'stop', purpose: 'Tell the model where to stop (e.g., ["\\n\\n"]).', required: false },
-    { param: 'stream', purpose: 'If true, you get output token by token (good for chat UIs).', required: false },
-    { param: 'user', purpose: 'An identifier for your end user (helps Nexus AI Hub track abuse).', required: false },
-    { param: 'metadata', purpose: 'Any custom info you want to send (debugging, analytics).', required: false }
+    { param: 'model', purpose: 'The ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.', required: true },
+    { param: 'prompt', purpose: 'The prompt(s) to generate completions for, encoded as a string, array of strings, array of tokens, or array of token arrays.', required: true },
+    { param: 'max_tokens', purpose: 'The maximum number of tokens that can be generated in the chat completion.', required: false },
+    { param: 'temperature', purpose: 'What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.', required: false },
+    { param: 'top_p', purpose: 'An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass.', required: false },
+    { param: 'n', purpose: 'How many completions to generate for each prompt.', required: false },
+    { param: 'stream', purpose: 'Whether to stream back partial progress. If set, tokens will be sent as data-only server-sent events as they become available.', required: false },
+    { param: 'logprobs', purpose: 'Include the log probabilities on the logprobs most likely tokens, as well the chosen tokens.', required: false },
+    { param: 'echo', purpose: 'Echo back the prompt in addition to the completion.', required: false },
+    { param: 'stop', purpose: 'Up to 4 sequences where the API will stop generating further tokens. The returned text will not contain the stop sequence.', required: false },
+    { param: 'presence_penalty', purpose: 'Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far.', required: false },
+    { param: 'frequency_penalty', purpose: 'Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far.', required: false },
+    { param: 'best_of', purpose: 'Generates best_of completions server-side and returns the "best" (the one with the highest log probability per token).', required: false },
+    { param: 'logit_bias', purpose: 'Modify the likelihood of specified tokens appearing in the completion.', required: false },
+    { param: 'user', purpose: 'A unique identifier representing your end-user, which can help OpenRouter to monitor and detect abuse.', required: false },
+    { param: 'suffix', purpose: 'The suffix that comes after a completion of inserted text.', required: false }
   ];
 
   const chatParams = [
-    { param: 'model', purpose: 'Choose a model that Nexus AI Hub supports (e.g. "openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet", etc.). If you use a wrong model name, you\'ll get no answer.', required: true },
-    { param: 'messages', purpose: 'Array of messages (system, user, assistant). At least one user role is required.', required: true },
-    { param: 'max_tokens', purpose: 'Max reply length. Too small → you get cut-off answers.', required: false },
-    { param: 'temperature', purpose: 'Randomness. 0 = deterministic, 1 = more creative.', required: false },
-    { param: 'top_p', purpose: 'Alternative sampling control. Usually keep at 0.9.', required: false },
-    { param: 'stream', purpose: 'If true, response comes token by token (you need a streaming handler). For testing, keep false.', required: false },
-    { param: 'stop', purpose: 'Define custom stop sequences. If you set this wrong, you might get empty output. Better leave it null.', required: false },
-    { param: 'logit_bias', purpose: 'Advanced. Pushes the model toward or away from certain tokens. Usually leave {}.', required: false },
-    { param: 'user', purpose: 'An identifier for your end user (helps with tracking).', required: false },
-    { param: 'metadata', purpose: 'Custom key-value data for your app\'s analytics.', required: false }
+    { param: 'model', purpose: 'ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.', required: true },
+    { param: 'messages', purpose: 'A list of messages comprising the conversation so far.', required: true },
+    { param: 'max_tokens', purpose: 'The maximum number of tokens that can be generated in the chat completion.', required: false },
+    { param: 'temperature', purpose: 'What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.', required: false },
+    { param: 'top_p', purpose: 'An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass.', required: false },
+    { param: 'n', purpose: 'How many chat completion choices to generate for each input message.', required: false },
+    { param: 'stream', purpose: 'If set, partial message deltas will be sent, like in ChatGPT. Tokens will be sent as data-only server-sent events as they become available.', required: false },
+    { param: 'stop', purpose: 'Up to 4 sequences where the API will stop generating further tokens.', required: false },
+    { param: 'presence_penalty', purpose: 'Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far.', required: false },
+    { param: 'frequency_penalty', purpose: 'Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far.', required: false },
+    { param: 'logit_bias', purpose: 'Modify the likelihood of specified tokens appearing in the completion.', required: false },
+    { param: 'user', purpose: 'A unique identifier representing your end-user, which can help OpenRouter to monitor and detect abuse.', required: false },
+    { param: 'response_format', purpose: 'An object specifying the format that the model must output. Compatible with GPT-4 Turbo and all GPT-3.5 Turbo models newer than gpt-3.5-turbo-1106.', required: false },
+    { param: 'seed', purpose: 'This feature is in Beta. If specified, our system will make a best effort to sample deterministically.', required: false },
+    { param: 'tools', purpose: 'A list of tools the model may call. Currently, only functions are supported as a tool.', required: false },
+    { param: 'tool_choice', purpose: 'Controls which (if any) function is called by the model.', required: false }
   ];
 
   const sidebarItems = [
@@ -76,6 +163,132 @@ export default function ApiDocumentation() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <Popover open={isLlmDetailsOpen} onOpenChange={setIsLlmDetailsOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-slate-700 text-slate-300"
+                    data-testid="button-llm-details"
+                  >
+                    <Layers className="w-4 h-4 mr-2" />
+                    LLM Details
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[800px] h-[600px] bg-slate-900 border-slate-700" align="end">
+                  <div className="space-y-4 h-full">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-slate-100">Available Models & Providers</h3>
+                      <div className="flex items-center gap-2">
+                        <Search className="w-4 h-4 text-slate-400" />
+                        <Input
+                          placeholder="Search models..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-48 bg-slate-800 border-slate-600 text-slate-100"
+                          data-testid="input-search-models"
+                        />
+                      </div>
+                    </div>
+                    
+                    {loadingModels ? (
+                      <div className="flex items-center justify-center h-32">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+                      </div>
+                    ) : (
+                      <ScrollArea className="h-[500px]">
+                        <div className="space-y-3">
+                          {filteredModels.map((model) => {
+                            const provider = getProviderInfo(model.id);
+                            return (
+                              <Card key={model.id} className="bg-slate-800/50 border-slate-700">
+                                <CardContent className="p-4">
+                                  <div className="space-y-3">
+                                    <div className="flex items-start justify-between">
+                                      <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                          <h4 className="font-medium text-slate-100">{model.name}</h4>
+                                          <Badge variant="secondary" className="text-xs">
+                                            {model.architecture.modality}
+                                          </Badge>
+                                        </div>
+                                        <p className="text-xs text-slate-400 font-mono">{model.id}</p>
+                                        <p className="text-sm text-slate-300 line-clamp-2">{model.description}</p>
+                                      </div>
+                                      <div className="text-right space-y-1">
+                                        <div className="text-xs text-slate-400">Context Length</div>
+                                        <div className="text-sm font-medium text-slate-200">
+                                          {model.context_length?.toLocaleString()} tokens
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 text-xs">
+                                      <div className="space-y-2">
+                                        <div className="text-slate-400">Provider</div>
+                                        <div className="space-y-1">
+                                          <div className="font-medium text-slate-200">{provider?.name || 'Unknown'}</div>
+                                          {provider?.privacy_policy_url && (
+                                            <a href={provider.privacy_policy_url} target="_blank" rel="noopener noreferrer" 
+                                               className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+                                              Privacy Policy <ExternalLink className="w-3 h-3" />
+                                            </a>
+                                          )}
+                                          {provider?.terms_of_service_url && (
+                                            <a href={provider.terms_of_service_url} target="_blank" rel="noopener noreferrer" 
+                                               className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+                                              Terms of Service <ExternalLink className="w-3 h-3" />
+                                            </a>
+                                          )}
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="space-y-2">
+                                        <div className="text-slate-400">Pricing (per 1M tokens)</div>
+                                        <div className="space-y-1">
+                                          <div className="flex justify-between">
+                                            <span className="text-slate-300">Input:</span>
+                                            <span className="font-medium text-green-400">${model.pricing?.prompt}</span>
+                                          </div>
+                                          <div className="flex justify-between">
+                                            <span className="text-slate-300">Output:</span>
+                                            <span className="font-medium text-green-400">${model.pricing?.completion}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-3 gap-4 text-xs pt-2 border-t border-slate-700">
+                                      <div>
+                                        <div className="text-slate-400 mb-1">Tokenizer</div>
+                                        <div className="text-slate-200">{model.architecture.tokenizer}</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-slate-400 mb-1">Moderated</div>
+                                        <div className="text-slate-200">
+                                          {model.top_provider?.is_moderated ? 'Yes' : 'No'}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <div className="text-slate-400 mb-1">Max Completion</div>
+                                        <div className="text-slate-200">
+                                          {model.top_provider?.max_completion_tokens?.toLocaleString() || 'N/A'}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              
               <Button
                 variant="outline"
                 size="sm"
