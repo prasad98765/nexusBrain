@@ -1,0 +1,345 @@
+import os
+import json
+import hashlib
+import time
+import logging
+from typing import Optional, Dict, Any, List, Tuple
+from dataclasses import dataclass
+
+# Try to import Redis and ML libraries with fallbacks
+try:
+    import redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    REDIS_AVAILABLE = False
+    redis = None
+
+try:
+    from sentence_transformers import SentenceTransformer
+    import numpy as np
+    from sklearn.metrics.pairwise import cosine_similarity
+    ML_AVAILABLE = True
+except ImportError:
+    ML_AVAILABLE = False
+    SentenceTransformer = None
+    np = None
+    cosine_similarity = None
+
+logger = logging.getLogger(__name__)
+
+@dataclass
+class CacheEntry:
+    request: Dict[str, Any]
+    response: Dict[str, Any]
+    timestamp: float
+    embedding: Optional[List[float]] = None
+
+class RedisCacheService:
+    def __init__(self, 
+                 redis_url: Optional[str] = None,
+                 similarity_threshold: float = 0.85,
+                 embedding_model: str = "all-MiniLM-L6-v2"):
+        self.redis_url = redis_url or os.getenv("REDIS_URL")
+        self.similarity_threshold = similarity_threshold
+        self.embedding_model_name = embedding_model
+        
+        # Initialize Redis connection
+        self.redis_client = None
+        if REDIS_AVAILABLE and self.redis_url:
+            try:
+                # Use redis.from_url which properly handles authentication and SSL
+                self.redis_client = redis.from_url(
+                    self.redis_url,
+                    decode_responses=True,
+                    socket_connect_timeout=10,
+                    socket_timeout=10,
+                    retry_on_timeout=True,
+                    health_check_interval=30,
+                    # Enable SSL if URL starts with rediss:// or if it's Redis Cloud
+                    ssl_cert_reqs=None if 'rediss://' in self.redis_url or 'redis-cloud.com' in self.redis_url else None
+                )
+                
+                # Test connection
+                self.redis_client.ping()
+                logger.info(f"Redis connection established successfully to {self.redis_url}")
+            except Exception as e:
+                logger.error(f"Failed to connect to Redis: {e}")
+                logger.error(f"Redis URL format should be: redis://[:password@]host:port[/db] or rediss://[:password@]host:port[/db]")
+                self.redis_client = None
+        
+        # Initialize embedding model
+        self.embedding_model = None
+        if ML_AVAILABLE:
+            try:
+                self.embedding_model = SentenceTransformer(self.embedding_model_name)
+                logger.info(f"Embedding model '{self.embedding_model_name}' loaded successfully")
+            except Exception as e:
+                logger.warning(f"Failed to load embedding model: {e}")
+                self.embedding_model = None
+    
+    def _generate_cache_key(self, request_data: Dict[str, Any], endpoint_type: str) -> str:
+        """Generate a hash-based cache key for exact matching."""
+        # Create a normalized request for hashing
+        if endpoint_type == "completion":
+            key_data = {
+                "model": request_data.get("model"),
+                "prompt": request_data.get("prompt"),
+                "temperature": request_data.get("temperature", 1.0),
+                "max_tokens": request_data.get("max_tokens"),
+                "top_p": request_data.get("top_p", 1.0),
+                "frequency_penalty": request_data.get("frequency_penalty", 0.0),
+                "presence_penalty": request_data.get("presence_penalty", 0.0),
+            }
+        else:  # chat completion
+            key_data = {
+                "model": request_data.get("model"),
+                "messages": request_data.get("messages"),
+                "temperature": request_data.get("temperature", 1.0),
+                "max_tokens": request_data.get("max_tokens"),
+                "top_p": request_data.get("top_p", 1.0),
+                "frequency_penalty": request_data.get("frequency_penalty", 0.0),
+                "presence_penalty": request_data.get("presence_penalty", 0.0),
+            }
+        
+        # Sort and serialize for consistent hashing
+        serialized = json.dumps(key_data, sort_keys=True)
+        cache_key = hashlib.sha256(serialized.encode()).hexdigest()
+        return f"llm_cache:{endpoint_type}:{cache_key}"
+    
+    def _generate_embedding(self, text: str) -> Optional[List[float]]:
+        """Generate embedding for semantic search."""
+        if not self.embedding_model or not ML_AVAILABLE:
+            return None
+        
+        try:
+            embedding = self.embedding_model.encode(text)
+            return embedding.tolist() if hasattr(embedding, 'tolist') else list(embedding)
+        except Exception as e:
+            logger.error(f"Failed to generate embedding: {e}")
+            return None
+    
+    def _extract_text_for_embedding(self, request_data: Dict[str, Any], endpoint_type: str) -> str:
+        """Extract relevant text content for embedding generation."""
+        if endpoint_type == "completion":
+            return request_data.get("prompt", "")
+        else:  # chat completion
+            messages = request_data.get("messages", [])
+            # Combine all message content for embedding
+            text_parts = []
+            for msg in messages:
+                if isinstance(msg, dict) and "content" in msg:
+                    text_parts.append(msg["content"])
+            return " ".join(text_parts)
+    
+    def _get_exact_match(self, cache_key: str) -> Optional[CacheEntry]:
+        """Get exact cache match from Redis."""
+        if not self.redis_client:
+            return None
+        
+        try:
+            cached_data = self.redis_client.get(cache_key)
+            if cached_data:
+                data = json.loads(cached_data)
+                return CacheEntry(
+                    request=data["request"],
+                    response=data["response"],
+                    timestamp=data["timestamp"],
+                    embedding=data.get("embedding")
+                )
+        except Exception as e:
+            logger.error(f"Failed to get exact match from Redis: {e}")
+        
+        return None
+    
+    def _find_semantic_match(self, query_embedding: List[float], model: str, endpoint_type: str) -> Optional[CacheEntry]:
+        """Find semantically similar cached response."""
+        if not self.redis_client or not ML_AVAILABLE or not np or not cosine_similarity:
+            return None
+        
+        try:
+            # Search for cached entries with the same model and endpoint type
+            pattern = f"llm_cache:{endpoint_type}:*"
+            keys = self.redis_client.keys(pattern)
+            
+            best_match = None
+            best_similarity = 0.0
+            
+            query_embedding_np = np.array(query_embedding).reshape(1, -1)
+            
+            for key in keys:
+                try:
+                    cached_data = self.redis_client.get(key)
+                    if not cached_data:
+                        continue
+                    
+                    data = json.loads(cached_data)
+                    
+                    # Check if same model
+                    if data["request"].get("model") != model:
+                        continue
+                    
+                    # Check if has embedding
+                    if not data.get("embedding"):
+                        continue
+                    
+                    # Calculate similarity
+                    cached_embedding_np = np.array(data["embedding"]).reshape(1, -1)
+                    similarity = cosine_similarity(query_embedding_np, cached_embedding_np)[0][0]
+                    
+                    if similarity > best_similarity and similarity >= self.similarity_threshold:
+                        best_similarity = similarity
+                        best_match = CacheEntry(
+                            request=data["request"],
+                            response=data["response"],
+                            timestamp=data["timestamp"],
+                            embedding=data["embedding"]
+                        )
+                
+                except Exception as e:
+                    logger.error(f"Error processing cached entry {key}: {e}")
+                    continue
+            
+            if best_match:
+                logger.info(f"Found semantic match with similarity: {best_similarity:.3f}")
+            
+            return best_match
+            
+        except Exception as e:
+            logger.error(f"Failed to find semantic match: {e}")
+            return None
+    
+    def get_cached_response(self, request_data: Dict[str, Any], endpoint_type: str) -> Optional[Dict[str, Any]]:
+        """
+        Get cached response with exact match first, then semantic search.
+        
+        Args:
+            request_data: The request payload
+            endpoint_type: "completion" or "chat"
+        
+        Returns:
+            Cached response data or None if no match found
+        """
+        if not self.redis_client:
+            return None
+        
+        # Try exact match first
+        cache_key = self._generate_cache_key(request_data, endpoint_type)
+        exact_match = self._get_exact_match(cache_key)
+        
+        if exact_match:
+            logger.info(f"Cache HIT (exact match): {cache_key}")
+            return exact_match.response
+        
+        # Try semantic search if embedding model is available
+        if self.embedding_model:
+            text_content = self._extract_text_for_embedding(request_data, endpoint_type)
+            query_embedding = self._generate_embedding(text_content)
+            
+            if query_embedding:
+                semantic_match = self._find_semantic_match(
+                    query_embedding, 
+                    request_data.get("model"), 
+                    endpoint_type
+                )
+                
+                if semantic_match:
+                    logger.info(f"Cache HIT (semantic match): {cache_key}")
+                    return semantic_match.response
+        
+        logger.info(f"Cache MISS: {cache_key}")
+        return None
+    
+    def store_response(self, request_data: Dict[str, Any], response_data: Dict[str, Any], endpoint_type: str) -> bool:
+        """
+        Store request/response pair in cache with embedding for semantic search.
+        
+        Args:
+            request_data: The original request payload
+            response_data: The LLM response
+            endpoint_type: "completion" or "chat"
+        
+        Returns:
+            True if stored successfully, False otherwise
+        """
+        if not self.redis_client:
+            return False
+        
+        try:
+            # Generate cache key
+            cache_key = self._generate_cache_key(request_data, endpoint_type)
+            
+            # Generate embedding for semantic search
+            text_content = self._extract_text_for_embedding(request_data, endpoint_type)
+            embedding = self._generate_embedding(text_content)
+            
+            # Prepare cache entry
+            cache_entry = {
+                "request": request_data,
+                "response": response_data,
+                "timestamp": time.time(),
+                "embedding": embedding
+            }
+            
+            # Store in Redis with TTL (24 hours = 86400 seconds)
+            self.redis_client.setex(
+                cache_key,
+                86400,  # 24 hours TTL
+                json.dumps(cache_entry)
+            )
+            
+            logger.info(f"Stored response in cache: {cache_key}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to store response in cache: {e}")
+            return False
+    
+    def clear_cache(self, pattern: str = "llm_cache:*") -> int:
+        """Clear cache entries matching pattern."""
+        if not self.redis_client:
+            return 0
+        
+        try:
+            keys = self.redis_client.keys(pattern)
+            if keys:
+                deleted = self.redis_client.delete(*keys)
+                logger.info(f"Cleared {deleted} cache entries")
+                return deleted
+            return 0
+        except Exception as e:
+            logger.error(f"Failed to clear cache: {e}")
+            return 0
+    
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """Get cache statistics."""
+        if not self.redis_client:
+            return {"status": "unavailable", "redis_connected": False}
+        
+        try:
+            info = self.redis_client.info()
+            pattern_keys = self.redis_client.keys("llm_cache:*")
+            
+            return {
+                "status": "available",
+                "redis_connected": True,
+                "total_cache_entries": len(pattern_keys),
+                "redis_memory_used": info.get("used_memory_human", "unknown"),
+                "redis_connected_clients": info.get("connected_clients", 0),
+                "embedding_model_loaded": self.embedding_model is not None,
+                "similarity_threshold": self.similarity_threshold
+            }
+        except Exception as e:
+            logger.error(f"Failed to get cache stats: {e}")
+            return {"status": "error", "error": str(e)}
+
+# Global cache service instance
+cache_service = None
+
+def get_cache_service() -> RedisCacheService:
+    """Get or create the global cache service instance."""
+    global cache_service
+    if cache_service is None:
+        # Let RedisCacheService read REDIS_URL from environment
+        # User should set REDIS_URL like: rediss://:password@redis-14311.crce206.ap-south-1-1.ec2.redns.redis-cloud.com:14311/0
+        cache_service = RedisCacheService()
+    return cache_service

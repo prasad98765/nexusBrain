@@ -1,8 +1,14 @@
 import os
 import requests
+import logging
 from flask import Blueprint, request, jsonify
 
 from .auth_utils import require_auth
+from .redis_cache_service import get_cache_service
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 api_llm_routes = Blueprint("api_llm_routes", __name__)
 
@@ -155,7 +161,28 @@ def create_completion():
     if "metadata" in data:
         payload["metadata"] = data["metadata"]
 
-    return forward_to_openrouter("/completions", payload)
+    # Check Redis cache first (requires REDIS_URL environment variable)
+    cache_service = get_cache_service()
+    cached_response = cache_service.get_cached_response(payload, "completion")
+    
+    if cached_response:
+        logger.info(f"Cache HIT for completion model: {payload['model']}")
+        return jsonify(cached_response), 200
+    
+    # Cache miss - forward to OpenRouter
+    logger.info(f"Cache MISS for completion model: {payload['model']} - forwarding to OpenRouter")
+    response, status_code = forward_to_openrouter("/completions", payload)
+    
+    # Store successful responses in cache
+    if status_code == 200:
+        try:
+            response_data = response.get_json() if hasattr(response, 'get_json') else response.json
+            cache_service.store_response(payload, response_data, "completion")
+            logger.info(f"Stored completion response in cache for model: {payload['model']}")
+        except Exception as e:
+            logger.error(f"Failed to store completion response in cache: {e}")
+    
+    return response, status_code
 
 
 @api_llm_routes.route("/v1/chat/create", methods=["POST"])
@@ -209,4 +236,46 @@ def create_chat_completion():
     if "metadata" in data:
         payload["metadata"] = data["metadata"]
 
-    return forward_to_openrouter("/chat/completions", payload)
+    # Check Redis cache first (requires REDIS_URL environment variable)
+    cache_service = get_cache_service()
+    cached_response = cache_service.get_cached_response(payload, "chat")
+    
+    if cached_response:
+        logger.info(f"Cache HIT for chat model: {payload['model']}")
+        return jsonify(cached_response), 200
+    
+    # Cache miss - forward to OpenRouter
+    logger.info(f"Cache MISS for chat model: {payload['model']} - forwarding to OpenRouter")
+    response, status_code = forward_to_openrouter("/chat/completions", payload)
+    
+    # Store successful responses in cache
+    if status_code == 200:
+        try:
+            response_data = response.get_json() if hasattr(response, 'get_json') else response.json
+            cache_service.store_response(payload, response_data, "chat")
+            logger.info(f"Stored chat response in cache for model: {payload['model']}")
+        except Exception as e:
+            logger.error(f"Failed to store chat response in cache: {e}")
+    
+    return response, status_code
+
+
+@api_llm_routes.route("/v1/cache/stats", methods=["GET"])
+@require_auth
+def get_cache_stats():
+    """Get Redis cache statistics and status."""
+    cache_service = get_cache_service()
+    stats = cache_service.get_cache_stats()
+    return jsonify(stats), 200
+
+
+@api_llm_routes.route("/v1/cache/clear", methods=["POST"])
+@require_auth
+def clear_cache():
+    """Clear all cached LLM responses."""
+    cache_service = get_cache_service()
+    cleared_count = cache_service.clear_cache()
+    return jsonify({
+        "message": f"Cleared {cleared_count} cache entries",
+        "cleared_count": cleared_count
+    }), 200
