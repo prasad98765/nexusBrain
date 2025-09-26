@@ -134,3 +134,62 @@ export interface InsertMessage {
   role: string;
   model?: string;
 }
+
+// API Token Management Types
+export interface ApiToken {
+  id: string;
+  token: string;
+  name?: string;
+  workspaceId: string;
+  userId: string;
+  cachingEnabled: boolean;
+  isActive: boolean;
+  lastUsedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiUsageLog {
+  id: string;
+  tokenId: string;
+  workspaceId: string;
+  endpoint: string;
+  model: string;
+  method: string;
+  statusCode: number;
+  tokensUsed: number;
+  responseTimeMs?: number;
+  errorMessage?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: string;
+}
+
+export interface InsertApiToken {
+  name?: string;
+  workspaceId: string;
+  userId: string;
+  cachingEnabled?: boolean;
+}
+
+// API Token response with plaintext token (only shown once)
+export interface ApiTokenResponse {
+  id: string;
+  plainToken: string; // Only returned during creation
+  name?: string;
+  workspaceId: string;
+  userId: string;
+  cachingEnabled: boolean;
+  isActive: boolean;
+  createdAt: string;
+}
+
+// API Usage Analytics
+export interface UsageAnalytics {
+  totalRequests: number;
+  totalTokens: number;
+  averageResponseTime: number;
+  successRate: number;
+  topModels: Array<{ model: string; requests: number }>;
+  requestsOverTime: Array<{ date: string; requests: number }>;
+}

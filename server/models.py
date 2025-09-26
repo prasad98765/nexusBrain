@@ -142,3 +142,42 @@ class BusinessInfo(db.Model):
     business_type = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class ApiToken(db.Model):
+    __tablename__ = 'api_tokens'
+    
+    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid4()))
+    token = db.Column(db.String(64), nullable=False, unique=True)  # Store hashed token
+    name = db.Column(db.String(255), nullable=True)  # Optional token name for user reference
+    workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    caching_enabled = db.Column(db.Boolean, default=True)  # Caching preference
+    is_active = db.Column(db.Boolean, default=True)
+    last_used_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    workspace = db.relationship('Workspace', backref='api_tokens', lazy=True)
+    user = db.relationship('User', backref='api_tokens', lazy=True)
+    usage_logs = db.relationship('ApiUsageLog', backref='token', lazy=True)
+
+class ApiUsageLog(db.Model):
+    __tablename__ = 'api_usage_logs'
+    
+    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid4()))
+    token_id = db.Column(db.String, db.ForeignKey('api_tokens.id'), nullable=False)
+    workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
+    endpoint = db.Column(db.String(100), nullable=False)  # /chat/completions, /completions, etc.
+    model = db.Column(db.String(100), nullable=False)  # gpt-4, gpt-3.5-turbo, etc.
+    method = db.Column(db.String(10), default='POST')  # HTTP method
+    status_code = db.Column(db.Integer, nullable=False)  # 200, 400, 500, etc.
+    tokens_used = db.Column(db.Integer, default=0)  # Number of tokens consumed
+    response_time_ms = db.Column(db.Integer, nullable=True)  # Response time in milliseconds
+    error_message = db.Column(db.Text, nullable=True)  # Error message if any
+    ip_address = db.Column(db.String(45), nullable=True)  # Client IP address
+    user_agent = db.Column(db.String(500), nullable=True)  # Client user agent
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    workspace = db.relationship('Workspace', backref='api_usage_logs', lazy=True)
