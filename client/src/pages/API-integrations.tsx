@@ -44,7 +44,7 @@ import {
 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import type { ApiToken, ApiUsageLog, ApiTokenResponse, InsertApiToken, UsageAnalytics } from '@/shared/schema';
+import type { ApiToken, ApiUsageLog, ApiTokenResponse, InsertApiToken, UsageAnalytics } from '@shared/schema';
 
 export default function APIIntegrationsPage() {
     const [tokenName, setTokenName] = useState('My API Token');
@@ -58,18 +58,18 @@ export default function APIIntegrationsPage() {
     const { toast } = useToast();
 
     // Queries
-    const { data: tokenData, isLoading: tokenLoading, error: tokenError } = useQuery({
+    const { data: tokenData, isLoading: tokenLoading, error: tokenError } = useQuery<{tokens: ApiToken[], hasToken: boolean}>({
         queryKey: ['/api/api-tokens'],
         staleTime: 5 * 60 * 1000, // 5 minutes
     });
 
-    const { data: logsData, isLoading: logsLoading } = useQuery({
+    const { data: logsData, isLoading: logsLoading } = useQuery<{logs: ApiUsageLog[], total: number, page: number, limit: number, totalPages: number}>({
         queryKey: ['/api/api-tokens/usage-logs', { selectedModel, dateRange, filterType }],
         enabled: tokenData?.hasToken,
         staleTime: 2 * 60 * 1000, // 2 minutes
     });
 
-    const { data: analyticsData } = useQuery({
+    const { data: analyticsData } = useQuery<UsageAnalytics>({
         queryKey: ['/api/api-tokens/analytics', { dateRange }],
         enabled: tokenData?.hasToken,
         staleTime: 5 * 60 * 1000,
@@ -77,10 +77,10 @@ export default function APIIntegrationsPage() {
 
     // Mutations
     const createTokenMutation = useMutation({
-        mutationFn: (data: InsertApiToken) => apiRequest('/api/api-tokens', {
-            method: 'POST',
-            body: JSON.stringify(data)
-        }),
+        mutationFn: async (data: InsertApiToken) => {
+            const response = await apiRequest('POST', '/api/api-tokens', data);
+            return response.json();
+        },
         onSuccess: (response: ApiTokenResponse) => {
             setNewTokenValue(response.plainToken);
             setShowNewToken(true);
@@ -100,11 +100,10 @@ export default function APIIntegrationsPage() {
     });
 
     const regenerateTokenMutation = useMutation({
-        mutationFn: ({ tokenId, data }: { tokenId: string; data: InsertApiToken }) => 
-            apiRequest(`/api/api-tokens/${tokenId}/regenerate`, {
-                method: 'POST',
-                body: JSON.stringify(data)
-            }),
+        mutationFn: async ({ tokenId, data }: { tokenId: string; data: InsertApiToken }) => {
+            const response = await apiRequest('POST', `/api/api-tokens/${tokenId}/regenerate`, data);
+            return response.json();
+        },
         onSuccess: (response: ApiTokenResponse) => {
             setNewTokenValue(response.plainToken);
             setShowNewToken(true);
@@ -537,7 +536,7 @@ export default function APIIntegrationsPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {logs.map((log: ApiUsageLog, index: number) => (
+                                        {logs.map((log, index) => (
                                             <tr key={log.id} className={index % 2 === 0 ? 'bg-white dark:bg-slate-950' : 'bg-slate-50 dark:bg-slate-900'}>
                                                 <td className="p-3 text-sm">
                                                     {new Date(log.createdAt).toLocaleDateString()}<br/>
@@ -583,7 +582,7 @@ export default function APIIntegrationsPage() {
                     </CardContent>
                 </Card>
                 
-                {logs.length > 0 && logsData?.totalPages > 1 && (
+                {logs.length > 0 && logsData && logsData.totalPages > 1 && (
                     <div className="flex items-center justify-between">
                         <p className="text-sm text-slate-500">
                             Showing {logs.length} of {logsData.total} results
@@ -656,7 +655,7 @@ export default function APIIntegrationsPage() {
                                                     <div 
                                                         className="h-2 bg-indigo-500 rounded-full"
                                                         style={{ 
-                                                            width: `${Math.max((item.requests / Math.max(...analyticsData.requestsOverTime.map(r => r.requests))) * 100, 5)}%` 
+                                                            width: `${Math.max((item.requests / Math.max(...analyticsData.requestsOverTime!.map(r => r.requests))) * 100, 5)}%` 
                                                         }}
                                                     />
                                                 </div>
