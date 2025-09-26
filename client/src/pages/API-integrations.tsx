@@ -157,7 +157,7 @@ export default function APIIntegrationsPage() {
         </Card>
     );
     const handleViewDocs = () => {
-        window.open('/doc/api-reference', '_blank');
+        window.open('/docs/api-reference', '_blank');
     };
     return (
         <div className="space-y-6">

@@ -6,9 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Copy, 
-  ExternalLink, 
+import {
+  Copy,
+  ExternalLink,
   Key,
   Zap,
   CheckCircle,
@@ -73,7 +73,7 @@ export default function ApiTesting() {
     {
       id: 'chat-completion',
       name: 'Chat completion',
-      method: 'POST', 
+      method: 'POST',
       path: '/api/v1/chat/create',
       description: 'Create a chat completion',
       category: 'API Keys'
@@ -124,7 +124,7 @@ export default function ApiTesting() {
   const updateMessage = (index: number, field: 'role' | 'content', value: string) => {
     setChatRequestBody(prev => ({
       ...prev,
-      messages: prev.messages.map((msg, i) => 
+      messages: prev.messages.map((msg, i) =>
         i === index ? { ...msg, [field]: value } : msg
       )
     }));
@@ -197,22 +197,22 @@ export default function ApiTesting() {
 
     setIsTestingApi(true);
     setApiResponse(null);
-    
+
     try {
       const currentBody = selectedEndpoint === 'chat-completion' ? chatRequestBody : requestBody;
-      
+
       toast({
         title: "API Test Started",
         description: `Sending request to ${apiEndpoints.find(e => e.id === selectedEndpoint)?.path}...`,
       });
-      
+
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       // Generate mock response based on current request body
       const mockResponse = generateMockResponse(selectedEndpoint, currentBody);
       setApiResponse(mockResponse);
-      
+
       toast({
         title: "Test Successful! ✅",
         description: "API request completed successfully. Check the response panel for details.",
@@ -226,7 +226,7 @@ export default function ApiTesting() {
         }
       };
       setApiResponse(errorResponse);
-      
+
       toast({
         title: "Test Failed",
         description: "Unable to connect to the API. Please check your configuration.",
@@ -251,7 +251,7 @@ export default function ApiTesting() {
     <div className="min-h-screen bg-slate-950 text-slate-100">
       {/* Header */}
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button
@@ -285,7 +285,7 @@ export default function ApiTesting() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto flex h-[calc(100vh-73px)]">
+      <div className="mx-auto flex h-[calc(100vh-73px)]">
         {/* Left Sidebar - API List */}
         <aside className="w-64 border-r border-slate-800 bg-slate-900/30 overflow-y-auto">
           <div className="p-4">
@@ -342,18 +342,16 @@ export default function ApiTesting() {
                   <button
                     key={endpoint.id}
                     onClick={() => setSelectedEndpoint(endpoint.id)}
-                    className={`w-full flex items-start gap-3 p-3 rounded-lg text-left transition-colors ${
-                      selectedEndpoint === endpoint.id 
-                        ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' 
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                    }`}
+                    className={`w-full flex items-start gap-3 p-3 rounded-lg text-left transition-colors ${selectedEndpoint === endpoint.id
+                      ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                      }`}
                     data-testid={`endpoint-${endpoint.id}`}
                   >
-                    <Badge className={`text-xs font-mono mt-0.5 ${
-                      endpoint.method === 'POST' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                    <Badge className={`text-xs font-mono mt-0.5 ${endpoint.method === 'POST' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
                       endpoint.method === 'GET' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
-                      'bg-gray-500/20 text-gray-400 border-gray-500/30'
-                    }`}>
+                        'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                      }`}>
                       {endpoint.method}
                     </Badge>
                     <div className="flex-1 min-w-0">
@@ -372,11 +370,10 @@ export default function ApiTesting() {
           <div className="p-6">
             <div className="mb-6">
               <div className="flex items-center gap-3 mb-2">
-                <Badge className={`${
-                  selectedEndpointData?.method === 'POST' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                <Badge className={`${selectedEndpointData?.method === 'POST' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
                   selectedEndpointData?.method === 'GET' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
-                  'bg-gray-500/20 text-gray-400 border-gray-500/30'
-                }`}>
+                    'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                  }`}>
                   {selectedEndpointData?.method}
                 </Badge>
                 <code className="text-slate-300 bg-slate-800 px-3 py-1 rounded font-mono text-sm">
@@ -390,13 +387,13 @@ export default function ApiTesting() {
             {/* Body Parameters Form */}
             <div>
               <h3 className="text-lg font-semibold mb-4">Body Parameters</h3>
-              
+
               {selectedEndpoint === 'completion' && (
                 <div className="space-y-4">
                   <div>
                     <Label className="text-sm font-medium mb-2 block">model <Badge variant="destructive" className="ml-2 text-xs">Required</Badge></Label>
-                    <Select 
-                      value={requestBody.model} 
+                    <Select
+                      value={requestBody.model}
                       onValueChange={(value) => setRequestBody(prev => ({ ...prev, model: value }))}
                     >
                       <SelectTrigger className="bg-slate-800 border-slate-600">
@@ -453,8 +450,8 @@ export default function ApiTesting() {
                 <div className="space-y-4">
                   <div>
                     <Label className="text-sm font-medium mb-2 block">model <Badge variant="destructive" className="ml-2 text-xs">Required</Badge></Label>
-                    <Select 
-                      value={chatRequestBody.model} 
+                    <Select
+                      value={chatRequestBody.model}
                       onValueChange={(value) => setChatRequestBody(prev => ({ ...prev, model: value }))}
                     >
                       <SelectTrigger className="bg-slate-800 border-slate-600">
@@ -502,8 +499,8 @@ export default function ApiTesting() {
                               </Button>
                             )}
                           </div>
-                          <Select 
-                            value={message.role} 
+                          <Select
+                            value={message.role}
                             onValueChange={(value: 'system' | 'user' | 'assistant') => updateMessage(index, 'role', value)}
                           >
                             <SelectTrigger className="w-full bg-slate-700 border-slate-600">
@@ -583,10 +580,10 @@ export default function ApiTesting() {
                 <div className="text-slate-400 mb-4">Content-Type: application/json</div>
                 <pre className="text-slate-300 whitespace-pre-wrap">
                   {JSON.stringify(
-                    selectedEndpoint === 'chat-completion' ? chatRequestBody : 
-                    selectedEndpoint === 'completion' ? requestBody : 
-                    {}, 
-                    null, 
+                    selectedEndpoint === 'chat-completion' ? chatRequestBody :
+                      selectedEndpoint === 'completion' ? requestBody :
+                        {},
+                    null,
                     2
                   )}
                 </pre>
@@ -594,8 +591,8 @@ export default function ApiTesting() {
             </div>
 
             <div>
-              <Button 
-                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50" 
+              <Button
+                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50"
                 data-testid="send-request-button"
                 onClick={handleSendRequest}
                 disabled={isTestingApi || !isAuthenticated}

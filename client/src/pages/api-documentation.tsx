@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  ExternalLink, 
-  Code, 
-  BookOpen, 
+import {
+  ExternalLink,
+  Code,
+  BookOpen,
   Key,
   Zap,
   CheckCircle,
@@ -64,7 +64,7 @@ export default function ApiDocumentation() {
     <div className="min-h-screen bg-slate-950 text-slate-100">
       {/* Header */}
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -76,17 +76,17 @@ export default function ApiDocumentation() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="border-slate-700 text-slate-300"
                 data-testid="button-dashboard"
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
                 Dashboard
               </Button>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 className="bg-gradient-to-r from-indigo-500 to-purple-600"
                 data-testid="button-get-api-key"
               >
@@ -97,7 +97,7 @@ export default function ApiDocumentation() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto flex">
+      <div className="mx-auto flex">
         {/* Sidebar */}
         <aside className="w-64 border-r border-slate-800 bg-slate-900/30 min-h-screen sticky top-16">
           <div className="p-6">
@@ -106,11 +106,10 @@ export default function ApiDocumentation() {
                 <button
                   key={item.id}
                   onClick={() => setActiveEndpoint(item.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                    activeEndpoint === item.id 
-                      ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' 
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                  }`}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${activeEndpoint === item.id
+                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    }`}
                   data-testid={`nav-${item.id}`}
                 >
                   <item.icon className="w-4 h-4" />
@@ -345,7 +344,7 @@ export default function ApiDocumentation() {
                   <CardContent>
                     <div className="bg-slate-900 rounded-lg p-4 font-mono text-sm">
                       <pre className="text-slate-300 whitespace-pre-wrap">
-{`type ErrorResponse = {
+                        {`type ErrorResponse = {
   error: {
     code: number;
     message: string;
@@ -443,7 +442,7 @@ export default function ApiDocumentation() {
                     <CardContent className="p-4">
                       <div className="bg-slate-900 rounded-lg p-4 font-mono text-sm">
                         <pre className="text-slate-300 whitespace-pre-wrap">
-{`const request = await fetch('https://nexusai.hub/api/v1/chat/create', {
+                          {`const request = await fetch('https://nexusai.hub/api/v1/chat/create', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer YOUR_API_KEY',
@@ -467,7 +466,7 @@ console.error(response.error?.message);`}
                   <p className="text-slate-300 mb-4">
                     When using streaming mode (`stream: true`), errors are handled differently depending on when they occur:
                   </p>
-                  
+
                   <div className="space-y-4">
                     <Card className="bg-slate-800/50 border-slate-700">
                       <CardHeader>
@@ -490,7 +489,7 @@ console.error(response.error?.message);`}
                         </p>
                         <div className="bg-slate-900 rounded-lg p-4 font-mono text-xs">
                           <pre className="text-slate-300 whitespace-pre-wrap">
-{`type MidStreamError = {
+                            {`type MidStreamError = {
   id: string;
   object: 'chat.completion.chunk';
   created: number;
@@ -522,7 +521,7 @@ console.error(response.error?.message);`}
                     <CardContent className="p-4">
                       <div className="bg-slate-900 rounded-lg p-4 font-mono text-sm">
                         <pre className="text-slate-300 whitespace-pre-wrap">
-{`type ModerationErrorMetadata = {
+                          {`type ModerationErrorMetadata = {
   reasons: string[]; // Why your input was flagged
   flagged_input: string; // The flagged text segment (limited to 100 characters)
   provider_name: string; // The provider that requested moderation
@@ -546,7 +545,7 @@ console.error(response.error?.message);`}
                         <li>The system is scaling up to handle more requests</li>
                       </ul>
                       <p className="text-slate-300 mt-3">
-                        Warm-up times usually range from a few seconds to a few minutes, depending on the model and provider. 
+                        Warm-up times usually range from a few seconds to a few minutes, depending on the model and provider.
                         Consider implementing a simple retry mechanism or trying a different model with more recent activity.
                       </p>
                     </CardContent>
@@ -563,8 +562,8 @@ console.error(response.error?.message);`}
                 <h3 className="text-lg font-semibold mb-4">Example Request</h3>
                 <div className="bg-slate-900 rounded-lg p-4 font-mono text-xs overflow-x-auto">
                   <pre className="text-slate-300 whitespace-pre-wrap">
-{activeEndpoint === 'chat' ? 
-`{
+                    {activeEndpoint === 'chat' ?
+                      `{
   "model": "openai/gpt-4o-mini",
   "messages": [
     {
@@ -579,7 +578,7 @@ console.error(response.error?.message);`}
   "max_tokens": 150,
   "temperature": 0.7
 }` :
-`{
+                      `{
   "model": "openai/gpt-3.5-turbo-instruct",
   "prompt": "Write a story about AI:",
   "max_tokens": 150,
@@ -597,8 +596,8 @@ console.error(response.error?.message);`}
                     <span className="text-slate-400">Successful</span>
                   </div>
                   <pre className="text-slate-300 whitespace-pre-wrap">
-{activeEndpoint === 'chat' ?
-`{
+                    {activeEndpoint === 'chat' ?
+                      `{
   "id": "chatcmpl-abc123",
   "object": "chat.completion", 
   "choices": [
@@ -616,7 +615,7 @@ console.error(response.error?.message);`}
     "total_tokens": 92
   }
 }` :
-`{
+                      `{
   "id": "cmpl-abc123",
   "object": "text_completion",
   "choices": [
@@ -636,8 +635,8 @@ console.error(response.error?.message);`}
               </div>
 
               <div className="pt-4 border-t border-slate-700">
-                <Button 
-                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700" 
+                <Button
+                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
                   data-testid="try-it-button"
                   onClick={handleTryIt}
                 >
