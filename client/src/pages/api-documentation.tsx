@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
   ExternalLink,
   Code,
@@ -17,7 +19,9 @@ import {
   Play,
   Search,
   Info,
-  Layers
+  Layers,
+  Filter,
+  TrendingUp
 } from 'lucide-react';
 
 interface Model {
@@ -55,6 +59,9 @@ export default function ApiDocumentation() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingModels, setLoadingModels] = useState(false);
   const [isLlmDetailsOpen, setIsLlmDetailsOpen] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState('all');
+  const [costSort, setCostSort] = useState('none');
+  const [showPopular, setShowPopular] = useState(false);
 
   const handleTryIt = () => {
     // Navigate to the API testing route
@@ -88,14 +95,52 @@ export default function ApiDocumentation() {
     }
   }, [isLlmDetailsOpen, models.length]);
 
-  const filteredModels = models.filter(model => 
-    model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    model.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredModels = models.filter(model => {
+    // Search filter
+    const matchesSearch = model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         model.id.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Provider filter
+    const providerSlug = model.id.split('/')[0];
+    const matchesProvider = selectedProvider === 'all' || providerSlug === selectedProvider;
+    
+    return matchesSearch && matchesProvider;
+  });
+
+  const sortedModels = [...filteredModels].sort((a, b) => {
+    if (costSort === 'low-to-high') {
+      const aPrice = parseFloat(a.pricing?.prompt || '0');
+      const bPrice = parseFloat(b.pricing?.prompt || '0');
+      return aPrice - bPrice;
+    } else if (costSort === 'high-to-low') {
+      const aPrice = parseFloat(a.pricing?.prompt || '0');
+      const bPrice = parseFloat(b.pricing?.prompt || '0');
+      return bPrice - aPrice;
+    }
+    return 0;
+  });
 
   const getProviderInfo = (modelId: string) => {
     const providerSlug = modelId.split('/')[0];
     return providers.find(p => p.slug === providerSlug);
+  };
+
+  // Group models by provider for accordion display
+  const modelsByProvider = sortedModels.reduce((acc, model) => {
+    const providerSlug = model.id.split('/')[0];
+    if (!acc[providerSlug]) {
+      acc[providerSlug] = [];
+    }
+    acc[providerSlug].push(model);
+    return acc;
+  }, {} as Record<string, Model[]>);
+
+  // Get unique providers from filtered models
+  const availableProviders = [...new Set(models.map(m => m.id.split('/')[0]))];
+
+  const getProviderDisplayName = (slug: string) => {
+    const provider = providers.find(p => p.slug === slug);
+    return provider?.name || slug.charAt(0).toUpperCase() + slug.slice(1);
   };
 
 
@@ -175,20 +220,61 @@ export default function ApiDocumentation() {
                     LLM Details
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[800px] h-[600px] bg-slate-900 border-slate-700" align="end">
+                <PopoverContent className="w-[1200px] h-[700px] bg-slate-900 border-slate-700" align="end">
                   <div className="space-y-4 h-full">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold text-slate-100">Available Models & Providers</h3>
-                      <div className="flex items-center gap-2">
-                        <Search className="w-4 h-4 text-slate-400" />
+                      <div className="text-sm text-slate-400">
+                        {sortedModels.length} models from {Object.keys(modelsByProvider).length} providers
+                      </div>
+                    </div>
+                    
+                    {/* Filters */}
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="relative">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                         <Input
                           placeholder="Search models..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="w-48 bg-slate-800 border-slate-600 text-slate-100"
+                          className="pl-10 bg-slate-800 border-slate-600 text-slate-100"
                           data-testid="input-search-models"
                         />
                       </div>
+                      
+                      <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                        <SelectTrigger className="bg-slate-800 border-slate-600 text-slate-100">
+                          <SelectValue placeholder="All Providers" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 border-slate-600">
+                          <SelectItem value="all">All Providers</SelectItem>
+                          {availableProviders.map((provider) => (
+                            <SelectItem key={provider} value={provider}>
+                              {getProviderDisplayName(provider)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      <Select value={costSort} onValueChange={setCostSort}>
+                        <SelectTrigger className="bg-slate-800 border-slate-600 text-slate-100">
+                          <SelectValue placeholder="Sort by Cost" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 border-slate-600">
+                          <SelectItem value="none">No Sorting</SelectItem>
+                          <SelectItem value="low-to-high">Cost: Low to High</SelectItem>
+                          <SelectItem value="high-to-low">Cost: High to Low</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      <Button
+                        variant={showPopular ? "default" : "outline"}
+                        onClick={() => setShowPopular(!showPopular)}
+                        className="border-slate-600"
+                      >
+                        <TrendingUp className="w-4 h-4 mr-2" />
+                        Popular
+                      </Button>
                     </div>
                     
                     {loadingModels ? (
@@ -196,93 +282,157 @@ export default function ApiDocumentation() {
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
                       </div>
                     ) : (
-                      <ScrollArea className="h-[500px]">
-                        <div className="space-y-3">
-                          {filteredModels.map((model) => {
-                            const provider = getProviderInfo(model.id);
+                      <ScrollArea className="h-[580px]">
+                        <Accordion type="multiple" className="space-y-2">
+                          {Object.entries(modelsByProvider).map(([providerSlug, models]) => {
+                            const provider = getProviderInfo(models[0].id);
                             return (
-                              <Card key={model.id} className="bg-slate-800/50 border-slate-700">
-                                <CardContent className="p-4">
-                                  <div className="space-y-3">
-                                    <div className="flex items-start justify-between">
-                                      <div className="space-y-1">
-                                        <div className="flex items-center gap-2">
-                                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                          <h4 className="font-medium text-slate-100">{model.name}</h4>
-                                          <Badge variant="secondary" className="text-xs">
-                                            {model.architecture.modality}
-                                          </Badge>
-                                        </div>
-                                        <p className="text-xs text-slate-400 font-mono">{model.id}</p>
-                                        <p className="text-sm text-slate-300 line-clamp-2">{model.description}</p>
-                                      </div>
-                                      <div className="text-right space-y-1">
-                                        <div className="text-xs text-slate-400">Context Length</div>
-                                        <div className="text-sm font-medium text-slate-200">
-                                          {model.context_length?.toLocaleString()} tokens
-                                        </div>
-                                      </div>
+                              <AccordionItem 
+                                key={providerSlug} 
+                                value={providerSlug}
+                                className="bg-slate-800/30 border border-slate-700 rounded-lg"
+                              >
+                                <AccordionTrigger className="px-4 py-3 hover:bg-slate-800/50">
+                                  <div className="flex items-center justify-between w-full mr-4">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
+                                      <span className="font-medium text-slate-100">
+                                        {getProviderDisplayName(providerSlug)}
+                                      </span>
+                                      <Badge variant="secondary" className="text-xs">
+                                        {models.length} models
+                                      </Badge>
                                     </div>
-                                    
-                                    <div className="grid grid-cols-2 gap-4 text-xs">
-                                      <div className="space-y-2">
-                                        <div className="text-slate-400">Provider</div>
-                                        <div className="space-y-1">
-                                          <div className="font-medium text-slate-200">{provider?.name || 'Unknown'}</div>
-                                          {provider?.privacy_policy_url && (
-                                            <a href={provider.privacy_policy_url} target="_blank" rel="noopener noreferrer" 
-                                               className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
-                                              Privacy Policy <ExternalLink className="w-3 h-3" />
-                                            </a>
-                                          )}
-                                          {provider?.terms_of_service_url && (
-                                            <a href={provider.terms_of_service_url} target="_blank" rel="noopener noreferrer" 
-                                               className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
-                                              Terms of Service <ExternalLink className="w-3 h-3" />
-                                            </a>
-                                          )}
-                                        </div>
-                                      </div>
-                                      
-                                      <div className="space-y-2">
-                                        <div className="text-slate-400">Pricing (per 1M tokens)</div>
-                                        <div className="space-y-1">
-                                          <div className="flex justify-between">
-                                            <span className="text-slate-300">Input:</span>
-                                            <span className="font-medium text-green-400">${model.pricing?.prompt}</span>
-                                          </div>
-                                          <div className="flex justify-between">
-                                            <span className="text-slate-300">Output:</span>
-                                            <span className="font-medium text-green-400">${model.pricing?.completion}</span>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-3 gap-4 text-xs pt-2 border-t border-slate-700">
-                                      <div>
-                                        <div className="text-slate-400 mb-1">Tokenizer</div>
-                                        <div className="text-slate-200">{model.architecture.tokenizer}</div>
-                                      </div>
-                                      <div>
-                                        <div className="text-slate-400 mb-1">Moderated</div>
-                                        <div className="text-slate-200">
-                                          {model.top_provider?.is_moderated ? 'Yes' : 'No'}
-                                        </div>
-                                      </div>
-                                      <div>
-                                        <div className="text-slate-400 mb-1">Max Completion</div>
-                                        <div className="text-slate-200">
-                                          {model.top_provider?.max_completion_tokens?.toLocaleString() || 'N/A'}
-                                        </div>
-                                      </div>
+                                    <div className="flex items-center gap-2">
+                                      {provider?.privacy_policy_url && (
+                                        <a 
+                                          href={provider.privacy_policy_url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-indigo-400 hover:text-indigo-300"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <ExternalLink className="w-4 h-4" />
+                                        </a>
+                                      )}
                                     </div>
                                   </div>
-                                </CardContent>
-                              </Card>
+                                </AccordionTrigger>
+                                <AccordionContent className="px-4 pb-4">
+                                  <div className="space-y-3">
+                                    {provider && (
+                                      <div className="bg-slate-800/50 rounded-lg p-3 mb-4">
+                                        <div className="flex items-center justify-between">
+                                          <div>
+                                            <h4 className="font-medium text-slate-100 mb-1">{provider.name}</h4>
+                                            <div className="flex items-center gap-4 text-xs text-slate-400">
+                                              {provider.privacy_policy_url && (
+                                                <a href={provider.privacy_policy_url} target="_blank" rel="noopener noreferrer" 
+                                                   className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+                                                  Privacy Policy <ExternalLink className="w-3 h-3" />
+                                                </a>
+                                              )}
+                                              {provider.terms_of_service_url && (
+                                                <a href={provider.terms_of_service_url} target="_blank" rel="noopener noreferrer" 
+                                                   className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+                                                  Terms of Service <ExternalLink className="w-3 h-3" />
+                                                </a>
+                                              )}
+                                              {provider.status_page_url && (
+                                                <a href={provider.status_page_url} target="_blank" rel="noopener noreferrer" 
+                                                   className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+                                                  Status Page <ExternalLink className="w-3 h-3" />
+                                                </a>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                    
+                                    {models.map((model) => (
+                                      <Card key={model.id} className="bg-slate-800/50 border-slate-700">
+                                        <CardContent className="p-4">
+                                          <div className="space-y-3">
+                                            <div className="flex items-start justify-between">
+                                              <div className="space-y-1 flex-1">
+                                                <div className="flex items-center gap-2">
+                                                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                                  <h4 className="font-medium text-slate-100">{model.name}</h4>
+                                                  <Badge variant="secondary" className="text-xs">
+                                                    {model.architecture.modality}
+                                                  </Badge>
+                                                </div>
+                                                <p className="text-xs text-slate-400 font-mono">{model.id}</p>
+                                                <p className="text-sm text-slate-300 line-clamp-2">{model.description}</p>
+                                              </div>
+                                              <div className="text-right space-y-1 ml-4">
+                                                <div className="text-xs text-slate-400">Context Length</div>
+                                                <div className="text-sm font-medium text-slate-200">
+                                                  {model.context_length?.toLocaleString()} tokens
+                                                </div>
+                                              </div>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-3 gap-4 text-xs">
+                                              <div className="space-y-2">
+                                                <div className="text-slate-400">Pricing (per 1M tokens)</div>
+                                                <div className="space-y-1">
+                                                  <div className="flex justify-between">
+                                                    <span className="text-slate-300">Input:</span>
+                                                    <span className="font-medium text-green-400">${model.pricing?.prompt}</span>
+                                                  </div>
+                                                  <div className="flex justify-between">
+                                                    <span className="text-slate-300">Output:</span>
+                                                    <span className="font-medium text-green-400">${model.pricing?.completion}</span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                              
+                                              <div className="space-y-2">
+                                                <div className="text-slate-400">Technical Details</div>
+                                                <div className="space-y-1">
+                                                  <div className="flex justify-between">
+                                                    <span className="text-slate-300">Tokenizer:</span>
+                                                    <span className="text-slate-200">{model.architecture.tokenizer}</span>
+                                                  </div>
+                                                  <div className="flex justify-between">
+                                                    <span className="text-slate-300">Moderated:</span>
+                                                    <span className="text-slate-200">
+                                                      {model.top_provider?.is_moderated ? 'Yes' : 'No'}
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                              
+                                              <div className="space-y-2">
+                                                <div className="text-slate-400">Capabilities</div>
+                                                <div className="space-y-1">
+                                                  <div className="flex justify-between">
+                                                    <span className="text-slate-300">Max Completion:</span>
+                                                    <span className="text-slate-200">
+                                                      {model.top_provider?.max_completion_tokens?.toLocaleString() || 'N/A'}
+                                                    </span>
+                                                  </div>
+                                                  <div className="flex justify-between">
+                                                    <span className="text-slate-300">Instruct Type:</span>
+                                                    <span className="text-slate-200">
+                                                      {model.architecture.instruct_type || 'N/A'}
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+                                    ))}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
                             );
                           })}
-                        </div>
+                        </Accordion>
                       </ScrollArea>
                     )}
                   </div>
