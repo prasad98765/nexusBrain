@@ -27,6 +27,9 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 import {
     Copy,
     ExternalLink,
@@ -40,7 +43,11 @@ import {
     Zap,
     Clock,
     BarChart3,
-    Settings
+    Settings,
+    Search,
+    Filter,
+    Download,
+    CalendarIcon
 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -55,6 +62,10 @@ export default function APIIntegrationsPage() {
     const [selectedModel, setSelectedModel] = useState('all');
     const [dateRange, setDateRange] = useState('last30');
     const [filterType, setFilterType] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [fromDate, setFromDate] = useState<Date>();
+    const [toDate, setToDate] = useState<Date>();
+    const [showFilters, setShowFilters] = useState(false);
     const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
     const { toast } = useToast();
     const { user, token } = useAuth();
@@ -548,39 +559,148 @@ export default function APIIntegrationsPage() {
         const logs = logsData?.logs || [];
 
         return (
-            <div className="space-y-4">
-                <div className="flex flex-wrap gap-4">
-                    <Select value={selectedModel} onValueChange={setSelectedModel}>
-                        <SelectTrigger className="w-48">
-                            <SelectValue placeholder="Select Model" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Models</SelectItem>
-                            {modelOptions.map((model: any) => (
-                                <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Select value={dateRange} onValueChange={setDateRange}>
-                        <SelectTrigger className="w-48">
-                            <SelectValue placeholder="Date Range" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="last30">Last 30 Days</SelectItem>
-                            <SelectItem value="last7">Last 7 Days</SelectItem>
-                            <SelectItem value="last24">Last 24 Hours</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Select value={filterType} onValueChange={setFilterType}>
-                        <SelectTrigger className="w-48">
-                            <SelectValue placeholder="Filter Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Requests</SelectItem>
-                            <SelectItem value="high">High Usage (1000+ tokens)</SelectItem>
-                            <SelectItem value="low">Low Usage (≤100 tokens)</SelectItem>
-                        </SelectContent>
-                    </Select>
+            <div className="space-y-6">
+                {/* Search Bar */}
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <Input
+                        placeholder="Search models, endpoints, or usage..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                        data-testid="search-logs"
+                    />
+                </div>
+
+                {/* Filter Sections */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card>
+                        <CardContent className="p-4">
+                            <div className="space-y-3">
+                                <Label className="text-sm font-medium">Models</Label>
+                                <Select value={selectedModel} onValueChange={setSelectedModel}>
+                                    <SelectTrigger data-testid="select-model">
+                                        <SelectValue placeholder="All Models" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Models</SelectItem>
+                                        {modelOptions.map((model: any) => (
+                                            <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardContent className="p-4">
+                            <div className="space-y-3">
+                                <Label className="text-sm font-medium">Usage Level</Label>
+                                <Select value={filterType} onValueChange={setFilterType}>
+                                    <SelectTrigger data-testid="select-usage-level">
+                                        <SelectValue placeholder="All Requests" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Requests</SelectItem>
+                                        <SelectItem value="high">High Usage (1000+ tokens)</SelectItem>
+                                        <SelectItem value="low">Low Usage (≤100 tokens)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardContent className="p-4">
+                            <div className="space-y-3">
+                                <Label className="text-sm font-medium">Date Range</Label>
+                                <Select value={dateRange} onValueChange={setDateRange}>
+                                    <SelectTrigger data-testid="select-date-range">
+                                        <SelectValue placeholder="Last 30 Days" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="last30">Last 30 Days</SelectItem>
+                                        <SelectItem value="last7">Last 7 Days</SelectItem>
+                                        <SelectItem value="last24">Last 24 Hours</SelectItem>
+                                        <SelectItem value="custom">Custom Range</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Custom Date Range */}
+                {dateRange === 'custom' && (
+                    <Card>
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium">From</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                className={`w-40 justify-start text-left font-normal ${
+                                                    !fromDate && "text-muted-foreground"
+                                                }`}
+                                                data-testid="select-from-date"
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {fromDate ? format(fromDate, "PPP") : "Pick a date"}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0">
+                                            <Calendar
+                                                mode="single"
+                                                selected={fromDate}
+                                                onSelect={setFromDate}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium">To</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                className={`w-40 justify-start text-left font-normal ${
+                                                    !toDate && "text-muted-foreground"
+                                                }`}
+                                                data-testid="select-to-date"
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {toDate ? format(toDate, "PPP") : "Pick a date"}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0">
+                                            <Calendar
+                                                mode="single"
+                                                selected={toDate}
+                                                onSelect={setToDate}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={() => setShowFilters(!showFilters)} data-testid="toggle-filters">
+                        <Filter className="w-4 h-4 mr-2" />
+                        Filters
+                    </Button>
+                    <Button variant="outline" data-testid="export-logs">
+                        <Download className="w-4 h-4 mr-2" />
+                        Export
+                    </Button>
                 </div>
 
                 <Card>
@@ -590,41 +710,56 @@ export default function APIIntegrationsPage() {
                                 <table className="w-full">
                                     <thead className="border-b bg-slate-50 dark:bg-slate-800">
                                         <tr>
-                                            <th className="text-left p-3 text-sm font-medium">Time</th>
-                                            <th className="text-left p-3 text-sm font-medium">Endpoint</th>
-                                            <th className="text-left p-3 text-sm font-medium">Model</th>
+                                            <th className="text-left p-3 text-sm font-medium">Timestamp</th>
+                                            <th className="text-left p-3 text-sm font-medium">Provider / Model</th>
+                                            <th className="text-left p-3 text-sm font-medium">App</th>
+                                            <th className="text-right p-3 text-sm font-medium">Tokens</th>
+                                            <th className="text-right p-3 text-sm font-medium">Cost</th>
+                                            <th className="text-right p-3 text-sm font-medium">Speed</th>
+                                            <th className="text-left p-3 text-sm font-medium">Finish</th>
                                             <th className="text-left p-3 text-sm font-medium">Status</th>
-                                            <th className="text-left p-3 text-sm font-medium">Tokens</th>
-                                            <th className="text-left p-3 text-sm font-medium">Response Time</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {logs.map((log, index) => (
                                             <tr key={log.id} className={index % 2 === 0 ? 'bg-white dark:bg-slate-950' : 'bg-slate-50 dark:bg-slate-900'}>
-                                                <td className="p-3 text-sm">
-                                                    {new Date(log.createdAt).toLocaleDateString()}<br />
-                                                    <span className="text-xs text-slate-500">
-                                                        {new Date(log.createdAt).toLocaleTimeString()}
-                                                    </span>
+                                                <td className="p-3 text-sm text-slate-600">
+                                                    {format(new Date(log.createdAt), 'MMM dd, HH:mm')}
                                                 </td>
-                                                <td className="p-3 text-sm font-mono">{log.endpoint}</td>
                                                 <td className="p-3 text-sm">
-                                                    <Badge variant="outline" className="text-xs">
-                                                        {log.model}
-                                                    </Badge>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                                        <span className="font-medium">{log.model}</span>
+                                                    </div>
+                                                    <div className="text-xs text-slate-500 mt-1">{log.endpoint}</div>
+                                                </td>
+                                                <td className="p-3 text-sm">
+                                                    <span className="text-slate-600">Unknown</span>
+                                                    <ExternalLink className="w-3 h-3 text-slate-400 inline ml-1" />
+                                                </td>
+                                                <td className="p-3 text-sm text-right">
+                                                    <div className="font-medium">{log.tokensUsed?.toLocaleString() || 0}</div>
+                                                    <div className="text-xs text-slate-500">{log.tokensUsed || 0}</div>
+                                                </td>
+                                                <td className="p-3 text-sm text-right">
+                                                    <div className="font-medium">$</div>
+                                                    <div className="text-xs text-slate-500">0.000000</div>
+                                                </td>
+                                                <td className="p-3 text-sm text-right">
+                                                    <div className="font-medium">{((log.responseTimeMs || 0) / 1000).toFixed(1)} tps</div>
+                                                    <div className="text-xs text-slate-500">{log.responseTimeMs || 0}ms</div>
+                                                </td>
+                                                <td className="p-3 text-sm">
+                                                    <span className="text-slate-600">{log.statusCode === 200 ? 'length' : 'stop'}</span>
                                                 </td>
                                                 <td className="p-3">
                                                     <Badge
-                                                        className={`text-xs ${log.statusCode === 200
-                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-400'
-                                                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-400'
-                                                            }`}
+                                                        variant={log.statusCode === 200 ? 'secondary' : 'destructive'}
+                                                        className="text-xs"
                                                     >
                                                         {log.statusCode}
                                                     </Badge>
                                                 </td>
-                                                <td className="p-3 text-sm">{log.tokensUsed?.toLocaleString() || 0}</td>
-                                                <td className="p-3 text-sm">{log.responseTimeMs || 0}ms</td>
                                             </tr>
                                         ))}
                                     </tbody>
