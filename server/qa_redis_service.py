@@ -27,7 +27,7 @@ class QAEntry:
     updated_at: str
 
 class QARedisService:
-    """Redis service for storing and retrieving Q/A data"""
+    """Redis service for accessing Q/A data from LLM cache"""
     
     def __init__(self):
         self.redis_client = None
@@ -44,7 +44,8 @@ class QARedisService:
             import os
             redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
             
-            self.redis_client = redis.from_url(
+            if redis:
+                self.redis_client = redis.from_url(
                 redis_url,
                 decode_responses=True,
                 socket_connect_timeout=5,
@@ -53,79 +54,87 @@ class QARedisService:
             )
             
             # Test connection
-            self.redis_client.ping()
+            if self.redis_client:
+                self.redis_client.ping()
             logger.info("Connected to Redis for Q/A service")
             
         except Exception as e:
             logger.error(f"Failed to connect to Redis: {e}")
             self.redis_client = None
     
-    def _generate_qa_id(self, workspace_id: str, model: str, question: str) -> str:
-        """Generate a unique ID for Q/A entry"""
-        content = f"{workspace_id}:{model}:{question}"
-        return hashlib.md5(content.encode()).hexdigest()
-    
-    def _get_qa_key(self, workspace_id: str, qa_id: str) -> str:
-        """Generate Redis key for Q/A entry"""
-        return f"qa:{workspace_id}:{qa_id}"
-    
-    def _get_workspace_index_key(self, workspace_id: str) -> str:
-        """Generate Redis key for workspace Q/A index"""
-        return f"qa_index:{workspace_id}"
-    
-    def store_qa(self, workspace_id: str, model: str, question: str, answer: str) -> Optional[str]:
-        """
-        Store a Q/A entry in Redis
-        
-        Args:
-            workspace_id: Workspace identifier
-            model: AI model that generated the answer
-            question: User question
-            answer: Generated answer
-        
-        Returns:
-            QA entry ID if stored successfully, None otherwise
-        """
+    def _get_all_llm_cache_keys(self) -> List[str]:
+        """Get all LLM cache completion keys"""
         if not self.redis_client:
-            return None
+            return []
         
         try:
-            qa_id = self._generate_qa_id(workspace_id, model, question)
-            now = datetime.utcnow().isoformat()
+            pattern = "llm_cache:completion:*"
+            keys = self.redis_client.keys(pattern)
+            return list(keys) if keys is not None else []
+        except Exception as e:
+            logger.error(f"Failed to get LLM cache keys: {e}")
+            return []
+    
+    def _parse_cache_entry(self, key: str, data: str) -> Optional[Dict[str, Any]]:
+        """Parse LLM cache entry into Q/A format"""
+        try:
+            cache_data = json.loads(data)
             
-            qa_entry = {
-                "id": qa_id,
-                "workspace_id": workspace_id,
-                "model": model,
-                "question": question,
-                "answer": answer,
-                "created_at": now,
-                "updated_at": now
+            # Extract data from cache structure
+            request = cache_data.get('request', {})
+            response = cache_data.get('response', {})
+            
+            # Get question from prompt
+            question = request.get('prompt', '')
+            if not question:
+                return None
+                
+            # Get answer from response choices
+            choices = response.get('choices', [])
+            if not choices or not choices[0].get('text'):
+                return None
+                
+            answer = choices[0]['text'].strip()
+            model = request.get('model', response.get('model', 'unknown'))
+            
+            # Extract timestamp
+            timestamp = cache_data.get('timestamp')
+            if timestamp:
+                if isinstance(timestamp, (int, float)):
+                    created_at = datetime.fromtimestamp(timestamp).isoformat()
+                else:
+                    created_at = str(timestamp)
+            else:
+                created_at = datetime.utcnow().isoformat()
+            
+            # Use updated_at if available, otherwise use created_at
+            updated_at = cache_data.get('updated_at', created_at)
+            
+            # Extract cache key hash as ID
+            cache_id = key.split(':')[-1] if ':' in key else key
+            
+            return {
+                'id': cache_id,
+                'cache_key': key,
+                'model': model,
+                'question': question,
+                'answer': answer,
+                'created_at': created_at,
+                'updated_at': updated_at,
+                'workspace_id': 'default'  # TODO: Extract from cache if stored
             }
             
-            # Store the Q/A entry
-            qa_key = self._get_qa_key(workspace_id, qa_id)
-            self.redis_client.setex(qa_key, 86400 * 30, json.dumps(qa_entry))  # 30 days TTL
-            
-            # Add to workspace index for efficient retrieval
-            index_key = self._get_workspace_index_key(workspace_id)
-            self.redis_client.sadd(index_key, qa_id)
-            self.redis_client.expire(index_key, 86400 * 30)  # 30 days TTL
-            
-            logger.info(f"Stored Q/A entry {qa_id} for workspace {workspace_id}")
-            return qa_id
-            
-        except Exception as e:
-            logger.error(f"Failed to store Q/A entry: {e}")
+        except (json.JSONDecodeError, KeyError, IndexError) as e:
+            logger.warning(f"Failed to parse cache entry {key}: {e}")
             return None
     
     def get_qa_by_id(self, workspace_id: str, qa_id: str) -> Optional[QAEntry]:
         """
-        Get a specific Q/A entry by ID
+        Get a specific Q/A entry by ID from LLM cache
         
         Args:
-            workspace_id: Workspace identifier
-            qa_id: Q/A entry ID
+            workspace_id: Workspace identifier (currently not used in LLM cache)
+            qa_id: Cache key hash
         
         Returns:
             QAEntry if found, None otherwise
@@ -134,14 +143,25 @@ class QARedisService:
             return None
         
         try:
-            qa_key = self._get_qa_key(workspace_id, qa_id)
-            data = self.redis_client.get(qa_key)
+            cache_key = f"llm_cache:completion:{qa_id}"
+            data = self.redis_client.get(cache_key)
             
             if not data:
                 return None
             
-            qa_data = json.loads(data)
-            return QAEntry(**qa_data)
+            qa_data = self._parse_cache_entry(cache_key, str(data))
+            if not qa_data:
+                return None
+                
+            return QAEntry(
+                id=qa_data.get('id', ''),
+                workspace_id=qa_data.get('workspace_id', ''),
+                model=qa_data.get('model', ''),
+                question=qa_data.get('question', ''),
+                answer=qa_data.get('answer', ''),
+                created_at=qa_data.get('created_at', ''),
+                updated_at=qa_data.get('updated_at', '')
+            )
             
         except Exception as e:
             logger.error(f"Failed to get Q/A entry {qa_id}: {e}")
@@ -149,11 +169,11 @@ class QARedisService:
     
     def update_qa_answer(self, workspace_id: str, qa_id: str, new_answer: str) -> bool:
         """
-        Update the answer for a Q/A entry
+        Update the answer in the original LLM cache entry
         
         Args:
             workspace_id: Workspace identifier
-            qa_id: Q/A entry ID
+            qa_id: Cache key hash
             new_answer: Updated answer text
         
         Returns:
@@ -163,38 +183,50 @@ class QARedisService:
             return False
         
         try:
-            qa_key = self._get_qa_key(workspace_id, qa_id)
-            data = self.redis_client.get(qa_key)
+            cache_key = f"llm_cache:completion:{qa_id}"
+            data = self.redis_client.get(cache_key)
             
             if not data:
-                logger.warning(f"Q/A entry {qa_id} not found for update")
+                logger.warning(f"Cache entry {qa_id} not found for update")
                 return False
             
-            qa_data = json.loads(data)
-            qa_data["answer"] = new_answer
-            qa_data["updated_at"] = datetime.utcnow().isoformat()
+            cache_data = json.loads(str(data))
             
-            # Update with same TTL as original
-            ttl = self.redis_client.ttl(qa_key)
-            if ttl > 0:
-                self.redis_client.setex(qa_key, ttl, json.dumps(qa_data))
+            # Update the answer in the response choices
+            if 'response' not in cache_data or 'choices' not in cache_data['response']:
+                logger.warning(f"Invalid cache structure in {qa_id}")
+                return False
+                
+            if not cache_data['response']['choices']:
+                logger.warning(f"No choices in cache entry {qa_id}")
+                return False
+            
+            # Update the answer and timestamp
+            cache_data['response']['choices'][0]['text'] = new_answer
+            cache_data['updated_at'] = datetime.utcnow().isoformat()
+            
+            # Save back to Redis with original TTL if any
+            ttl = self.redis_client.ttl(cache_key)
+            ttl_value = int(ttl) if ttl is not None and isinstance(ttl, (int, float)) and int(ttl) > 0 else None
+            if ttl_value and ttl_value > 0:
+                self.redis_client.setex(cache_key, ttl_value, json.dumps(cache_data))
             else:
-                self.redis_client.setex(qa_key, 86400 * 30, json.dumps(qa_data))
+                self.redis_client.set(cache_key, json.dumps(cache_data))
             
-            logger.info(f"Updated Q/A entry {qa_id} for workspace {workspace_id}")
+            logger.info(f"Updated answer in cache entry {qa_id}")
             return True
             
         except Exception as e:
-            logger.error(f"Failed to update Q/A entry {qa_id}: {e}")
+            logger.error(f"Failed to update cache entry {qa_id}: {e}")
             return False
     
     def get_workspace_qa_list(self, workspace_id: str, page: int = 1, limit: int = 25, 
                              model_filter: str = None, search_query: str = None) -> Dict[str, Any]:
         """
-        Get paginated list of Q/A entries for a workspace
+        Get paginated list of Q/A entries from LLM cache
         
         Args:
-            workspace_id: Workspace identifier
+            workspace_id: Workspace identifier (currently not filtered in LLM cache)
             page: Page number (1-based)
             limit: Number of entries per page
             model_filter: Filter by model name (optional)
@@ -207,34 +239,43 @@ class QARedisService:
             return {"entries": [], "total": 0, "page": page, "limit": limit, "total_pages": 0}
         
         try:
-            index_key = self._get_workspace_index_key(workspace_id)
-            qa_ids = self.redis_client.smembers(index_key)
+            # Get all LLM cache keys
+            cache_keys = self._get_all_llm_cache_keys()
             
-            if not qa_ids:
+            if not cache_keys:
                 return {"entries": [], "total": 0, "page": page, "limit": limit, "total_pages": 0}
             
-            # Fetch all Q/A entries
+            # Parse all cache entries into Q/A format
             qa_entries = []
-            for qa_id in qa_ids:
-                qa_entry = self.get_qa_by_id(workspace_id, qa_id)
-                if qa_entry:
-                    qa_entries.append(qa_entry)
+            for key in cache_keys:
+                try:
+                    data = self.redis_client.get(key)
+                    if data:
+                        parsed_entry = self._parse_cache_entry(key, str(data))
+                        if parsed_entry:
+                            qa_entries.append(parsed_entry)
+                except Exception as e:
+                    logger.warning(f"Failed to process cache key {key}: {e}")
+                    continue
             
             # Apply filters
             filtered_entries = qa_entries
             
             if model_filter and model_filter.lower() != 'all':
-                filtered_entries = [entry for entry in filtered_entries if entry.model == model_filter]
+                filtered_entries = [
+                    entry for entry in filtered_entries 
+                    if model_filter.lower() in entry['model'].lower()
+                ]
             
             if search_query:
                 search_lower = search_query.lower()
                 filtered_entries = [
                     entry for entry in filtered_entries 
-                    if search_lower in entry.question.lower() or search_lower in entry.answer.lower()
+                    if search_lower in entry['question'].lower() or search_lower in entry['answer'].lower()
                 ]
             
-            # Sort by updated_at (most recent first)
-            filtered_entries.sort(key=lambda x: x.updated_at, reverse=True)
+            # Sort by created_at (most recent first)
+            filtered_entries.sort(key=lambda x: x.get('created_at', ''), reverse=True)
             
             # Apply pagination
             total = len(filtered_entries)
@@ -243,21 +284,8 @@ class QARedisService:
             end_idx = start_idx + limit
             paginated_entries = filtered_entries[start_idx:end_idx]
             
-            # Convert to dictionaries for JSON serialization
-            entries_data = []
-            for entry in paginated_entries:
-                entries_data.append({
-                    "id": entry.id,
-                    "workspace_id": entry.workspace_id,
-                    "model": entry.model,
-                    "question": entry.question,
-                    "answer": entry.answer,
-                    "created_at": entry.created_at,
-                    "updated_at": entry.updated_at
-                })
-            
             return {
-                "entries": entries_data,
+                "entries": paginated_entries,
                 "total": total,
                 "page": page,
                 "limit": limit,
@@ -265,42 +293,39 @@ class QARedisService:
             }
             
         except Exception as e:
-            logger.error(f"Failed to get Q/A list for workspace {workspace_id}: {e}")
+            logger.error(f"Failed to get Q/A list from LLM cache: {e}")
             return {"entries": [], "total": 0, "page": page, "limit": limit, "total_pages": 0}
+    
+    # Legacy methods for backward compatibility (not applicable to LLM cache approach)
+    def store_qa(self, workspace_id: str, model: str, question: str, answer: str) -> Optional[str]:
+        """
+        Store a Q/A entry - not used with LLM cache approach
+        Q/A entries are created automatically when LLM responses are cached
+        """
+        logger.info("Q/A entries are created automatically from LLM cache - no manual storage needed")
+        return None
     
     def delete_qa(self, workspace_id: str, qa_id: str) -> bool:
         """
-        Delete a Q/A entry
-        
-        Args:
-            workspace_id: Workspace identifier
-            qa_id: Q/A entry ID
-        
-        Returns:
-            True if deleted successfully, False otherwise
+        Delete a Q/A entry - deletes the underlying LLM cache entry
+        WARNING: This will affect cache performance
         """
         if not self.redis_client:
             return False
-        
+            
         try:
-            qa_key = self._get_qa_key(workspace_id, qa_id)
-            index_key = self._get_workspace_index_key(workspace_id)
-            
-            # Remove from Redis
-            deleted = self.redis_client.delete(qa_key)
-            
-            # Remove from index
-            self.redis_client.srem(index_key, qa_id)
+            cache_key = f"llm_cache:completion:{qa_id}"
+            deleted = self.redis_client.delete(cache_key)
             
             if deleted:
-                logger.info(f"Deleted Q/A entry {qa_id} from workspace {workspace_id}")
+                logger.warning(f"Deleted LLM cache entry {qa_id} - this may affect cache performance")
                 return True
             else:
-                logger.warning(f"Q/A entry {qa_id} not found for deletion")
+                logger.warning(f"Cache entry {qa_id} not found for deletion")
                 return False
-            
+                
         except Exception as e:
-            logger.error(f"Failed to delete Q/A entry {qa_id}: {e}")
+            logger.error(f"Failed to delete cache entry {qa_id}: {e}")
             return False
 
 # Global instance
