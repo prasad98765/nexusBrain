@@ -102,18 +102,6 @@ export default function Layout() {
             <ChevronsLeftRightEllipsis className={`h-5 w-5 ${active === 'API-integrations' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
               }`} />
           </button>
-          <button
-            className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${active === 'usage-logs' ? 'bg-slate-700' : ''
-              }`}
-            onClick={() => {
-              setActive("usage-logs");
-              navigate("/nexus/usage-logs");
-            }}
-            title="Usage Logs"
-          >
-            <Activity className={`h-5 w-5 ${active === 'usage-logs' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
-              }`} />
-          </button>
           <div className="mt-auto flex flex-col gap-4">
             <button
               className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${active === 'settings' ? 'bg-slate-700' : ''

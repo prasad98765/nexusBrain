@@ -60,6 +60,7 @@ def get_api_tokens():
         })
         
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @api_tokens_bp.route('/api-tokens', methods=['POST'])
@@ -68,42 +69,49 @@ def create_api_token():
     """Create a new API token"""
     try:
         data = request.get_json()
-        user_data: Dict[str, Any] = getattr(request, 'user', {})
+        user_data = getattr(request, 'user', {})
         workspace_id = request.user.get('workspace_id')
         user_id = user_data.get('user_id')
         
         if not workspace_id or not user_id:
             return jsonify({'error': 'workspace_id and user_id are required'}), 400
-        
-        # Check if workspace already has an active token
+
+        # Check for existing active token
         existing_token = ApiToken.query.filter_by(
             workspace_id=workspace_id, 
             is_active=True
         ).first()
         
         if existing_token:
-            return jsonify({'error': 'Workspace already has an active API token. Please revoke the existing token first.'}), 400
-        
-        # Generate new token
+            return jsonify({'error': 'Workspace already has an active API token'}), 400
+
+        # Validate semantic cache threshold
+        semantic_threshold = data.get('semanticCacheThreshold', 0.5)  # Default 50%
+        if not isinstance(semantic_threshold, (int, float)) or not 0 <= semantic_threshold <= 1:
+            return jsonify({'error': 'Semantic cache threshold must be between 0 and 1'}), 400
+
+        # Generate and hash token
         plain_token = generate_token()
         hashed_token = hash_token(plain_token)
         
-        # Create new token record
-        token = ApiToken()
-        token.token = hashed_token
-        token.name = data.get('name', 'Default Token')
-        token.workspace_id = workspace_id
-        token.user_id = user_id
-        token.caching_enabled = data.get('cachingEnabled', True)
-        token.semantic_cache_threshold = data.get('semanticCacheThreshold', 0.5)  # Default 50%
-        token.is_active = True
+        # Create token record
+        token = ApiToken(
+            token=hashed_token,
+            name=data.get('name', 'Default Token'),
+            workspace_id=workspace_id,
+            user_id=user_id,
+            caching_enabled=data.get('cachingEnabled', True),
+            semantic_cache_threshold=semantic_threshold,
+            is_active=True
+        )
         
         db.session.add(token)
         db.session.commit()
-        
+
+        # Only return plain token during creation
         return jsonify({
             'id': token.id,
-            'plainToken': plain_token,  # Only returned once!
+            'plainToken': plain_token,
             'name': token.name,
             'workspaceId': token.workspace_id,
             'userId': token.user_id,
@@ -112,7 +120,7 @@ def create_api_token():
             'isActive': token.is_active,
             'createdAt': token.created_at.isoformat()
         }), 201
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -123,7 +131,6 @@ def update_api_token(token_id):
     """Update an API token (caching preferences, name, etc.)"""
     try:
         data = request.get_json()
-        user_data: Dict[str, Any] = getattr(request, 'user', {})
         workspace_id = request.user.get('workspace_id')
         
         if not workspace_id:
@@ -136,18 +143,21 @@ def update_api_token(token_id):
         
         if not token:
             return jsonify({'error': 'Token not found'}), 404
-        
-        # Update fields
+
+        # Update fields if provided
         if 'name' in data:
             token.name = data['name']
         if 'cachingEnabled' in data:
             token.caching_enabled = data['cachingEnabled']
         if 'semanticCacheThreshold' in data:
-            token.semantic_cache_threshold = data['semanticCacheThreshold']
-        
+            threshold = data['semanticCacheThreshold']
+            if not isinstance(threshold, (int, float)) or not 0 <= threshold <= 1:
+                return jsonify({'error': 'Semantic cache threshold must be between 0 and 1'}), 400
+            token.semantic_cache_threshold = threshold
+
         token.updated_at = datetime.utcnow()
         db.session.commit()
-        
+
         return jsonify({
             'id': token.id,
             'name': token.name,
@@ -160,7 +170,7 @@ def update_api_token(token_id):
             'createdAt': token.created_at.isoformat(),
             'updatedAt': token.updated_at.isoformat()
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500

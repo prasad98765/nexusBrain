@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 
 api_llm_routes = Blueprint("api_llm_routes", __name__)
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+# OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_API_KEY = "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"  # Replace with your actual key or use environment variable
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 OPENROUTER_BASE_URL_FOR_MODELS_AND_PROVIDERS = "https://openrouter.ai/api/v1"
 
@@ -302,7 +303,6 @@ def create_completion():
         return jsonify(cached_response), 200
     
     # Cache miss - forward to OpenRouter
-    logger.info(f"Cache MISS for completion model: {payload['model']} - forwarding to OpenRouter")
     response, status_code = forward_to_openrouter("/completions", payload)
     
     response_time_ms = int((time.time() - start_time) * 1000)

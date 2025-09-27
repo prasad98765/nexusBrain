@@ -4,6 +4,7 @@ import hashlib
 import time
 import logging
 import ssl
+import re
 from typing import Optional, Dict, Any, List, Tuple, Union
 from dataclasses import dataclass
 
@@ -37,13 +38,14 @@ class CacheEntry:
 
 class RedisCacheService:
     def __init__(self, 
-                 redis_url: Optional[str] = None,
-                 similarity_threshold: float = 0.85,
+                 redis_url: Optional[str] = "redis://default:vmVLEc2mvOk5VlB1ZDyGgCuJ81SmpCP5@redis-14311.crce206.ap-south-1-1.ec2.redns.redis-cloud.com:14311",
+                 similarity_threshold: float = 0.50,
                  embedding_model: str = "all-MiniLM-L6-v2"):
         self.redis_url = redis_url or os.getenv("REDIS_URL")
         self.similarity_threshold = similarity_threshold
         self.embedding_model_name = embedding_model
-        
+        ML_AVAILABLE = True
+
         # Initialize Redis connection
         self.redis_client = None
         if REDIS_AVAILABLE and self.redis_url:
@@ -92,13 +94,12 @@ class RedisCacheService:
         
         # Initialize embedding model
         self.embedding_model = None
-        if ML_AVAILABLE:
-            try:
-                self.embedding_model = SentenceTransformer(self.embedding_model_name)
-                logger.info(f"Embedding model '{self.embedding_model_name}' loaded successfully")
-            except Exception as e:
-                logger.warning(f"Failed to load embedding model: {e}")
-                self.embedding_model = None
+        try:
+            self.embedding_model = SentenceTransformer(self.embedding_model_name)
+            logger.info(f"Embedding model '{self.embedding_model_name}' loaded successfully")
+        except Exception as e:
+            logger.warning(f"Failed to load embedding model: {e}")
+            self.embedding_model = None
     
     def _generate_cache_key(self, request_data: Dict[str, Any], endpoint_type: str) -> str:
         """Generate a hash-based cache key for exact matching."""
@@ -129,31 +130,33 @@ class RedisCacheService:
         cache_key = hashlib.sha256(serialized.encode()).hexdigest()
         return f"llm_cache:{endpoint_type}:{cache_key}"
     
+    def _clean_text(self, text: str) -> str:
+        """Lowercase, remove punctuation and extra spaces."""
+        text = text.lower()
+        text = re.sub(r"[^a-z0-9\s]", " ", text)
+        text = re.sub(r"\s+", " ", text).strip()
+        return text
+    
     def _generate_embedding(self, text: str) -> Optional[List[float]]:
         """Generate embedding for semantic search."""
         if not self.embedding_model or not ML_AVAILABLE:
             return None
         
         try:
+            text = self._clean_text(text)
             embedding = self.embedding_model.encode(text)
             return embedding.tolist() if hasattr(embedding, 'tolist') else list(embedding)
         except Exception as e:
             logger.error(f"Failed to generate embedding: {e}")
             return None
     
-    def _extract_text_for_embedding(self, request_data: Dict[str, Any], endpoint_type: str) -> str:
-        """Extract relevant text content for embedding generation."""
+    def _extract_text_for_embedding(self, request: Dict[str, Any], endpoint_type: str) -> str:
         if endpoint_type == "completion":
-            return request_data.get("prompt", "")
-        else:  # chat completion
-            messages = request_data.get("messages", [])
-            # Combine all message content for embedding
-            text_parts = []
-            for msg in messages:
-                if isinstance(msg, dict) and "content" in msg:
-                    text_parts.append(msg["content"])
-            return " ".join(text_parts)
-    
+            return request.get("prompt", "")
+        # only consider as last message for embedding
+        messages = request.get("messages", [])
+        return messages[-1].get("content", "") if messages else ""
+
     def _get_exact_match(self, cache_key: str) -> Optional[CacheEntry]:
         """Get exact cache match from Redis."""
         if not self.redis_client:
@@ -174,65 +177,36 @@ class RedisCacheService:
         
         return None
     
-    def _find_semantic_match(self, query_embedding: List[float], model: str, endpoint_type: str, threshold: float = None) -> Optional[CacheEntry]:
-        """Find semantically similar cached response."""
-        if not self.redis_client or not ML_AVAILABLE or not np or not cosine_similarity:
-            return None
-        
+    def _find_semantic_match(self, query_embedding: List[float], model: str, endpoint_type: str) -> Tuple[Optional[CacheEntry], float]:
+        """Return best semantic match and similarity %."""
+        if not self.redis_client or not self.embedding_model:
+            return None, 0.0
         try:
-            # Search for cached entries with the same model and endpoint type
-            pattern = f"llm_cache:{endpoint_type}:*"
-            keys = self.redis_client.keys(pattern)
-            
+            keys = self.redis_client.keys(f"llm_cache:{endpoint_type}:*")
             best_match = None
             best_similarity = 0.0
-            
-            query_embedding_np = np.array(query_embedding).reshape(1, -1)
-            
+            query_np = np.array(query_embedding).reshape(1, -1)
+
             for key in keys:
                 try:
-                    cached_data = self.redis_client.get(key)
-                    if not cached_data:
+                    data = self.redis_client.get(key)
+                    if not data:
                         continue
-                    
-                    data = json.loads(cached_data)
-                    
-                    # Check if same model
-                    if data["request"].get("model") != model:
+                    entry = json.loads(data)
+                    if entry["request"].get("model") != model or not entry.get("embedding"):
                         continue
-                    
-                    # Check if has embedding
-                    if not data.get("embedding"):
-                        continue
-                    
-                    # Calculate similarity
-                    cached_embedding_np = np.array(data["embedding"]).reshape(1, -1)
-                    similarity = cosine_similarity(query_embedding_np, cached_embedding_np)[0][0]
-                    
-                    # Use custom threshold if provided, otherwise use default
-                    search_threshold = threshold if threshold is not None else self.similarity_threshold
-                    
-                    if similarity > best_similarity and similarity >= search_threshold:
+                    cached_np = np.array(entry["embedding"]).reshape(1, -1)
+                    similarity = cosine_similarity(query_np, cached_np)[0][0]
+                    if similarity > best_similarity:
                         best_similarity = similarity
-                        best_match = CacheEntry(
-                            request=data["request"],
-                            response=data["response"],
-                            timestamp=data["timestamp"],
-                            embedding=data["embedding"]
-                        )
-                
+                        best_match = CacheEntry(**entry)
                 except Exception as e:
-                    logger.error(f"Error processing cached entry {key}: {e}")
-                    continue
-            
-            if best_match:
-                logger.info(f"Found semantic match with similarity: {best_similarity:.3f}")
-            
-            return best_match
-            
+                    logger.error(f"Error processing key {key}: {e}")
+
+            return best_match, best_similarity * 100  # return % similarity
         except Exception as e:
-            logger.error(f"Failed to find semantic match: {e}")
-            return None
+            logger.error(f"Semantic search failed: {e}")
+            return None, 0.0
     
     def get_cached_response(self, request_data: Dict[str, Any], endpoint_type: str, threshold: float = None) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
         """
@@ -261,19 +235,13 @@ class RedisCacheService:
         if self.embedding_model:
             text_content = self._extract_text_for_embedding(request_data, endpoint_type)
             query_embedding = self._generate_embedding(text_content)
-            
             if query_embedding:
-                # Use custom threshold if provided, otherwise use default
-                search_threshold = threshold if threshold is not None else self.similarity_threshold
-                
-                semantic_match = self._find_semantic_match(
+                semantic_match, similarity = self._find_semantic_match(
                     query_embedding, 
                     request_data.get("model"), 
-                    endpoint_type,
-                    search_threshold
+                    endpoint_type
                 )
-                
-                if semantic_match:
+                if semantic_match and similarity >= self.similarity_threshold * 100:
                     logger.info(f"Cache HIT (semantic match): {cache_key}")
                     return semantic_match.response, "semantic"
         
@@ -310,11 +278,11 @@ class RedisCacheService:
                 "timestamp": time.time(),
                 "embedding": embedding
             }
-            
-            # Store in Redis with TTL (24 hours = 86400 seconds)
+
+            # Store in Redis with TTL (30 days = 2592000 seconds)
             self.redis_client.setex(
                 cache_key,
-                86400,  # 24 hours TTL
+                2592000,  # 30 days TTL
                 json.dumps(cache_entry)
             )
             

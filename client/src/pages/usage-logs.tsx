@@ -25,6 +25,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Label } from '@/components/ui/label';
 import {
   Search,
@@ -40,7 +46,8 @@ import {
   Database,
   Cpu,
   Calendar,
-  RefreshCw
+  RefreshCw,
+  Info
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -107,14 +114,14 @@ function LogDetailsModal({ log, open, onOpenChange }: LogDetailsModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" data-testid="modal-log-details">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" data-testid="modal-log-details" style={{ color: "white" }}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Activity className="w-5 h-5" />
             Usage Log Details
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Request Information */}
           <div className="space-y-4">
@@ -218,15 +225,29 @@ function LogDetailsModal({ log, open, onOpenChange }: LogDetailsModalProps) {
                     <span>{log.completionTokens.toLocaleString()}</span>
                   </div>
                 )}
-                {log.reasoningTokens && (
+                {/* {log.reasoningTokens && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Reasoning Tokens:</span>
                     <span>{log.reasoningTokens.toLocaleString()}</span>
                   </div>
-                )}
+                )} */}
                 {log.usage && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Cost (USD):</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      Cost (USD)
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 cursor-pointer text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent side="right">
+                            <p>Include</p>
+                            <p>Overhead: $0.001</p>
+                            <p>Markup: 50%</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </span>
                     <span className="font-semibold">${log.usage.toFixed(6)}</span>
                   </div>
                 )}
@@ -301,7 +322,7 @@ function LogDetailsModal({ log, open, onOpenChange }: LogDetailsModalProps) {
 export default function UsageLogsPage() {
   const { user, token } = useAuth();
   const { toast } = useToast();
-  
+
   // Pagination and filters
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
@@ -316,29 +337,51 @@ export default function UsageLogsPage() {
   const [cacheType, setCacheType] = useState('all');
   const [finishReason, setFinishReason] = useState('all');
   const [statusCode, setStatusCode] = useState('all');
-  
+
   // Modal state
   const [selectedLog, setSelectedLog] = useState<UsageLog | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
-  // Fetch usage logs
   const { data: logsData, isLoading, error, refetch } = useQuery<UsageLogsResponse>({
     queryKey: [
-      '/api/api-tokens/usage-logs',
-      page,
-      limit,
-      model,
-      provider,
-      dateRange,
-      startDate,
-      endDate,
-      filterType,
-      cached,
-      cacheType,
-      finishReason,
-      statusCode
+      'usage-logs',
+      {
+        page,
+        limit,
+        model,
+        provider,
+        dateRange,
+        startDate,
+        endDate,
+        filterType,
+        cached,
+        cacheType,
+        finishReason,
+        statusCode,
+        workspaceId: user?.workspace_id
+      }
     ],
-    enabled: !!user?.workspace_id,
+    queryFn: async ({ queryKey }) => {
+      const [_, params] = queryKey as [string, Record<string, string | number | boolean | undefined>];
+      const searchParams = new URLSearchParams();
+
+      // Add all non-empty params to the query string
+      Object.entries(params).forEach(([key, value]) => {
+        if (value && value !== 'all') {
+          searchParams.append(key, String(value));
+        }
+      });
+
+      const response = await fetch(`/api/api-tokens/usage-logs?${searchParams.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch usage logs');
+      }
+      return response.json();
+    }
   });
 
   const handleViewDetails = (log: UsageLog) => {
@@ -360,10 +403,10 @@ export default function UsageLogsPage() {
     if (!cached) {
       return <Badge variant="outline">No Cache</Badge>;
     }
-    
+
     const variant = cacheType === 'exact' ? 'default' : 'secondary';
     const icon = cacheType === 'exact' ? '⚡' : '🧠';
-    
+
     return (
       <Badge variant={variant} className="gap-1">
         <span>{icon}</span>
@@ -423,8 +466,8 @@ export default function UsageLogsPage() {
             View detailed information about your API usage and performance metrics.
           </p>
         </div>
-        <Button 
-          onClick={() => refetch()} 
+        <Button
+          onClick={() => refetch()}
           variant="outline"
           data-testid="button-refresh"
         >
@@ -440,9 +483,9 @@ export default function UsageLogsPage() {
             <Filter className="w-4 h-4" />
             Filters
           </h3>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={resetFilters}
             data-testid="button-reset-filters"
           >

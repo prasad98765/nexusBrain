@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
 import {
     Select,
     SelectContent,
@@ -54,9 +55,11 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import type { ApiToken, ApiUsageLog, ApiTokenResponse, InsertApiToken, UsageAnalytics } from '@shared/schema';
 import { useAuth } from '@/hooks/useAuth';
 import axios from 'axios';
+import UsageLogsPage from './usage-logs';
 
 export default function APIIntegrationsPage() {
     const [cachingEnabled, setCachingEnabled] = useState(true);
+    const [threshold, setThreshold] = useState(50);
     const [showNewToken, setShowNewToken] = useState(false);
     const [newTokenValue, setNewTokenValue] = useState('');
     const [selectedModel, setSelectedModel] = useState('all');
@@ -86,34 +89,6 @@ export default function APIIntegrationsPage() {
             },
             staleTime: 5 * 60 * 1000, // 5 minutes
         });
-
-    const { data: logsData, isLoading: logsLoading } = useQuery<{
-        logs: ApiUsageLog[];
-        total: number;
-        page: number;
-        limit: number;
-        totalPages: number;
-    }>({
-        queryKey: [
-            "/api/api-tokens/usage-logs",
-            { selectedModel, dateRange, filterType },
-        ],
-        queryFn: async () => {
-            const response = await axios.get<{
-                logs: ApiUsageLog[];
-                total: number;
-                page: number;
-                limit: number;
-                totalPages: number;
-            }>("/api/api-tokens/usage-logs", {
-                params: { selectedModel, dateRange, filterType }, // Axios handles query params
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            return response.data;
-        },
-        enabled: tokenData?.hasToken,
-        staleTime: 2 * 60 * 1000, // 2 minutes
-    });
 
     const { data: analyticsData } = useQuery<UsageAnalytics>({
         queryKey: ["/api/api-tokens/analytics", { dateRange }],
@@ -245,7 +220,8 @@ export default function APIIntegrationsPage() {
         createTokenMutation.mutate({
             cachingEnabled: cachingEnabled,
             workspaceId: 'temp', // This will be set by the backend from auth
-            userId: 'temp' // This will be set by the backend from auth
+            userId: 'temp', // This will be set by the backend from auth
+            semanticCacheThreshold: threshold / 100.0
         });
     };
 
@@ -364,25 +340,65 @@ export default function APIIntegrationsPage() {
                                 />
                             </div>
 
-                            <Alert className="border-blue-200 dark:bg-blue-900/20">
-                                <Info className="h-4 w-4" />
-                                <AlertDescription className="text-white-700 dark:text-white-400 text-sm">
-                                    <strong>Why enable caching?</strong>
-                                    <ul className="mt-2 ml-4 list-disc space-y-1 text-xs">
-                                        <li><strong>Faster responses:</strong> Cached results return instantly</li>
-                                        <li><strong>Cost savings:</strong> Avoid duplicate API calls for identical requests</li>
-                                        <li><strong>Better performance:</strong> Reduced latency for your users</li>
-                                        <li><strong>Rate limit protection:</strong> Helps stay within API rate limits</li>
-                                    </ul>
-                                </AlertDescription>
-                            </Alert>
+                            {cachingEnabled && (
+                                <div className="space-y-2">
+                                    <Alert className="border-blue-200 dark:bg-blue-900/20" style={{ marginBottom: "20px" }}>
+                                        <Info className="h-4 w-4" />
+                                        <AlertDescription className="text-white-700 dark:text-white-400 text-sm">
+                                            <strong>Why enable caching?</strong>
+                                            <ul className="mt-2 ml-4 list-disc space-y-1 text-xs">
+                                                <li><strong>Faster responses:</strong> Cached results return instantly</li>
+                                                <li><strong>Cost savings:</strong> Avoid duplicate API calls for identical requests</li>
+                                                <li><strong>Better performance:</strong> Reduced latency for your users</li>
+                                                <li><strong>Rate limit protection:</strong> Helps stay within API rate limits</li>
+                                            </ul>
+                                        </AlertDescription>
+                                    </Alert>
+                                    <Label className="text-sm font-medium">Semantic Cache Threshold</Label>
+                                    <Slider
+                                        value={[threshold]}
+                                        onValueChange={(v) => setThreshold(v[0])}
+                                        min={0}
+                                        max={100}
+                                        step={1}
+                                    />
+                                    <p className="text-xs text-slate-500">
+                                        Default is 50%. If similarity between queries is greater than{" "}
+                                        <strong>{threshold}%</strong>, cached result will be reused.
+                                    </p>
+                                    <Alert className="border-blue-200 dark:bg-blue-900/20">
+                                        <Info className="h-4 w-4" />
+                                        <AlertDescription className="text-white-700 dark:text-white-400 text-sm">
+                                            <strong>Two caching modes:</strong>
+                                            <ul className="mt-2 ml-4 list-disc space-y-1 text-xs">
+                                                <li>
+                                                    <strong>Exact caching:</strong> Identical requests reuse results (no threshold needed).
+                                                </li>
+                                                <li>
+                                                    <strong>Semantic caching:</strong> Similar requests reuse results if above threshold.
+                                                </li>
+                                            </ul>
+
+                                            <div className="mt-3 text-xs">
+                                                <strong>Example:</strong><br />
+                                                • With a <code>50%</code> threshold (recommended default),
+                                                <em>“What is AI?”</em> and <em>“Explain artificial intelligence”</em> (~80% similar)
+                                                will reuse the cached result.<br />
+                                                • If you set a lower threshold (e.g., 30%), even loosely related queries may reuse results.<br />
+                                                • If you set a higher threshold (e.g., 90%), only very close or identical queries will match —
+                                                making it behave closer to exact caching.
+                                            </div>
+                                        </AlertDescription>
+                                    </Alert>
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     <div className="pt-4">
                         <Button
                             className="w-full"
-                            onClick={handleCreateToken}
+                            onClick={() => handleCreateToken()}
                             disabled={createTokenMutation.isPending}
                             data-testid="create-token-button"
                         >
@@ -399,19 +415,8 @@ export default function APIIntegrationsPage() {
                             )}
                         </Button>
                     </div>
-
-                    <div className="text-center">
-                        <Button
-                            variant="link"
-                            onClick={() => window.open('/docs/api-reference', '_blank')}
-                            className="text-sm"
-                            data-testid="preview-docs"
-                        >
-                            <ExternalLink className="w-3 h-3 mr-1" />
-                            Preview API Documentation
-                        </Button>
-                    </div>
                 </CardContent>
+
             </Card>
         );
     };
@@ -548,255 +553,6 @@ export default function APIIntegrationsPage() {
         );
     };
 
-    const LogsTab = () => {
-        if (logsLoading) {
-            return (
-                <div className="flex items-center justify-center p-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                </div>
-            );
-        }
-        const logs = logsData?.logs || [];
-        return (
-            <div className="space-y-6">
-                {/* Search Bar */}
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                    <Input
-                        ref={searchInputRef}
-                        placeholder="Search models, endpoints, or usage..."
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                            // If there's a space (indicating first word is complete), blur the input
-                            if (e.target.value.includes(' ')) {
-                                searchInputRef.current?.blur();
-                            }
-                        }}
-                        className="pl-10"
-                        data-testid="search-logs"
-                    />
-                </div>
-
-                {/* Filter Sections */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="space-y-3">
-                                <Label className="text-sm font-medium">Models</Label>
-                                <Select value={selectedModel} onValueChange={setSelectedModel}>
-                                    <SelectTrigger data-testid="select-model">
-                                        <SelectValue placeholder="All Models" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Models</SelectItem>
-                                        {modelOptions.map((model: any) => (
-                                            <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="space-y-3">
-                                <Label className="text-sm font-medium">Usage Level</Label>
-                                <Select value={filterType} onValueChange={setFilterType}>
-                                    <SelectTrigger data-testid="select-usage-level">
-                                        <SelectValue placeholder="All Requests" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Requests</SelectItem>
-                                        <SelectItem value="high">High Usage (1000+ tokens)</SelectItem>
-                                        <SelectItem value="low">Low Usage (≤100 tokens)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="space-y-3">
-                                <Label className="text-sm font-medium">Date Range</Label>
-                                <Select value={dateRange} onValueChange={setDateRange}>
-                                    <SelectTrigger data-testid="select-date-range">
-                                        <SelectValue placeholder="Last 30 Days" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="last30">Last 30 Days</SelectItem>
-                                        <SelectItem value="last7">Last 7 Days</SelectItem>
-                                        <SelectItem value="last24">Last 24 Hours</SelectItem>
-                                        <SelectItem value="custom">Custom Range</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Custom Date Range */}
-                {dateRange === 'custom' && (
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-4">
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-medium">From</Label>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                className={`w-40 justify-start text-left font-normal ${!fromDate && "text-muted-foreground"
-                                                    }`}
-                                                data-testid="select-from-date"
-                                            >
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {fromDate ? format(fromDate, "PPP") : "Pick a date"}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0">
-                                            <Calendar
-                                                mode="single"
-                                                selected={fromDate}
-                                                onSelect={setFromDate}
-                                                initialFocus
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-medium">To</Label>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                className={`w-40 justify-start text-left font-normal ${!toDate && "text-muted-foreground"
-                                                    }`}
-                                                data-testid="select-to-date"
-                                            >
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {toDate ? format(toDate, "PPP") : "Pick a date"}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0">
-                                            <Calendar
-                                                mode="single"
-                                                selected={toDate}
-                                                onSelect={setToDate}
-                                                initialFocus
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={() => setShowFilters(!showFilters)} data-testid="toggle-filters">
-                        <Filter className="w-4 h-4 mr-2" />
-                        Filters
-                    </Button>
-                    <Button variant="outline" data-testid="export-logs">
-                        <Download className="w-4 h-4 mr-2" />
-                        Export
-                    </Button>
-                </div>
-
-                <Card>
-                    <CardContent className="p-0">
-                        {logs.length > 0 ? (
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead className="border-b bg-slate-50 dark:bg-slate-800">
-                                        <tr>
-                                            <th className="text-left p-3 text-sm font-medium">Timestamp</th>
-                                            <th className="text-left p-3 text-sm font-medium">Provider / Model</th>
-                                            <th className="text-left p-3 text-sm font-medium">App</th>
-                                            <th className="text-right p-3 text-sm font-medium">Tokens</th>
-                                            <th className="text-right p-3 text-sm font-medium">Cost</th>
-                                            <th className="text-right p-3 text-sm font-medium">Speed</th>
-                                            <th className="text-left p-3 text-sm font-medium">Finish</th>
-                                            <th className="text-left p-3 text-sm font-medium">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {logs.map((log, index) => (
-                                            <tr key={log.id} className={index % 2 === 0 ? 'bg-white dark:bg-slate-950' : 'bg-slate-50 dark:bg-slate-900'}>
-                                                <td className="p-3 text-sm text-slate-600">
-                                                    {format(new Date(log.createdAt), 'MMM dd, HH:mm')}
-                                                </td>
-                                                <td className="p-3 text-sm">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                                        <span className="font-medium">{log.model}</span>
-                                                    </div>
-                                                    <div className="text-xs text-slate-500 mt-1">{log.endpoint}</div>
-                                                </td>
-                                                <td className="p-3 text-sm">
-                                                    <span className="text-slate-600">Unknown</span>
-                                                    <ExternalLink className="w-3 h-3 text-slate-400 inline ml-1" />
-                                                </td>
-                                                <td className="p-3 text-sm text-right">
-                                                    <div className="font-medium">{log.tokensUsed?.toLocaleString() || 0}</div>
-                                                    <div className="text-xs text-slate-500">{log.tokensUsed || 0}</div>
-                                                </td>
-                                                <td className="p-3 text-sm text-right">
-                                                    <div className="font-medium">$</div>
-                                                    <div className="text-xs text-slate-500">0.000000</div>
-                                                </td>
-                                                <td className="p-3 text-sm text-right">
-                                                    <div className="font-medium">{((log.responseTimeMs || 0) / 1000).toFixed(1)} tps</div>
-                                                    <div className="text-xs text-slate-500">{log.responseTimeMs || 0}ms</div>
-                                                </td>
-                                                <td className="p-3 text-sm">
-                                                    <span className="text-slate-600">{log.statusCode === 200 ? 'length' : 'stop'}</span>
-                                                </td>
-                                                <td className="p-3">
-                                                    <Badge
-                                                        variant={log.statusCode === 200 ? 'secondary' : 'destructive'}
-                                                        className="text-xs"
-                                                    >
-                                                        {log.statusCode}
-                                                    </Badge>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ) : (
-                            <div className="text-center py-12">
-                                <BarChart3 className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                                <h3 className="text-lg font-medium text-slate-600 mb-2">No API usage yet</h3>
-                                <p className="text-sm text-slate-500 mb-4">Start making API calls to see your usage logs here</p>
-                                <Button variant="outline" onClick={() => window.open('/docs/api-reference/test', '_blank')}>
-                                    <ExternalLink className="w-4 h-4 mr-2" />
-                                    Try API Testing
-                                </Button>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {logs.length > 0 && logsData && logsData.totalPages > 1 && (
-                    <div className="flex items-center justify-between">
-                        <p className="text-sm text-slate-500">
-                            Showing {logs.length} of {logsData.total} results
-                        </p>
-                        <div className="text-sm text-slate-500">
-                            Page {logsData.page} of {logsData.totalPages}
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    };
-
     const AnalyticsTab = () => {
         if (!analyticsData) {
             return (
@@ -924,7 +680,7 @@ export default function APIIntegrationsPage() {
                             <TabsTrigger value="analytics" data-testid="analytics-tab">Analytics</TabsTrigger>
                         </TabsList>
                         <TabsContent value="logs">
-                            <LogsTab />
+                            <UsageLogsPage />
                         </TabsContent>
                         <TabsContent value="analytics">
                             <AnalyticsTab />
