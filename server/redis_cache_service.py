@@ -4,7 +4,7 @@ import hashlib
 import time
 import logging
 import ssl
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List, Tuple, Union
 from dataclasses import dataclass
 
 # Try to import Redis and ML libraries with fallbacks
@@ -174,7 +174,7 @@ class RedisCacheService:
         
         return None
     
-    def _find_semantic_match(self, query_embedding: List[float], model: str, endpoint_type: str) -> Optional[CacheEntry]:
+    def _find_semantic_match(self, query_embedding: List[float], model: str, endpoint_type: str, threshold: float = None) -> Optional[CacheEntry]:
         """Find semantically similar cached response."""
         if not self.redis_client or not ML_AVAILABLE or not np or not cosine_similarity:
             return None
@@ -209,7 +209,10 @@ class RedisCacheService:
                     cached_embedding_np = np.array(data["embedding"]).reshape(1, -1)
                     similarity = cosine_similarity(query_embedding_np, cached_embedding_np)[0][0]
                     
-                    if similarity > best_similarity and similarity >= self.similarity_threshold:
+                    # Use custom threshold if provided, otherwise use default
+                    search_threshold = threshold if threshold is not None else self.similarity_threshold
+                    
+                    if similarity > best_similarity and similarity >= search_threshold:
                         best_similarity = similarity
                         best_match = CacheEntry(
                             request=data["request"],
@@ -231,19 +234,20 @@ class RedisCacheService:
             logger.error(f"Failed to find semantic match: {e}")
             return None
     
-    def get_cached_response(self, request_data: Dict[str, Any], endpoint_type: str) -> Optional[Dict[str, Any]]:
+    def get_cached_response(self, request_data: Dict[str, Any], endpoint_type: str, threshold: float = None) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
         """
         Get cached response with exact match first, then semantic search.
         
         Args:
             request_data: The request payload
             endpoint_type: "completion" or "chat"
+            threshold: Custom semantic similarity threshold (overrides default)
         
         Returns:
-            Cached response data or None if no match found
+            Tuple of (cached response data, cache type) or (None, None) if no match found
         """
         if not self.redis_client:
-            return None
+            return None, None
         
         # Try exact match first
         cache_key = self._generate_cache_key(request_data, endpoint_type)
@@ -251,7 +255,7 @@ class RedisCacheService:
         
         if exact_match:
             logger.info(f"Cache HIT (exact match): {cache_key}")
-            return exact_match.response
+            return exact_match.response, "exact"
         
         # Try semantic search if embedding model is available
         if self.embedding_model:
@@ -259,18 +263,22 @@ class RedisCacheService:
             query_embedding = self._generate_embedding(text_content)
             
             if query_embedding:
+                # Use custom threshold if provided, otherwise use default
+                search_threshold = threshold if threshold is not None else self.similarity_threshold
+                
                 semantic_match = self._find_semantic_match(
                     query_embedding, 
                     request_data.get("model"), 
-                    endpoint_type
+                    endpoint_type,
+                    search_threshold
                 )
                 
                 if semantic_match:
                     logger.info(f"Cache HIT (semantic match): {cache_key}")
-                    return semantic_match.response
+                    return semantic_match.response, "semantic"
         
         logger.info(f"Cache MISS: {cache_key}")
-        return None
+        return None, None
     
     def store_response(self, request_data: Dict[str, Any], response_data: Dict[str, Any], endpoint_type: str) -> bool:
         """

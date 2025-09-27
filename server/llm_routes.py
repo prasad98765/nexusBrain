@@ -1,10 +1,14 @@
 import os
 import requests
 import logging
+import hashlib
+import time
+from datetime import datetime
 from flask import Blueprint, request, jsonify
 
 from .auth_utils import require_auth
 from .redis_cache_service import get_cache_service
+from .models import db, ApiToken, ApiUsageLog
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -18,6 +22,122 @@ OPENROUTER_BASE_URL_FOR_MODELS_AND_PROVIDERS = "https://openrouter.ai/api/v1"
 
 
 # ——— Helpers ———
+
+def get_api_token_from_request():
+    """Extract and validate API token from Authorization header."""
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return None, "Missing or invalid Authorization header"
+    
+    token = auth_header[7:]  # Remove 'Bearer ' prefix
+    if not token.startswith('nxs-'):
+        return None, "Invalid token format"
+    
+    # Hash the token to find it in database
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    
+    # Look up token in database
+    api_token = ApiToken.query.filter_by(token=token_hash, is_active=True).first()
+    if not api_token:
+        return None, "Invalid or inactive API token"
+    
+    # Update last used timestamp
+    api_token.last_used_at = datetime.utcnow()
+    db.session.commit()
+    
+    return api_token, None
+
+
+def log_api_usage(api_token, endpoint, method, payload, response_data, status_code, 
+                  response_time_ms, cached=False, cache_type=None, error_message=None):
+    """Create comprehensive API usage log entry."""
+    try:
+        # Extract model information
+        model = payload.get('model', 'unknown')
+        
+        # Parse OpenRouter response for detailed information
+        usage_data = {}
+        if response_data and isinstance(response_data, dict):
+            # Extract generation ID
+            generation_id = response_data.get('id')
+            
+            # Extract model information
+            model_permaslug = response_data.get('model')
+            provider = response_data.get('provider')
+            
+            # Extract usage information
+            usage = response_data.get('usage', {})
+            prompt_tokens = usage.get('prompt_tokens', 0)
+            completion_tokens = usage.get('completion_tokens', 0)
+            reasoning_tokens = usage.get('completion_tokens_details', {}).get('reasoning_tokens', 0)
+            total_tokens = usage.get('total_tokens', prompt_tokens + completion_tokens)
+            
+            # Calculate cost based on tokens (simplified - would need pricing data)
+            cost = total_tokens * 0.00001  # Placeholder cost calculation
+            
+            # Extract performance metrics
+            first_token_latency = None
+            throughput = None
+            finish_reason = None
+            
+            if 'choices' in response_data and response_data['choices']:
+                first_choice = response_data['choices'][0]
+                finish_reason = first_choice.get('finish_reason')
+                
+                # Calculate throughput if we have timing data
+                if response_time_ms and completion_tokens:
+                    throughput = (completion_tokens / response_time_ms) * 1000  # tokens per second
+            
+            usage_data = {
+                'generation_id': generation_id,
+                'model_permaslug': model_permaslug,
+                'provider': provider,
+                'prompt_tokens': prompt_tokens,
+                'completion_tokens': completion_tokens,
+                'reasoning_tokens': reasoning_tokens,
+                'usage': cost,
+                'finish_reason': finish_reason,
+                'first_token_latency': first_token_latency,
+                'throughput': throughput
+            }
+        
+        # Create log entry
+        log_entry = ApiUsageLog(
+            token_id=api_token.id,
+            workspace_id=api_token.workspace_id,
+            endpoint=endpoint,
+            model=model,
+            model_permaslug=usage_data.get('model_permaslug'),
+            provider=usage_data.get('provider'),
+            method=method,
+            status_code=status_code,
+            tokens_used=usage_data.get('prompt_tokens', 0) + usage_data.get('completion_tokens', 0),
+            prompt_tokens=usage_data.get('prompt_tokens'),
+            completion_tokens=usage_data.get('completion_tokens'),
+            reasoning_tokens=usage_data.get('reasoning_tokens'),
+            usage=usage_data.get('usage'),
+            requests=1,
+            generation_id=usage_data.get('generation_id'),
+            finish_reason=usage_data.get('finish_reason'),
+            first_token_latency=usage_data.get('first_token_latency'),
+            throughput=usage_data.get('throughput'),
+            response_time_ms=response_time_ms,
+            error_message=error_message,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent'),
+            cached=cached,
+            cache_type=cache_type
+        )
+        
+        db.session.add(log_entry)
+        db.session.commit()
+        
+        logger.info(f"Logged API usage - Model: {model}, Tokens: {usage_data.get('prompt_tokens', 0) + usage_data.get('completion_tokens', 0)}, Cached: {cached}")
+        
+    except Exception as e:
+        logger.error(f"Failed to log API usage: {e}")
+        db.session.rollback()
+
 
 def get_openrouter_headers():
     return {
@@ -108,13 +228,19 @@ def get_providers():
 
 
 @api_llm_routes.route("/v1/create", methods=["POST"])
-@require_auth
 def create_completion():
+    start_time = time.time()
+    
+    # Get and validate API token
+    api_token, token_error = get_api_token_from_request()
+    if token_error:
+        return jsonify({"error": token_error}), 401
+    
     data = request.get_json(force=True)
     if not data:
         return jsonify({"error": "Request body must be JSON"}), 400
 
-    # According to OpenRouter docs, completions require at least `model` and `prompt` :contentReference[oaicite:1]{index=1}
+    # According to OpenRouter docs, completions require at least `model` and `prompt`
     err = validate_fields(data, {
         "model": is_nonempty_string,
         "prompt": is_nonempty_string,
@@ -123,7 +249,6 @@ def create_completion():
         return jsonify({"error": err}), 400
 
     # Construct payload with all supported (and optionally passed) parameters
-    # Based on OpenRouter "Completion" docs — only `model`, `prompt`, plus optional fields allowed
     payload = {
         "model": data["model"],
         "prompt": data["prompt"],
@@ -131,63 +256,103 @@ def create_completion():
 
     # Optional parameters (per docs) — only include if present
     for opt in [
-        "max_tokens",
-        "temperature",
-        "top_p",
-        "stop",
-        "stream",
-        "seed",
-        "logit_bias",
-        "top_logprobs",
-        "presence_penalty",
-        "frequency_penalty",
-        "repetition_penalty",
-        "min_p",
-        "top_k",
-        "top_a",
-        "response_format",
-        "transforms",
-        "models",  # routing override
-        "tools",
-        "tool_choice",
-        "prediction",
+        "max_tokens", "temperature", "top_p", "stop", "stream", "seed", "logit_bias",
+        "top_logprobs", "presence_penalty", "frequency_penalty", "repetition_penalty",
+        "min_p", "top_k", "top_a", "response_format", "transforms", "models",
+        "tools", "tool_choice", "prediction",
     ]:
         if opt in data:
             payload[opt] = data[opt]
 
-    # Also optional fields for user and metadata (OpenRouter supports user) :contentReference[oaicite:2]{index=2}
+    # Also optional fields for user and metadata
     if "user" in data:
         payload["user"] = data["user"]
     if "metadata" in data:
         payload["metadata"] = data["metadata"]
 
-    # Check Redis cache first (requires REDIS_URL environment variable)
-    cache_service = get_cache_service()
-    cached_response = cache_service.get_cached_response(payload, "completion")
+    # Check cache if caching is enabled
+    cached_response = None
+    cache_type = None
+    
+    if api_token.caching_enabled:
+        cache_service = get_cache_service()
+        # Pass the semantic cache threshold from the API token
+        cached_response, cache_type = cache_service.get_cached_response(
+            payload, "completion", threshold=api_token.semantic_cache_threshold
+        )
+    
+    response_time_ms = int((time.time() - start_time) * 1000)
     
     if cached_response:
-        logger.info(f"Cache HIT for completion model: {payload['model']}")
+        logger.info(f"Cache HIT ({cache_type}) for completion model: {payload['model']}")
+        
+        # Log cache hit
+        log_api_usage(
+            api_token=api_token,
+            endpoint="/v1/create",
+            method="POST",
+            payload=payload,
+            response_data=cached_response,
+            status_code=200,
+            response_time_ms=response_time_ms,
+            cached=True,
+            cache_type=cache_type
+        )
+        
         return jsonify(cached_response), 200
     
     # Cache miss - forward to OpenRouter
     logger.info(f"Cache MISS for completion model: {payload['model']} - forwarding to OpenRouter")
     response, status_code = forward_to_openrouter("/completions", payload)
     
-    # Store successful responses in cache
+    response_time_ms = int((time.time() - start_time) * 1000)
+    response_data = None
+    error_message = None
+    
+    # Store successful responses in cache and extract data for logging
     if status_code == 200:
         try:
             response_data = response.get_json() if hasattr(response, 'get_json') else response.json
-            cache_service.store_response(payload, response_data, "completion")
-            logger.info(f"Stored completion response in cache for model: {payload['model']}")
+            
+            if api_token.caching_enabled:
+                cache_service.store_response(payload, response_data, "completion")
+                logger.info(f"Stored completion response in cache for model: {payload['model']}")
+                
         except Exception as e:
             logger.error(f"Failed to store completion response in cache: {e}")
+    else:
+        # Handle error responses
+        try:
+            response_data = response.get_json() if hasattr(response, 'get_json') else response.json
+            error_message = response_data.get('error', 'Unknown error') if response_data else 'Unknown error'
+        except:
+            error_message = 'Failed to parse error response'
+    
+    # Log API usage
+    log_api_usage(
+        api_token=api_token,
+        endpoint="/v1/create",
+        method="POST",
+        payload=payload,
+        response_data=response_data,
+        status_code=status_code,
+        response_time_ms=response_time_ms,
+        cached=False,
+        error_message=error_message
+    )
     
     return response, status_code
 
 
 @api_llm_routes.route("/v1/chat/create", methods=["POST"])
-@require_auth
 def create_chat_completion():
+    start_time = time.time()
+    
+    # Get and validate API token
+    api_token, token_error = get_api_token_from_request()
+    if token_error:
+        return jsonify({"error": token_error}), 401
+    
     data = request.get_json(force=True)
     if not data:
         return jsonify({"error": "Request body must be JSON"}), 400
@@ -236,26 +401,76 @@ def create_chat_completion():
     if "metadata" in data:
         payload["metadata"] = data["metadata"]
 
-    # Check Redis cache first (requires REDIS_URL environment variable)
-    cache_service = get_cache_service()
-    cached_response = cache_service.get_cached_response(payload, "chat")
+    # Check cache if caching is enabled
+    cached_response = None
+    cache_type = None
+    
+    if api_token.caching_enabled:
+        cache_service = get_cache_service()
+        # Pass the semantic cache threshold from the API token
+        cached_response, cache_type = cache_service.get_cached_response(
+            payload, "chat", threshold=api_token.semantic_cache_threshold
+        )
+    
+    response_time_ms = int((time.time() - start_time) * 1000)
     
     if cached_response:
-        logger.info(f"Cache HIT for chat model: {payload['model']}")
+        logger.info(f"Cache HIT ({cache_type}) for chat model: {payload['model']}")
+        
+        # Log cache hit
+        log_api_usage(
+            api_token=api_token,
+            endpoint="/v1/chat/create",
+            method="POST",
+            payload=payload,
+            response_data=cached_response,
+            status_code=200,
+            response_time_ms=response_time_ms,
+            cached=True,
+            cache_type=cache_type
+        )
+        
         return jsonify(cached_response), 200
     
     # Cache miss - forward to OpenRouter
     logger.info(f"Cache MISS for chat model: {payload['model']} - forwarding to OpenRouter")
     response, status_code = forward_to_openrouter("/chat/completions", payload)
     
-    # Store successful responses in cache
+    response_time_ms = int((time.time() - start_time) * 1000)
+    response_data = None
+    error_message = None
+    
+    # Store successful responses in cache and extract data for logging
     if status_code == 200:
         try:
             response_data = response.get_json() if hasattr(response, 'get_json') else response.json
-            cache_service.store_response(payload, response_data, "chat")
-            logger.info(f"Stored chat response in cache for model: {payload['model']}")
+            
+            if api_token.caching_enabled:
+                cache_service.store_response(payload, response_data, "chat")
+                logger.info(f"Stored chat response in cache for model: {payload['model']}")
+                
         except Exception as e:
             logger.error(f"Failed to store chat response in cache: {e}")
+    else:
+        # Handle error responses
+        try:
+            response_data = response.get_json() if hasattr(response, 'get_json') else response.json
+            error_message = response_data.get('error', 'Unknown error') if response_data else 'Unknown error'
+        except:
+            error_message = 'Failed to parse error response'
+    
+    # Log API usage
+    log_api_usage(
+        api_token=api_token,
+        endpoint="/v1/chat/create",
+        method="POST",
+        payload=payload,
+        response_data=response_data,
+        status_code=status_code,
+        response_time_ms=response_time_ms,
+        cached=False,
+        error_message=error_message
+    )
     
     return response, status_code
 
