@@ -56,6 +56,7 @@ import type { ApiToken, ApiUsageLog, ApiTokenResponse, InsertApiToken, UsageAnal
 import { useAuth } from '@/hooks/useAuth';
 import axios from 'axios';
 import UsageLogsPage from './usage-logs';
+import QATable from '@/components/qa/QATable';
 
 export default function APIIntegrationsPage() {
     const [cachingEnabled, setCachingEnabled] = useState(true);
@@ -677,13 +678,13 @@ export default function APIIntegrationsPage() {
                     <Tabs defaultValue="logs" className="space-y-4">
                         <TabsList className="grid w-full grid-cols-2">
                             <TabsTrigger value="logs" data-testid="logs-tab">Usage Logs</TabsTrigger>
-                            <TabsTrigger value="analytics" data-testid="analytics-tab">Analytics</TabsTrigger>
+                            <TabsTrigger value="qa" data-testid="qa-tab">Question & Answer</TabsTrigger>
                         </TabsList>
                         <TabsContent value="logs">
                             <UsageLogsPage />
                         </TabsContent>
-                        <TabsContent value="analytics">
-                            <AnalyticsTab />
+                        <TabsContent value="qa">
+                            <QATable />
                         </TabsContent>
                     </Tabs>
                 </>
