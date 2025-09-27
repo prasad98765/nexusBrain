@@ -57,6 +57,7 @@ def create_app():
     from server.conversation_routes import conversations_bp
     from server.api_tokens_routes import api_tokens_bp
     from server.llm_routes import api_llm_routes
+    from server.qa_routes import qa_bp
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(workspace_bp, url_prefix='/api')
     app.register_blueprint(conversation_bp, url_prefix='/api')
@@ -66,6 +67,7 @@ def create_app():
     app.register_blueprint(conversations_bp, url_prefix='/api')
     app.register_blueprint(api_tokens_bp, url_prefix='/api')
     app.register_blueprint(api_llm_routes, url_prefix='/api')
+    app.register_blueprint(qa_bp, url_prefix='/api')
     app.register_blueprint(static_bp)
     
     # Import send_file
