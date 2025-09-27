@@ -28,6 +28,7 @@ import FlowBuilderInner from "@/pages/flow-builder";
 import APIIntegrationsPage from "@/pages/API-integrations";
 import ApiDocumentation from "@/pages/api-documentation";
 import ApiTesting from "@/pages/api-testing";
+import UsageLogsPage from "@/pages/usage-logs";
 
 function Router() {
   const { isAuthenticated, isLoading, token } = useAuth();
@@ -111,6 +112,7 @@ function Router() {
               throw new Error("Function not implemented.");
             }} />} />
             <Route path="API-integrations" element={<APIIntegrationsPage />} />
+            <Route path="usage-logs" element={<UsageLogsPage />} />
           </Route>
           <Route path="/business-info" Component={BusinessInfoPage} />
           <Route path="/settings/contact-properties" Component={ContactPropertiesPage} />
