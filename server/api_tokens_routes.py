@@ -269,8 +269,15 @@ def get_usage_logs():
         
         # Get filter parameters
         model = request.args.get('model', 'all')
+        provider = request.args.get('provider', 'all')
         date_range = request.args.get('dateRange', 'last30')
+        start_date = request.args.get('startDate')
+        end_date = request.args.get('endDate')
         filter_type = request.args.get('filterType', 'all')
+        cached = request.args.get('cached', 'all')  # 'all', 'true', 'false'
+        cache_type = request.args.get('cacheType', 'all')  # 'all', 'exact', 'semantic'
+        finish_reason = request.args.get('finishReason', 'all')
+        status_code = request.args.get('statusCode', 'all')
         
         # Build base query
         query = ApiUsageLog.query.filter_by(workspace_id=workspace_id)
@@ -279,8 +286,39 @@ def get_usage_logs():
         if model != 'all':
             query = query.filter(ApiUsageLog.model == model)
         
+        # Apply provider filter
+        if provider != 'all':
+            query = query.filter(ApiUsageLog.provider == provider)
+        
+        # Apply cached filter
+        if cached == 'true':
+            query = query.filter(ApiUsageLog.cached == True)
+        elif cached == 'false':
+            query = query.filter(ApiUsageLog.cached == False)
+        
+        # Apply cache type filter
+        if cache_type != 'all':
+            query = query.filter(ApiUsageLog.cache_type == cache_type)
+        
+        # Apply finish reason filter
+        if finish_reason != 'all':
+            query = query.filter(ApiUsageLog.finish_reason == finish_reason)
+        
+        # Apply status code filter
+        if status_code != 'all':
+            query = query.filter(ApiUsageLog.status_code == int(status_code))
+        
         # Apply date range filter
-        if date_range == 'last24':
+        if start_date and end_date:
+            # Custom date range
+            from datetime import datetime as dt
+            try:
+                start = dt.fromisoformat(start_date.replace('Z', '+00:00'))
+                end = dt.fromisoformat(end_date.replace('Z', '+00:00'))
+                query = query.filter(ApiUsageLog.created_at.between(start, end))
+            except ValueError:
+                pass  # Invalid date format, ignore
+        elif date_range == 'last24':
             from datetime import timedelta
             cutoff = datetime.utcnow() - timedelta(hours=24)
             query = query.filter(ApiUsageLog.created_at >= cutoff)
@@ -314,13 +352,27 @@ def get_usage_logs():
                 'tokenId': log.token_id,
                 'endpoint': log.endpoint,
                 'model': log.model,
+                'modelPermaslug': log.model_permaslug,
+                'provider': log.provider,
                 'method': log.method,
                 'statusCode': log.status_code,
                 'tokensUsed': log.tokens_used,
+                'promptTokens': log.prompt_tokens,
+                'completionTokens': log.completion_tokens,
+                'reasoningTokens': log.reasoning_tokens,
+                'usage': log.usage,
+                'byokUsageInference': log.byok_usage_inference,
+                'requests': log.requests,
+                'generationId': log.generation_id,
+                'finishReason': log.finish_reason,
+                'firstTokenLatency': log.first_token_latency,
+                'throughput': log.throughput,
                 'responseTimeMs': log.response_time_ms,
                 'errorMessage': log.error_message,
                 'ipAddress': log.ip_address,
                 'userAgent': log.user_agent,
+                'cached': log.cached,
+                'cacheType': log.cache_type,
                 'createdAt': log.created_at.isoformat()
             })
         
