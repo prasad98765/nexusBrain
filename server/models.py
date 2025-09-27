@@ -152,6 +152,7 @@ class ApiToken(db.Model):
     workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
     user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
     caching_enabled = db.Column(db.Boolean, default=True)  # Caching preference
+    semantic_cache_threshold = db.Column(db.Float, default=0.5)  # Semantic similarity threshold (0.0-1.0), default 50%
     is_active = db.Column(db.Boolean, default=True)
     last_used_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -170,13 +171,27 @@ class ApiUsageLog(db.Model):
     workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
     endpoint = db.Column(db.String(100), nullable=False)  # /chat/completions, /completions, etc.
     model = db.Column(db.String(100), nullable=False)  # gpt-4, gpt-3.5-turbo, etc.
+    model_permaslug = db.Column(db.String(200), nullable=True)  # Detailed model version
+    provider = db.Column(db.String(50), nullable=True)  # OpenAI, Anthropic, etc.
     method = db.Column(db.String(10), default='POST')  # HTTP method
     status_code = db.Column(db.Integer, nullable=False)  # 200, 400, 500, etc.
-    tokens_used = db.Column(db.Integer, default=0)  # Number of tokens consumed
+    tokens_used = db.Column(db.Integer, default=0)  # Total tokens consumed
+    prompt_tokens = db.Column(db.Integer, nullable=True)  # Prompt tokens
+    completion_tokens = db.Column(db.Integer, nullable=True)  # Completion tokens
+    reasoning_tokens = db.Column(db.Integer, nullable=True)  # Reasoning tokens
+    usage = db.Column(db.Float, nullable=True)  # Cost in USD
+    byok_usage_inference = db.Column(db.Float, nullable=True)  # BYOK usage cost
+    requests = db.Column(db.Integer, default=1)  # Number of requests
+    generation_id = db.Column(db.String(100), nullable=True)  # OpenRouter generation ID
+    finish_reason = db.Column(db.String(50), nullable=True)  # Completion finish reason
+    first_token_latency = db.Column(db.Float, nullable=True)  # First token latency in seconds
+    throughput = db.Column(db.Float, nullable=True)  # Tokens per second
     response_time_ms = db.Column(db.Integer, nullable=True)  # Response time in milliseconds
     error_message = db.Column(db.Text, nullable=True)  # Error message if any
     ip_address = db.Column(db.String(45), nullable=True)  # Client IP address
     user_agent = db.Column(db.String(500), nullable=True)  # Client user agent
+    cached = db.Column(db.Boolean, default=False)  # Whether response was served from cache
+    cache_type = db.Column(db.String(20), nullable=True)  # "exact" or "semantic"
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships

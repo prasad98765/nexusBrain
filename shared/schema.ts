@@ -143,6 +143,7 @@ export interface ApiToken {
   workspaceId: string;
   userId: string;
   cachingEnabled: boolean;
+  semanticCacheThreshold: number;  // 0.0-1.0, semantic similarity threshold for caching
   isActive: boolean;
   lastUsedAt?: string;
   createdAt: string;
@@ -155,13 +156,27 @@ export interface ApiUsageLog {
   workspaceId: string;
   endpoint: string;
   model: string;
+  modelPermaslug?: string;  // e.g., "openai/gpt-4.1-2025-04-14"
+  provider?: string;  // e.g., "OpenAI"
   method: string;
   statusCode: number;
-  tokensUsed: number;
+  tokensUsed: number;  // Total tokens
+  promptTokens?: number;
+  completionTokens?: number;
+  reasoningTokens?: number;
+  usage?: number;  // Cost in USD
+  byokUsageInference?: number;  // BYOK usage cost
+  requests?: number;  // Number of requests (usually 1)
+  generationId?: string;  // OpenRouter generation ID
+  finishReason?: string;  // e.g., "length", "stop"
+  firstTokenLatency?: number;  // First token latency in seconds
+  throughput?: number;  // Tokens per second
   responseTimeMs?: number;
   errorMessage?: string;
   ipAddress?: string;
   userAgent?: string;
+  cached?: boolean;  // Whether response was served from cache
+  cacheType?: string;  // "exact" or "semantic"
   createdAt: string;
 }
 
@@ -170,6 +185,7 @@ export interface InsertApiToken {
   workspaceId: string;
   userId: string;
   cachingEnabled?: boolean;
+  semanticCacheThreshold?: number;  // Default 0.5 (50%)
 }
 
 // API Token response with plaintext token (only shown once)
@@ -180,6 +196,7 @@ export interface ApiTokenResponse {
   workspaceId: string;
   userId: string;
   cachingEnabled: boolean;
+  semanticCacheThreshold: number;
   isActive: boolean;
   createdAt: string;
 }

@@ -1,0 +1,91 @@
+### 1. Threshold Handling During Token Generation
+
+* At the time of **token generation** (when user enables caching), ask the user to set a threshold value.
+* Default threshold = **50%**.
+* Display information to the user:
+
+  * There are **two caching options**:
+
+    * Exact caching (no threshold required).
+    * Semantic caching (requires threshold).
+  * For example: “If similarity between queries is greater than 0.7 (70%), we reuse cached result.”
+* Store the selected threshold in the **DB** linked to that token (so that it persists).
+* Add logic in the backend to use this threshold for semantic cache lookups.
+
+### 2. Logs Storage
+
+* We already have APIs:
+
+  * `api_tokens_routers.py` → `tokens/usage-logs`
+  * `llm_routes.py` → `chat/create` and `/create`
+* After calling **OpenRouter** API, we get a JSON response like:
+
+```json
+{
+  "choices": [
+    {
+      "finish_reason": "length",
+      "index": 0,
+      "message": { "content": "PCCOE,", "role": "assistant" }
+    }
+  ],
+  "id": "gen-1758916571-FwxoOx3AGbIOlsNxaack",
+  "model": "openai/gpt-4o-mini",
+  "usage": {
+    "completion_tokens": 250,
+    "prompt_tokens": 26,
+    "total_tokens": 276
+  }
+}
+```
+
+* From this response, store logs in DB in the following format:
+
+```json
+{
+  "date": "2025-01-15",
+  "model": "openai/gpt-4.1",
+  "model_permaslug": "openai/gpt-4.1-2025-04-14",
+  "endpoint_id": "c235abe8-11cc-42d3-95ad-72f4d198287a",
+  "provider_name": "openai",
+  "usage": 0.05,
+  "byok_usage_inference": 0.02,
+  "requests": 10,
+  "prompt_tokens": 1500,
+  "completion_tokens": 800,
+  "reasoning_tokens": 200
+}
+```
+
+* Implement **pagination + filtering** for logs API so frontend can query logs by:
+
+  * Date range
+  * Model
+  * Provider
+
+### 3. Logs UI
+
+* Create a UI page for **Usage Logs**:
+
+  * Display logs in a **table view** with columns:
+
+    * Date
+    * Model
+    * Provider
+    * Requests
+    * Prompt Tokens
+    * Completion Tokens
+    * Reasoning Tokens
+    * Usage (cost)
+  * Support **pagination & filters** in the table.
+  * Add a **“Details” button** on each row:
+
+    * When clicked, show all details of the selected log (modal or side panel).
+    * Use the design from the provided reference image.
+
+### Deliverables
+
+* Backend changes for threshold + semantic caching + logs storing.
+* Updated logs API with pagination & filtering.
+* Frontend UI for usage logs with table + details view.
+* Example default threshold = 50% (user can override).
