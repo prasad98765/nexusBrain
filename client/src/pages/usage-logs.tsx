@@ -175,7 +175,7 @@ function LogDetailsModal({ log, open, onOpenChange }: LogDetailsModalProps) {
                     {log.statusCode}
                   </Badge>
                 </div>
-                {log.finishReason && (
+                {/* {log.finishReason && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Finish Reason:</span>
                     <span>{log.finishReason}</span>
@@ -184,7 +184,7 @@ function LogDetailsModal({ log, open, onOpenChange }: LogDetailsModalProps) {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Response Time:</span>
                   <span>{formatLatency(log.responseTimeMs)}</span>
-                </div>
+                </div> */}
                 {log.firstTokenLatency && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">First Token:</span>
@@ -209,10 +209,7 @@ function LogDetailsModal({ log, open, onOpenChange }: LogDetailsModalProps) {
                 Token Usage
               </h3>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Tokens:</span>
-                  <span className="font-semibold">{log.tokensUsed?.toLocaleString()}</span>
-                </div>
+
                 {log.promptTokens && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Prompt Tokens:</span>
@@ -225,6 +222,10 @@ function LogDetailsModal({ log, open, onOpenChange }: LogDetailsModalProps) {
                     <span>{log.completionTokens.toLocaleString()}</span>
                   </div>
                 )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Tokens:</span>
+                  <span className="font-semibold">{log.tokensUsed?.toLocaleString()}</span>
+                </div>
                 {/* {log.reasoningTokens && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Reasoning Tokens:</span>
@@ -241,9 +242,7 @@ function LogDetailsModal({ log, open, onOpenChange }: LogDetailsModalProps) {
                             <Info className="w-4 h-4 cursor-pointer text-muted-foreground" />
                           </TooltipTrigger>
                           <TooltipContent side="right">
-                            <p>Include</p>
-                            <p>Overhead: $0.001</p>
-                            <p>Markup: 50%</p>
+                            <p>Include platform fee (5.5%)</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -627,7 +626,7 @@ export default function UsageLogsPage() {
               <TableHead>Provider</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Tokens</TableHead>
-              <TableHead>Duration</TableHead>
+              {/* <TableHead>Duration</TableHead> */}
               <TableHead>Cache</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -679,9 +678,9 @@ export default function UsageLogsPage() {
                   <TableCell className="font-mono">
                     {formatTokens(log.tokensUsed)}
                   </TableCell>
-                  <TableCell className="font-mono">
+                  {/* <TableCell className="font-mono">
                     {formatDuration(log.responseTimeMs)}
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell>
                     {getCacheBadge(log.cached, log.cacheType)}
                   </TableCell>

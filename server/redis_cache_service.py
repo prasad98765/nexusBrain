@@ -38,7 +38,7 @@ class CacheEntry:
 
 class RedisCacheService:
     def __init__(self, 
-                 redis_url: Optional[str] = "redis://default:vmVLEc2mvOk5VlB1ZDyGgCuJ81SmpCP5@redis-14311.crce206.ap-south-1-1.ec2.redns.redis-cloud.com:14311",
+                 redis_url: Optional[str] = os.getenv("REDIS_URL"),
                  similarity_threshold: float = 0.50,
                  embedding_model: str = "all-MiniLM-L6-v2"):
         self.redis_url = redis_url or os.getenv("REDIS_URL")

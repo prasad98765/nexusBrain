@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 
 api_llm_routes = Blueprint("api_llm_routes", __name__)
 
-# OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_API_KEY = "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"  # Replace with your actual key or use environment variable
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+# OPENROUTER_API_KEY =  # Replace with your actual key or use environment variable
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 OPENROUTER_BASE_URL_FOR_MODELS_AND_PROVIDERS = "https://openrouter.ai/api/v1"
 
@@ -48,7 +48,15 @@ def get_api_token_from_request():
     
     return api_token, None
 
-
+def format_cost(value: float) -> str:
+    """Format cost with adaptive precision."""
+    if value == 0:
+        return "$0.000000"
+    elif value < 1e-6:
+        return f"${value:.15f}"
+    else:
+        return f"${value:.6f}"
+    
 def log_api_usage(api_token, endpoint, method, payload, response_data, status_code, 
                   response_time_ms, cached=False, cache_type=None, error_message=None):
     """Create comprehensive API usage log entry."""
@@ -71,11 +79,39 @@ def log_api_usage(api_token, endpoint, method, payload, response_data, status_co
             prompt_tokens = usage.get('prompt_tokens', 0)
             completion_tokens = usage.get('completion_tokens', 0)
             reasoning_tokens = usage.get('completion_tokens_details', {}).get('reasoning_tokens', 0)
-            total_tokens = usage.get('total_tokens', prompt_tokens + completion_tokens)
-            
-            # Calculate cost based on tokens (simplified - would need pricing data)
-            cost = total_tokens * 0.00001  # Placeholder cost calculation
-            
+            import json
+
+            # Load model pricing
+            with open("shared/llm_details.json") as f:
+                llm_details = json.load(f)
+
+            model_pricing = next(
+                (item for item in llm_details.get("data", []) if item.get("canonical_slug") == model_permaslug),
+                None,
+            )
+            # Extract per-token rates
+            prompt_price = float(model_pricing["pricing"].get("prompt", 0))
+            completion_price = float(model_pricing["pricing"].get("completion", 0))
+            reasoning_price = float(model_pricing["pricing"].get("internal_reasoning", 0))
+
+            # Extract token counts
+            prompt_tokens = usage.get("prompt_tokens", 0)
+            completion_tokens = usage.get("completion_tokens", 0)
+            reasoning_tokens = usage.get("completion_tokens_details", {}).get("reasoning_tokens", 0)
+
+            # Calculate base cost
+            base_cost = (
+                prompt_tokens * prompt_price +
+                completion_tokens * completion_price +
+                reasoning_tokens * reasoning_price
+            )
+
+            # Apply platform fee (5.5% for non-crypto)
+            final_cost = base_cost * 1.055
+
+            logger.info(f"API Usage - Model: {final_cost}")
+
+
             # Extract performance metrics
             first_token_latency = None
             throughput = None
@@ -96,7 +132,7 @@ def log_api_usage(api_token, endpoint, method, payload, response_data, status_co
                 'prompt_tokens': prompt_tokens,
                 'completion_tokens': completion_tokens,
                 'reasoning_tokens': reasoning_tokens,
-                'usage': cost,
+                'usage': final_cost,
                 'finish_reason': finish_reason,
                 'first_token_latency': first_token_latency,
                 'throughput': throughput
