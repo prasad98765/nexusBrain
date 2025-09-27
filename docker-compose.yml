@@ -52,9 +52,6 @@ services:
     ports:
       - "5001:5000"
     environment:
-      # - DATABASE_URL=postgresql+psycopg://sonar:sonar123@43.204.3.223:5432/postgres
-      # - REDIS_URL=redis://default:vmVLEc2mvOk5VlB1ZDyGgCuJ81SmpCP5@redis-14311.crce206.ap-south-1-1.ec2.redns.redis-cloud.com:14311
-      # - OPENROUTER_API_KEY=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
 
   pgadmin:
     image: dpage/pgadmin4
