@@ -175,13 +175,13 @@ function LogDetailsModal({ log, open, onOpenChange }: LogDetailsModalProps) {
                     {log.statusCode}
                   </Badge>
                 </div>
-                {/* {log.finishReason && (
+                {log.finishReason && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Finish Reason:</span>
                     <span>{log.finishReason}</span>
                   </div>
                 )}
-                <div className="flex justify-between">
+                {/* <div className="flex justify-between">
                   <span className="text-muted-foreground">Response Time:</span>
                   <span>{formatLatency(log.responseTimeMs)}</span>
                 </div> */}
