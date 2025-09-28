@@ -19,10 +19,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
@@ -91,53 +91,72 @@ function EditAnswerPopover({ entry, open, onOpenChange, onSave, isSaving }: Edit
   };
 
   return (
-    <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
         <Button variant="ghost" size="sm" data-testid={`button-edit-answer-${entry.id}`}>
           <Edit className="w-4 h-4" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-96" data-testid="popover-edit-answer">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <h4 className="font-medium">Edit Answer</h4>
-            <p className="text-sm text-muted-foreground">
-              Model: <Badge variant="secondary">{entry.model}</Badge>
-            </p>
+      </DialogTrigger>
+      <DialogContent
+        className="w-[480px] p-6 fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 shadow-lg animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
+        data-testid="popover-edit-answer"
+        style={{
+          position: 'fixed',
+          zIndex: 50,
+          color: "white"
+        }}
+      >
+        <div className="space-y-6">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-lg font-semibold">Edit Answer</h4>
+              <Badge variant="outline" className="px-2 py-1">
+                {entry.model}
+              </Badge>
+            </div>
+            <div className="h-px bg-border" />
           </div>
-          
+
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Question</Label>
-            <div className="p-2 bg-muted rounded-md text-sm">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-muted-foreground" />
+              Question
+            </Label>
+            <div className="p-3 bg-muted/50 rounded-lg text-sm border">
               {entry.question}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="answer-edit">Answer</Label>
+            <Label htmlFor="answer-edit" className="text-sm font-medium flex items-center gap-2">
+              <Brain className="w-4 h-4 text-muted-foreground" />
+              Answer
+            </Label>
             <Textarea
               id="answer-edit"
               value={editedAnswer}
               onChange={(e) => setEditedAnswer(e.target.value)}
-              placeholder="Enter the answer..."
-              className="min-h-[100px]"
+              placeholder="Enter your revised answer..."
+              className="min-h-[150px] text-sm resize-none border-2 focus-visible:ring-2"
               maxLength={10000}
               data-testid="textarea-edit-answer"
             />
-            <p className="text-xs text-muted-foreground">
-              {editedAnswer.length}/10000 characters
-            </p>
+            <div className="flex justify-between items-center text-xs text-muted-foreground">
+              <span>Use clear and concise language</span>
+              <span>{editedAnswer.length}/10000 characters</span>
+            </div>
           </div>
 
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-3 pt-2">
             <Button
               variant="outline"
               size="sm"
               onClick={handleCancel}
               disabled={isSaving}
               data-testid="button-cancel-edit"
+              className="px-4"
             >
-              <X className="w-4 h-4 mr-1" />
+              <X className="w-4 h-4 mr-2" />
               Cancel
             </Button>
             <Button
@@ -145,23 +164,24 @@ function EditAnswerPopover({ entry, open, onOpenChange, onSave, isSaving }: Edit
               onClick={handleSave}
               disabled={isSaving || !editedAnswer.trim() || editedAnswer === entry.answer}
               data-testid="button-save-edit"
+              className="px-4"
             >
               {isSaving ? (
                 <>
-                  <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
-                  Saving...
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Saving Changes...
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4 mr-1" />
-                  Save
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
                 </>
               )}
             </Button>
           </div>
         </div>
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -169,13 +189,13 @@ export default function QATable() {
   const { user, token } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // State for filters and pagination
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [search, setSearch] = useState('');
   const [modelFilter, setModelFilter] = useState('all');
-  
+
   // State for edit popover
   const [editingEntry, setEditingEntry] = useState<QAEntry | null>(null);
   const [editPopoverOpen, setEditPopoverOpen] = useState(false);
@@ -199,7 +219,6 @@ export default function QATable() {
       );
       return response.data;
     },
-    enabled: !!user?.workspace_id && !!token,
     staleTime: 30 * 1000, // 30 seconds
   });
 
@@ -316,7 +335,7 @@ export default function QATable() {
               <p>Coming Soon - AI-powered answer revision</p>
             </TooltipContent>
           </Tooltip>
-          
+
           <Tooltip>
             <TooltipTrigger asChild>
               <div>
@@ -334,7 +353,7 @@ export default function QATable() {
               <p>Coming Soon - Manual Q&A creation</p>
             </TooltipContent>
           </Tooltip>
-          
+
           <Button
             onClick={() => refetch()}
             variant="outline"
@@ -360,7 +379,7 @@ export default function QATable() {
             />
           </div>
         </div>
-        
+
         <Select value={modelFilter} onValueChange={handleModelFilterChange}>
           <SelectTrigger className="w-48" data-testid="select-model-filter">
             <SelectValue placeholder="Filter by model" />
@@ -404,7 +423,7 @@ export default function QATable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-32">Model</TableHead>
+              {/* <TableHead className="w-32">Model</TableHead> */}
               <TableHead>Question</TableHead>
               <TableHead>Answer</TableHead>
               <TableHead className="w-32">Updated</TableHead>
@@ -436,16 +455,16 @@ export default function QATable() {
             ) : (
               qaData?.entries.map((entry) => (
                 <TableRow key={entry.id} className="hover:bg-muted/50">
-                  <TableCell>
+                  {/* <TableCell style={{ width: "170px" }}>
                     <Badge variant="secondary">{entry.model}</Badge>
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell className="max-w-xs">
                     <div className="truncate" title={entry.question}>
                       {truncateText(entry.question, 80)}
                     </div>
                   </TableCell>
                   <TableCell className="max-w-md">
-                    <div 
+                    <div
                       className="truncate cursor-pointer hover:text-primary"
                       title="Click to edit answer"
                       onClick={() => handleEditAnswer(entry)}

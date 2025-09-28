@@ -1,14 +1,15 @@
 from flask import Blueprint, request, jsonify
 from typing import Dict, Any
 import logging
-from server.auth_middleware import require_auth
 from server.qa_redis_service import qa_redis_service
-
+from .auth_utils import (
+    require_auth
+)
 logger = logging.getLogger(__name__)
 
 qa_bp = Blueprint('qa', __name__)
 
-@qa_bp.route('/api/qa/entries', methods=['GET'])
+@qa_bp.route('/qa/entries', methods=['GET'])
 @require_auth
 def get_qa_entries():
     """Get Q/A entries for a workspace with pagination and filtering"""
@@ -59,7 +60,7 @@ def get_qa_entries():
         logger.error(f"Failed to get Q/A entries: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
-@qa_bp.route('/api/qa/entries/<qa_id>', methods=['PUT'])
+@qa_bp.route('/qa/entries/<qa_id>', methods=['PUT'])
 @require_auth
 def update_qa_answer(qa_id: str):
     """Update the answer for a specific Q/A entry"""
@@ -115,7 +116,7 @@ def update_qa_answer(qa_id: str):
         logger.error(f"Failed to update Q/A entry {qa_id}: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
-@qa_bp.route('/api/qa/entries/<qa_id>', methods=['GET'])
+@qa_bp.route('/qa/entries/<qa_id>', methods=['GET'])
 @require_auth
 def get_qa_entry(qa_id: str):
     """Get a specific Q/A entry by ID"""
@@ -147,7 +148,7 @@ def get_qa_entry(qa_id: str):
         logger.error(f"Failed to get Q/A entry {qa_id}: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
-@qa_bp.route('/api/qa/entries', methods=['POST'])
+@qa_bp.route('/qa/entries', methods=['POST'])
 @require_auth
 def create_qa_entry():
     """Create a new Q/A entry (placeholder for future implementation)"""
@@ -203,7 +204,7 @@ def create_qa_entry():
         logger.error(f"Failed to create Q/A entry: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
-@qa_bp.route('/api/qa/entries/<qa_id>', methods=['DELETE'])
+@qa_bp.route('/qa/entries/<qa_id>', methods=['DELETE'])
 @require_auth
 def delete_qa_entry(qa_id: str):
     """Delete a Q/A entry (placeholder for future implementation)"""

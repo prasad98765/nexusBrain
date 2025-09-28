@@ -103,7 +103,7 @@ export default function Layout() {
               }`} />
           </button>
           <div className="mt-auto flex flex-col gap-4">
-            <button
+            {/* <button
               className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${active === 'settings' ? 'bg-slate-700' : ''
                 }`}
               onClick={() => {
@@ -113,7 +113,7 @@ export default function Layout() {
             >
               <Settings className={`h-5 w-5 ${active === 'settings' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
                 }`} />
-            </button>
+            </button> */}
             {/* <button className="p-3 rounded-lg hover:bg-slate-700 transition-colors group">
               <User className="h-5 w-5 text-slate-400 group-hover:text-slate-200" />
             </button> */}

@@ -51,7 +51,6 @@ services:
       - .:/app
     ports:
       - "5001:5000"
-    environment:
 
   pgadmin:
     image: dpage/pgadmin4

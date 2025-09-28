@@ -91,21 +91,6 @@ export default function APIIntegrationsPage() {
             staleTime: 5 * 60 * 1000, // 5 minutes
         });
 
-    const { data: analyticsData } = useQuery<UsageAnalytics>({
-        queryKey: ["/api/api-tokens/analytics", { dateRange }],
-        queryFn: async () => {
-            const response = await axios.get<UsageAnalytics>(
-                "/api/api-tokens/analytics",
-                {
-                    params: { dateRange },
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
-            return response.data;
-        },
-        enabled: tokenData?.hasToken,
-        staleTime: 5 * 60 * 1000,
-    });
     // call /v1/models api and set model as one set and use this in select model dropdown
     const { data: modelData, isLoading: modelLoading, error: modelError } =
         useQuery<{ models: string[] }>({
@@ -501,137 +486,6 @@ export default function APIIntegrationsPage() {
         );
     };
 
-    const AnalyticsCards = () => {
-        if (!analyticsData) return null;
-
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <Card>
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-slate-500">Total Requests</p>
-                                <p className="text-2xl font-bold">{analyticsData.totalRequests?.toLocaleString() || 0}</p>
-                            </div>
-                            <BarChart3 className="w-8 h-8 text-blue-500" />
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-slate-500">Tokens Used</p>
-                                <p className="text-2xl font-bold">{analyticsData.totalTokens?.toLocaleString() || 0}</p>
-                            </div>
-                            <Zap className="w-8 h-8 text-green-500" />
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-slate-500">Avg Response</p>
-                                <p className="text-2xl font-bold">{analyticsData.averageResponseTime || 0}ms</p>
-                            </div>
-                            <Clock className="w-8 h-8 text-orange-500" />
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-slate-500">Success Rate</p>
-                                <p className="text-2xl font-bold">{analyticsData.successRate || 0}%</p>
-                            </div>
-                            <CheckCircle className="w-8 h-8 text-green-600" />
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    };
-
-    const AnalyticsTab = () => {
-        if (!analyticsData) {
-            return (
-                <div className="flex items-center justify-center p-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                </div>
-            );
-        }
-
-        return (
-            <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Top Models */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Top Models</CardTitle>
-                            <CardDescription>Most used AI models in your workspace</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {analyticsData.topModels?.length > 0 ? (
-                                    analyticsData.topModels.map((model, index) => (
-                                        <div key={model.model} className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                                                <span className="text-sm font-medium">{model.model}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-sm text-slate-500">{model.requests} requests</span>
-                                                <Badge variant="secondary" className="text-xs">
-                                                    #{index + 1}
-                                                </Badge>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-sm text-slate-500 text-center py-4">No data available</p>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Request Timeline */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Request Activity</CardTitle>
-                            <CardDescription>API calls over time</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-2">
-                                {analyticsData.requestsOverTime?.length > 0 ? (
-                                    analyticsData.requestsOverTime.slice(0, 7).map((item) => (
-                                        <div key={item.date} className="flex items-center justify-between text-sm">
-                                            <span className="text-slate-600">{new Date(item.date).toLocaleDateString()}</span>
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-16 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                                                    <div
-                                                        className="h-2 bg-indigo-500 rounded-full"
-                                                        style={{
-                                                            width: `${Math.max((item.requests / Math.max(...analyticsData.requestsOverTime!.map(r => r.requests))) * 100, 5)}%`
-                                                        }}
-                                                    />
-                                                </div>
-                                                <span className="text-slate-500">{item.requests}</span>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-sm text-slate-500 text-center py-4">No data available</p>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-        );
-    };
-
     const handleViewDocs = () => {
         window.open('/docs/api-reference', '_blank');
     };
@@ -674,7 +528,6 @@ export default function APIIntegrationsPage() {
             ) : hasExistingToken ? (
                 <>
                     <TokenManagementHeader />
-                    <AnalyticsCards />
                     <Tabs defaultValue="logs" className="space-y-4">
                         <TabsList className="grid w-full grid-cols-2">
                             <TabsTrigger value="logs" data-testid="logs-tab">Usage Logs</TabsTrigger>

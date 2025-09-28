@@ -28,6 +28,7 @@ import FlowBuilderInner from "@/pages/flow-builder";
 import APIIntegrationsPage from "@/pages/API-integrations";
 import ApiDocumentation from "@/pages/api-documentation";
 import ApiTesting from "@/pages/api-testing";
+import { ComingSoon } from "./components/ui/coming-soon";
 
 function Router() {
   const { isAuthenticated, isLoading, token } = useAuth();
@@ -104,12 +105,17 @@ function Router() {
 
           <Route path="/nexus" element={<Layout />}>
             <Route index element={<Home />} />
-            <Route path="agents" element={<AgentsPage />} />
-            <Route path="contacts" element={<ContactsPage workspaceId={""} />} />
+            {/* <Route path="agents" element={<AgentsPage />} /> */}
+            <Route path="agents" element={<ComingSoon title="Agents (Coming Soon)" />} />
+
+            {/* <Route path="contacts" element={<ContactsPage workspaceId={""} />} /> */}
+            <Route path="contacts" element={<ComingSoon title="Contacts (Coming Soon)" />} />
+
             <Route path="settings" element={<SettingsPage workspaceId={""} />} />
-            <Route path="flow-builder" element={<FlowBuilderInner agentId={""} onBackClick={function (): void {
+            {/* <Route path="flow-builder" element={<FlowBuilderInner agentId={""} onBackClick={function (): void {
               throw new Error("Function not implemented.");
-            }} />} />
+            }} />} /> */}
+            <Route path="flow-builder" element={<ComingSoon title="Flow Builder (ComingSoon) " />} />
             <Route path="API-integrations" element={<APIIntegrationsPage />} />
           </Route>
           <Route path="/business-info" Component={BusinessInfoPage} />

@@ -96,6 +96,25 @@ interface UsageLogsResponse {
   totalPages: number;
 }
 
+interface ProvidersResponse {
+  providers: {
+    id: string;
+    name: string;
+    models: {
+      id: string;
+      name: string;
+    }[];
+  }[];
+}
+
+interface ModelsResponse {
+  models: {
+    id: string;
+    name: string;
+    provider: string | null;
+  }[];
+}
+
 interface LogDetailsModalProps {
   log: UsageLog;
   open: boolean;
@@ -425,6 +444,74 @@ export default function UsageLogsPage() {
     return `${(ms / 1000).toFixed(2)}s`;
   };
 
+  // Fetch providers and their available models
+  const { data: providersData, isLoading: isLoadingProviders, error: providersError } = useQuery<ProvidersResponse>({
+    queryKey: ['providers'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/v1/providers', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Failed to fetch providers');
+        }
+
+        const data = await response.json();
+        return {
+          providers: data.data?.map((provider: any) => ({
+            id: provider.id || provider.slug,
+            name: provider.name,
+            models: provider.models || []
+          })) || []
+        };
+      } catch (error) {
+        console.error('Provider fetch error:', error);
+        throw error;
+      }
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: 2,
+  });
+
+  // Fetch providers and their available models
+  const { data: modelsData, isLoading: isLoadingModels, error: modelsError } = useQuery<ModelsResponse>({
+    queryKey: ['models'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/v1/models', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Failed to fetch models');
+        }
+
+        const data = await response.json();
+        return {
+          models: data.data?.map((model: any) => ({
+            id: model.id || model.slug,
+            name: model.name,
+            provider: model.provider || null
+          })) || []
+        };
+      } catch (error) {
+        console.error('Model fetch error:', error);
+        throw error;
+      }
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: 2,
+  });
+
   const resetFilters = () => {
     setModel('all');
     setProvider('all');
@@ -492,7 +579,7 @@ export default function UsageLogsPage() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {/* Model Filter */}
           <div>
             <Label htmlFor="model-filter">Model</Label>
@@ -502,11 +589,12 @@ export default function UsageLogsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Models</SelectItem>
-                <SelectItem value="gpt-4">GPT-4</SelectItem>
-                <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                <SelectItem value="claude-3-opus">Claude 3 Opus</SelectItem>
-                <SelectItem value="claude-3-sonnet">Claude 3 Sonnet</SelectItem>
-                <SelectItem value="claude-3-haiku">Claude 3 Haiku</SelectItem>
+
+                {modelsData?.models?.map((mod: any) => (
+                  <SelectItem key={mod.id} value={mod.id}>
+                    {mod.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -520,10 +608,11 @@ export default function UsageLogsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Providers</SelectItem>
-                <SelectItem value="OpenAI">OpenAI</SelectItem>
-                <SelectItem value="Anthropic">Anthropic</SelectItem>
-                <SelectItem value="Google">Google</SelectItem>
-                <SelectItem value="Meta">Meta</SelectItem>
+                {providersData?.providers?.map((prov: any) => (
+                  <SelectItem key={prov.id} value={prov.name}>
+                    {prov.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -574,7 +663,7 @@ export default function UsageLogsPage() {
           </div>
 
           {/* Status Code Filter */}
-          <div>
+          {/* <div>
             <Label htmlFor="status-filter">Status Code</Label>
             <Select value={statusCode} onValueChange={setStatusCode}>
               <SelectTrigger id="status-filter" data-testid="select-status-filter">
@@ -589,7 +678,7 @@ export default function UsageLogsPage() {
                 <SelectItem value="500">500 - Server Error</SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -624,7 +713,7 @@ export default function UsageLogsPage() {
               <TableHead>Time</TableHead>
               <TableHead>Model</TableHead>
               <TableHead>Provider</TableHead>
-              <TableHead>Status</TableHead>
+              {/* <TableHead>Status</TableHead> */}
               <TableHead>Tokens</TableHead>
               {/* <TableHead>Duration</TableHead> */}
               <TableHead>Cache</TableHead>
@@ -672,9 +761,9 @@ export default function UsageLogsPage() {
                   <TableCell>
                     <Badge variant="secondary">{log.provider}</Badge>
                   </TableCell>
-                  <TableCell>
+                  {/* <TableCell>
                     {getStatusBadge(log.statusCode)}
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell className="font-mono">
                     {formatTokens(log.tokensUsed)}
                   </TableCell>

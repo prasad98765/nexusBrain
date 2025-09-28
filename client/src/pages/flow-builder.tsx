@@ -61,7 +61,6 @@ function FlowBuilderInner({ agentId, onBackClick }: FlowBuilderProps) {
     (params: Connection) => setEdges((eds: any) => addEdge(params, eds)),
     [setEdges]
   );
-
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';

@@ -63,14 +63,23 @@ class QARedisService:
             self.redis_client = None
     
     def _get_all_llm_cache_keys(self) -> List[str]:
-        """Get all LLM cache completion keys"""
+        """Get all LLM cache keys (both completion and chat)"""
         if not self.redis_client:
             return []
         
         try:
-            pattern = "llm_cache:completion:*"
-            keys = self.redis_client.keys(pattern)
-            return list(keys) if keys is not None else []
+            # Get both completion and chat keys
+            completion_keys = self.redis_client.keys("llm_cache:completion:*")
+            chat_keys = self.redis_client.keys("llm_cache:chat:*")
+            
+            # Combine and convert to list
+            all_keys = []
+            if completion_keys:
+                all_keys.extend(completion_keys)
+            if chat_keys:
+                all_keys.extend(chat_keys)
+                
+            return all_keys
         except Exception as e:
             logger.error(f"Failed to get LLM cache keys: {e}")
             return []
@@ -79,23 +88,49 @@ class QARedisService:
         """Parse LLM cache entry into Q/A format"""
         try:
             cache_data = json.loads(data)
+            logger.info(f"Parsing cache entry: {key}")
+            logger.debug(f"Cache data: {cache_data}")
             
             # Extract data from cache structure
             request = cache_data.get('request', {})
             response = cache_data.get('response', {})
             
-            # Get question from prompt
-            question = request.get('prompt', '')
+            # Handle both completion and chat formats
+            question = ''
+            if 'prompt' in request:  # Completion format
+                question = request.get('prompt', '')
+            elif 'messages' in request:  # Chat format
+                messages = request.get('messages', [])
+                if messages:
+                    # Get the last user message
+                    for msg in reversed(messages):
+                        if msg.get('role') == 'user':
+                            question = msg.get('content', '')
+                            break
+            
             if not question:
+                logger.warning(f"No question found in cache entry: {key}")
                 return None
-                
-            # Get answer from response choices
+            
+            # Handle both completion and chat response formats
+            answer = ''
             choices = response.get('choices', [])
-            if not choices or not choices[0].get('text'):
+            if choices:
+                # Try different formats
+                if 'text' in choices[0]:  # Completion format
+                    answer = choices[0]['text']
+                elif 'message' in choices[0]:  # Chat format
+                    answer = choices[0].get('message', {}).get('content', '')
+                elif 'content' in choices[0]:  # Alternative chat format
+                    answer = choices[0]['content']
+            
+            if not answer:
+                logger.warning(f"No answer found in cache entry: {key}")
                 return None
                 
-            answer = choices[0]['text'].strip()
+            answer = answer.strip()
             model = request.get('model', response.get('model', 'unknown'))
+            logger.info(f"Successfully parsed {key} - Model: {model}")
             
             # Extract timestamp
             timestamp = cache_data.get('timestamp')
@@ -143,8 +178,17 @@ class QARedisService:
             return None
         
         try:
-            cache_key = f"llm_cache:completion:{qa_id}"
-            data = self.redis_client.get(cache_key)
+            # Try both completion and chat cache keys
+            completion_key = f"llm_cache:completion:{qa_id}"
+            chat_key = f"llm_cache:chat:{qa_id}"
+            
+            data = self.redis_client.get(completion_key)
+            if data is None:
+                data = self.redis_client.get(chat_key)
+                if data is not None:
+                    cache_key = chat_key
+            else:
+                cache_key = completion_key
             
             if not data:
                 return None
@@ -314,8 +358,14 @@ class QARedisService:
             return False
             
         try:
-            cache_key = f"llm_cache:completion:{qa_id}"
-            deleted = self.redis_client.delete(cache_key)
+            # Try to delete both completion and chat cache keys
+            completion_key = f"llm_cache:completion:{qa_id}"
+            chat_key = f"llm_cache:chat:{qa_id}"
+            
+            deleted_completion = self.redis_client.delete(completion_key)
+            deleted_chat = self.redis_client.delete(chat_key)
+            
+            deleted = deleted_completion or deleted_chat
             
             if deleted:
                 logger.warning(f"Deleted LLM cache entry {qa_id} - this may affect cache performance")
