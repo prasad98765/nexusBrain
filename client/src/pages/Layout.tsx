@@ -1,13 +1,15 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu, Bot, Users, Settings, Workflow, ChevronsLeftRightEllipsis, Activity } from "lucide-react";
+import { LogOut, Menu, Bot, Users, Settings, Workflow, ChevronsLeftRightEllipsis, Activity, MessageCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
+import WebBotChat from "@/components/webbot/WebBotChat";
 
 export default function Layout() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [active, setActive] = useState<string>("dashboard");
+  const [isBotOpen, setIsBotOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem("auth_token");
@@ -103,6 +105,27 @@ export default function Layout() {
               }`} />
           </button>
           <div className="mt-auto flex flex-col gap-4">
+            {/* Web Bot Button */}
+            <button
+              className={`p-3 rounded-lg transition-colors group relative ${
+                isBotOpen ? 'bg-indigo-600' : 'hover:bg-slate-700'
+              }`}
+              onClick={() => setIsBotOpen(!isBotOpen)}
+              title="AI Assistant"
+              data-testid="button-toggle-webbot"
+            >
+              <MessageCircle
+                className={`h-5 w-5 ${
+                  isBotOpen
+                    ? 'text-white'
+                    : 'text-slate-400 group-hover:text-slate-200'
+                }`}
+              />
+              {!isBotOpen && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-800"></span>
+              )}
+            </button>
+            
             {/* <button
               className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${active === 'settings' ? 'bg-slate-700' : ''
                 }`}
@@ -125,6 +148,9 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Web Bot Chat Window */}
+      <WebBotChat isOpen={isBotOpen} onClose={() => setIsBotOpen(false)} />
     </div>
   );
 }
