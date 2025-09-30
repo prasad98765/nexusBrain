@@ -31,7 +31,7 @@ def webbot_chat():
         messages = data.get('messages', [])
         if not messages or not isinstance(messages, list):
             return jsonify({'error': 'messages array is required'}), 400
-        
+        logger.info(f"Received messages: {workspace_id}")
         # Get user's API token from database
         api_token = ApiToken.query.filter_by(
             workspace_id=workspace_id,
@@ -55,9 +55,9 @@ def webbot_chat():
         # Make internal request to /api/v1/chat/create
         # Use localhost:5000 since this is an internal call to the same Flask app
         chat_url = "http://127.0.0.1:5000/api/v1/chat/create"
-        
+        logger
         headers = {
-            'Authorization': f'Bearer {api_token.token}',
+            'Authorization': f'Bearer nxs-aXkDVM7aAVNVuVcYa6FqoLDD98fHIwOF4VVX-tkcHgs',
             'Content-Type': 'application/json'
         }
         
@@ -66,6 +66,8 @@ def webbot_chat():
             # Stream the response
             def generate():
                 try:
+                    logger.info(f"Making streaming request to chat_url: {chat_url}")
+                    logger.debug(f"Payload: {json.dumps(payload)}")
                     response = requests.post(
                         chat_url,
                         json=payload,
@@ -73,6 +75,7 @@ def webbot_chat():
                         stream=True,
                         timeout=120
                     )
+                    logger.info(f"Got initial response with status: {response.status_code}")
                     
                     if response.status_code != 200:
                         error_data = response.json() if response.headers.get('content-type') == 'application/json' else {'error': response.text}
@@ -80,12 +83,25 @@ def webbot_chat():
                         yield "data: [DONE]\n\n"
                         return
                     
+                    # Check if response is non-streaming (cached response)
+                    if 'content-type' in response.headers and 'application/json' in response.headers['content-type'].lower():
+                        logger.info("Received non-streaming response (possibly cached)")
+                        response_data = response.json()
+                        # Format the cached response as an SSE message
+                        logger.info(f"Cached response data: {response_data}")
+                        yield f"data: {json.dumps(response_data)}\n\n"
+                        yield "data: [DONE]\n\n"
+                        return
+                    
                     # Forward the streaming response
+                    logger.info("Starting to stream response")
                     for line in response.iter_lines():
                         if line:
                             decoded_line = line.decode('utf-8')
                             if decoded_line.startswith('data: '):
+                                logger.debug(f"Streaming line: {decoded_line}")
                                 yield f"{decoded_line}\n\n"
+                    logger.info("Finished streaming response")
                     
                 except Exception as e:
                     logger.error(f"Webbot streaming error: {e}")
