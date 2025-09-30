@@ -44,10 +44,11 @@ def webbot_chat():
             }), 404
         
         # Construct payload for /v1/chat/create
+        # Note: We don't force streaming here - let the cache determine the response format
         payload = {
             'model': data.get('model', 'openai/gpt-3.5-turbo'),  # Default model
             'messages': messages,
-            'stream': data.get('stream', True),  # Enable streaming by default
+            'stream': data.get('stream', False),  # Disable streaming to get JSON for cached responses
             'max_tokens': data.get('max_tokens', 1000),
             'temperature': data.get('temperature', 0.7)
         }
@@ -55,75 +56,25 @@ def webbot_chat():
         # Make internal request to /api/v1/chat/create
         # Use localhost:5000 since this is an internal call to the same Flask app
         chat_url = "http://127.0.0.1:5000/api/v1/chat/create"
-        logger
+        
         headers = {
-            'Authorization': f'Bearer nxs-aXkDVM7aAVNVuVcYa6FqoLDD98fHIwOF4VVX-tkcHgs',
+            'Authorization': f'Bearer {api_token.token}',
             'Content-Type': 'application/json'
         }
         
-        # Check if streaming is requested
-        if payload.get('stream'):
-            # Stream the response
-            def generate():
-                try:
-                    logger.info(f"Making streaming request to chat_url: {chat_url}")
-                    logger.debug(f"Payload: {json.dumps(payload)}")
-                    response = requests.post(
-                        chat_url,
-                        json=payload,
-                        headers=headers,
-                        stream=True,
-                        timeout=120
-                    )
-                    logger.info(f"Got initial response with status: {response.status_code}")
-                    
-                    if response.status_code != 200:
-                        error_data = response.json() if response.headers.get('content-type') == 'application/json' else {'error': response.text}
-                        yield f"data: {json.dumps({'error': error_data.get('error', 'Unknown error')})}\n\n"
-                        yield "data: [DONE]\n\n"
-                        return
-                    
-                    # Check if response is non-streaming (cached response)
-                    if 'content-type' in response.headers and 'application/json' in response.headers['content-type'].lower():
-                        logger.info("Received non-streaming response (possibly cached)")
-                        response_data = response.json()
-                        # Format the cached response as an SSE message
-                        logger.info(f"Cached response data: {response_data}")
-                        yield f"data: {json.dumps(response_data)}\n\n"
-                        yield "data: [DONE]\n\n"
-                        return
-                    
-                    # Forward the streaming response
-                    logger.info("Starting to stream response")
-                    for line in response.iter_lines():
-                        if line:
-                            decoded_line = line.decode('utf-8')
-                            if decoded_line.startswith('data: '):
-                                logger.debug(f"Streaming line: {decoded_line}")
-                                yield f"{decoded_line}\n\n"
-                    logger.info("Finished streaming response")
-                    
-                except Exception as e:
-                    logger.error(f"Webbot streaming error: {e}")
-                    yield f"data: {json.dumps({'error': str(e)})}\n\n"
-                    yield "data: [DONE]\n\n"
-            
-            return Response(generate(), mimetype='text/event-stream')
+        # Make non-streaming request (works for both cached and non-cached responses)
+        response = requests.post(
+            chat_url,
+            json=payload,
+            headers=headers,
+            timeout=120
+        )
         
+        if response.status_code == 200:
+            return jsonify(response.json())
         else:
-            # Non-streaming response
-            response = requests.post(
-                chat_url,
-                json=payload,
-                headers=headers,
-                timeout=120
-            )
-            
-            if response.status_code == 200:
-                return jsonify(response.json())
-            else:
-                error_data = response.json() if response.headers.get('content-type') == 'application/json' else {'error': response.text}
-                return jsonify(error_data), response.status_code
+            error_data = response.json() if response.headers.get('content-type') == 'application/json' else {'error': response.text}
+            return jsonify(error_data), response.status_code
         
     except Exception as e:
         logger.error(f"Webbot chat error: {e}")
