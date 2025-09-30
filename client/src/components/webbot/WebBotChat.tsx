@@ -83,50 +83,61 @@ export default function WebBotChat({ isOpen, onClose }: WebBotChatProps) {
         throw new Error(errorData.error || 'Failed to get response');
       }
 
-      // Handle streaming response
+      // Handle streaming response with proper SSE buffering
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let accumulatedContent = '';
+      let buffer = '';  // Buffer for incomplete SSE frames
 
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
+          // Decode chunk and add to buffer
+          buffer += decoder.decode(value, { stream: true });
+          
+          // Split by double newline to get complete SSE messages
+          const messages = buffer.split('\n\n');
+          
+          // Keep the last incomplete message in buffer
+          buffer = messages.pop() || '';
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              
-              if (data === '[DONE]') {
-                // Stream complete - add final message
-                if (accumulatedContent) {
-                  setMessages(prev => [...prev, {
-                    role: 'assistant',
-                    content: accumulatedContent
-                  }]);
-                  setStreamingMessage('');
-                }
-                setIsLoading(false);
-                return;
-              }
-
-              try {
-                const parsed = JSON.parse(data);
+          for (const message of messages) {
+            const lines = message.split('\n');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6).trim();
                 
-                if (parsed.error) {
-                  throw new Error(parsed.error);
+                if (data === '[DONE]') {
+                  // Stream complete - add final message
+                  if (accumulatedContent) {
+                    setMessages(prev => [...prev, {
+                      role: 'assistant',
+                      content: accumulatedContent
+                    }]);
+                    setStreamingMessage('');
+                  }
+                  setIsLoading(false);
+                  return;
                 }
 
-                if (parsed.choices?.[0]?.delta?.content) {
-                  const content = parsed.choices[0].delta.content;
-                  accumulatedContent += content;
-                  setStreamingMessage(accumulatedContent);
+                try {
+                  const parsed = JSON.parse(data);
+                  
+                  if (parsed.error) {
+                    throw new Error(parsed.error);
+                  }
+
+                  if (parsed.choices?.[0]?.delta?.content) {
+                    const content = parsed.choices[0].delta.content;
+                    accumulatedContent += content;
+                    setStreamingMessage(accumulatedContent);
+                  }
+                } catch (e) {
+                  console.error('Parse error:', e, 'Data:', data);
                 }
-              } catch (e) {
-                console.error('Parse error:', e);
               }
             }
           }

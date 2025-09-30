@@ -52,9 +52,9 @@ def webbot_chat():
             'temperature': data.get('temperature', 0.7)
         }
         
-        # Make internal request to /v1/chat/create
+        # Make internal request to /api/v1/chat/create
         base_url = request.host_url.rstrip('/')
-        chat_url = f"{base_url}/v1/chat/create"
+        chat_url = f"{base_url}/api/v1/chat/create"
         
         headers = {
             'Authorization': f'Bearer {api_token.token}',
