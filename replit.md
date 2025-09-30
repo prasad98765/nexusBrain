@@ -52,3 +52,13 @@ Preferred communication style: Simple, everyday language.
 - **Component-Based UI**: Reusable React components with consistent design system
 - **Type Safety**: Shared TypeScript interfaces between frontend and backend
 - **Environment-Based Config**: Flexible configuration for development and production environments
+
+## Recent Changes
+
+### Web-Based Chatbot Integration (Sept 30, 2025)
+- **Component**: Integrated web chatbot accessible from all `/nexus` routes via sidebar button
+- **Backend**: `/api/webbot/chat` endpoint that fetches user's API token from database and proxies to `/api/v1/chat/create`
+- **Frontend**: WebBotChat component with welcome screen, Start button, streaming responses, and typing animation
+- **Session Behavior**: Fresh session on every open, complete reset when closed or refreshed
+- **Features**: Token-by-token streaming with SSE buffering, auto-scroll, clean dark theme UI
+- **Files**: `server/webbot_routes.py`, `client/src/components/webbot/WebBotChat.tsx`, `client/src/pages/Layout.tsx`

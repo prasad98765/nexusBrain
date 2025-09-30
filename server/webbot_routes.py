@@ -53,8 +53,8 @@ def webbot_chat():
         }
         
         # Make internal request to /api/v1/chat/create
-        base_url = request.host_url.rstrip('/')
-        chat_url = f"{base_url}/api/v1/chat/create"
+        # Use localhost:5000 since this is an internal call to the same Flask app
+        chat_url = "http://127.0.0.1:5000/api/v1/chat/create"
         
         headers = {
             'Authorization': f'Bearer {api_token.token}',
