@@ -69,7 +69,7 @@ def create_app():
     app.register_blueprint(api_tokens_bp, url_prefix='/api')
     app.register_blueprint(api_llm_routes, url_prefix='/api')
     app.register_blueprint(qa_bp, url_prefix='/api')
-    app.register_blueprint(webbot_bp)
+    app.register_blueprint(webbot_bp, url_prefix='/api')
     app.register_blueprint(static_bp)
     
     # Import send_file

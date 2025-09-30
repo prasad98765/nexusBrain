@@ -2,14 +2,14 @@ from flask import Blueprint, request, jsonify, Response
 import json
 import logging
 import requests
-from server.auth_middleware import require_auth
+from server.auth_utils import require_auth
 from server.models import ApiToken, db
 
 logger = logging.getLogger(__name__)
 
 webbot_bp = Blueprint('webbot', __name__)
 
-@webbot_bp.route('/api/webbot/chat', methods=['POST'])
+@webbot_bp.route('/webbot/chat', methods=['POST'])
 @require_auth
 def webbot_chat():
     """
@@ -20,7 +20,7 @@ def webbot_chat():
         workspace_id = request.user.get('workspace_id')
         user_id = request.user.get('id')
         
-        if not workspace_id or not user_id:
+        if not workspace_id:
             return jsonify({'error': 'User authentication required'}), 401
         
         # Get request payload
