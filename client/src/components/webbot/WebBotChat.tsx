@@ -10,6 +10,80 @@ interface Message {
   content: string;
 }
 
+// Simple markdown renderer component
+function MarkdownText({ content }: { content: string }) {
+  const renderMarkdown = (text: string) => {
+    // Split by code blocks first
+    const parts = text.split(/(```[\s\S]*?```|`[^`]+`)/g);
+    
+    return parts.map((part, index) => {
+      // Handle code blocks
+      if (part.startsWith('```') && part.endsWith('```')) {
+        const code = part.slice(3, -3).trim();
+        return (
+          <pre key={index} className="bg-slate-900 rounded p-2 my-2 overflow-x-auto">
+            <code className="text-sm text-green-400">{code}</code>
+          </pre>
+        );
+      }
+      
+      // Handle inline code
+      if (part.startsWith('`') && part.endsWith('`')) {
+        return (
+          <code key={index} className="bg-slate-700 px-1 py-0.5 rounded text-sm text-green-400">
+            {part.slice(1, -1)}
+          </code>
+        );
+      }
+      
+      // Handle regular text with bold and italic
+      const segments: (string | JSX.Element)[] = [];
+      let remaining = part;
+      let segmentKey = 0;
+      
+      while (remaining) {
+        // Match **bold**
+        const boldMatch = remaining.match(/\*\*([^\*]+)\*\*/);
+        if (boldMatch && boldMatch.index !== undefined) {
+          if (boldMatch.index > 0) {
+            segments.push(remaining.slice(0, boldMatch.index));
+          }
+          segments.push(
+            <strong key={`${index}-${segmentKey++}`} className="font-bold text-white">
+              {boldMatch[1]}
+            </strong>
+          );
+          remaining = remaining.slice(boldMatch.index + boldMatch[0].length);
+          continue;
+        }
+        
+        // Match *italic*
+        const italicMatch = remaining.match(/\*([^\*]+)\*/);
+        if (italicMatch && italicMatch.index !== undefined) {
+          if (italicMatch.index > 0) {
+            segments.push(remaining.slice(0, italicMatch.index));
+          }
+          segments.push(
+            <em key={`${index}-${segmentKey++}`} className="italic">
+              {italicMatch[1]}
+            </em>
+          );
+          remaining = remaining.slice(italicMatch.index + italicMatch[0].length);
+          continue;
+        }
+        
+        // No more matches, add remaining text
+        segments.push(remaining);
+        break;
+      }
+      
+      return <span key={index}>{segments}</span>;
+    });
+  };
+
+  return <div className="text-sm whitespace-pre-wrap">{renderMarkdown(content)}</div>;
+}
+
 interface WebBotChatProps {
   isOpen: boolean;
   onClose: () => void;
@@ -61,7 +135,6 @@ export default function WebBotChat({ isOpen, onClose }: WebBotChatProps) {
     setMessages(newMessages);
     setInputValue('');
     setIsLoading(true);
-    setStreamingMessage('');
 
     try {
       const response = await fetch('/api/webbot/chat', {
@@ -197,25 +270,13 @@ export default function WebBotChat({ isOpen, onClose }: WebBotChatProps) {
                       : 'bg-slate-700 text-slate-100'
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  <MarkdownText content={message.content} />
                 </div>
               </div>
             ))}
             
-            {/* Streaming message */}
-            {streamingMessage && (
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-purple-500 to-indigo-500">
-                  <Bot className="w-4 h-4 text-white" />
-                </div>
-                <div className="max-w-[75%] rounded-lg p-3 bg-slate-700 text-slate-100">
-                  <p className="text-sm whitespace-pre-wrap">{streamingMessage}</p>
-                </div>
-              </div>
-            )}
-            
             {/* Typing indicator */}
-            {isLoading && !streamingMessage && (
+            {isLoading && (
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-purple-500 to-indigo-500">
                   <Bot className="w-4 h-4 text-white" />
