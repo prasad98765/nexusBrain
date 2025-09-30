@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +42,7 @@ export default function ApiTesting() {
   const [apiToken, setApiToken] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [apiResponse, setApiResponse] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'cURL' | 'TypeScript' | 'Python'>('cURL');
   const [requestBody, setRequestBody] = useState({
     model: 'openai/gpt-3.5-turbo-instruct',
     prompt: 'Write a creative story about artificial intelligence:',
@@ -59,6 +60,35 @@ export default function ApiTesting() {
     temperature: 0.7,
     stream: false
   });
+  {/* call shared llm_details.json apply map for more models and show 300+ models */ }
+  const [llmDetails, setLlmDetails] = useState<any>([]);
+
+  useEffect(() => {
+    const fetchLlmDetails = async () => {
+      try {
+        const response = await fetch('https://openrouter.ai/api/v1/models');
+        if (!response.ok) {
+          throw new Error('Failed to fetch LLM details');
+        }
+        const data = await response.json();
+        setLlmDetails(data);
+      } catch (error) {
+        console.error('Error fetching LLM details:', error);
+        // Set some default models if the fetch fails
+        setLlmDetails({
+          data: [
+            { id: "openai/gpt-4o-mini", name: "GPT-4o Mini" },
+            { id: "openai/gpt-4", name: "GPT-4" },
+            { id: "openai/gpt-3.5-turbo-instruct", name: "GPT-3.5 Turbo Instruct" },
+            { id: "anthropic/claude-3.5-sonnet", name: "Claude 3.5 Sonnet" }
+          ]
+        });
+      }
+    };
+
+    fetchLlmDetails();
+  }, []);
+
   const { toast } = useToast();
 
   const apiEndpoints: ApiEndpoint[] = [
@@ -78,22 +108,22 @@ export default function ApiTesting() {
       description: 'Create a chat completion',
       category: 'API Keys'
     },
-    {
-      id: 'list-models',
-      name: 'List available models',
-      method: 'GET',
-      path: '/api/v1/models',
-      description: 'Get a list of available models',
-      category: 'API Keys'
-    },
-    {
-      id: 'get-model',
-      name: 'Get model info',
-      method: 'GET',
-      path: '/api/v1/models/{model}',
-      description: 'Get information about a specific model',
-      category: 'API Keys'
-    }
+    // {
+    //   id: 'list-models',
+    //   name: 'List available models',
+    //   method: 'GET',
+    //   path: '/api/v1/models',
+    //   description: 'Get a list of available models',
+    //   category: 'API Keys'
+    // },
+    // {
+    //   id: 'get-model',
+    //   name: 'Get model info',
+    //   method: 'GET',
+    //   path: '/api/v1/models/{model}',
+    //   description: 'Get information about a specific model',
+    //   category: 'API Keys'
+    // }
   ];
 
   const validateToken = (token: string) => {
@@ -185,7 +215,37 @@ export default function ApiTesting() {
     }
   };
 
+  const validateChatRequest = (body: any) => {
+    if (!body.model || typeof body.model !== 'string' || !body.model.trim()) {
+      return "Model field is required";
+    }
+    if (!Array.isArray(body.messages) || body.messages.length === 0) {
+      return "Messages array is required and cannot be empty";
+    }
+    for (let i = 0; i < body.messages.length; i++) {
+      const msg = body.messages[i];
+      if (!msg.role || !['system', 'user', 'assistant'].includes(msg.role)) {
+        return `Invalid role in message ${i + 1}. Must be 'system', 'user', or 'assistant'`;
+      }
+      if (!msg.content || typeof msg.content !== 'string' || !msg.content.trim()) {
+        return `Content is required in message ${i + 1}`;
+      }
+    }
+    return null;
+  };
+
+  const validateCompletionRequest = (body: any) => {
+    if (!body.model || typeof body.model !== 'string' || !body.model.trim()) {
+      return "Model field is required";
+    }
+    if (!body.prompt || typeof body.prompt !== 'string' || !body.prompt.trim()) {
+      return "Prompt field is required";
+    }
+    return null;
+  };
+
   const handleSendRequest = async () => {
+    // Validate authentication first
     if (!isAuthenticated) {
       toast({
         title: "Authentication Required",
@@ -195,23 +255,83 @@ export default function ApiTesting() {
       return;
     }
 
+    // Validate request body based on endpoint
+    const currentBody = selectedEndpoint === 'chat-completion' ? chatRequestBody : requestBody;
+    const validationError = selectedEndpoint === 'chat-completion'
+      ? validateChatRequest(currentBody)
+      : validateCompletionRequest(currentBody);
+
+    if (validationError) {
+      toast({
+        title: "Validation Error",
+        description: validationError,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    console.log('handleSendRequest called');
     setIsTestingApi(true);
     setApiResponse(null);
 
     try {
       const currentBody = selectedEndpoint === 'chat-completion' ? chatRequestBody : requestBody;
+      console.log('Current Body:', currentBody);
+
+      const selectedEndpointInfo = apiEndpoints.find(e => e.id === selectedEndpoint);
+      console.log('Selected Endpoint Info:', selectedEndpointInfo);
+
 
       toast({
         title: "API Test Started",
-        description: `Sending request to ${apiEndpoints.find(e => e.id === selectedEndpoint)?.path}...`,
+        description: `Sending request to ${selectedEndpointInfo?.path}...`,
       });
 
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const baseUrl = 'http://localhost:5173';
+      const url = `${baseUrl}${selectedEndpointInfo?.path}`;
+      console.log('Request URL:', url);
 
-      // Generate mock response based on current request body
-      const mockResponse = generateMockResponse(selectedEndpoint, currentBody);
-      setApiResponse(mockResponse);
+      try {
+        const response = await fetch(url, {
+          method: selectedEndpointInfo?.method || 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiToken}`,
+            'Content-Type': 'application/json'
+          },
+          ...(selectedEndpointInfo?.method !== 'GET' && {
+            body: JSON.stringify(currentBody)
+          })
+        });
+        console.log('Raw Response:', response);
+
+        const responseData = await response.json();
+
+        if (!response.ok) {
+          throw new Error(responseData.error?.message || 'An error occurred');
+        }
+
+        setApiResponse(responseData);
+
+        toast({
+          title: "Request Successful ✅",
+          description: "API call completed successfully. Check the response panel.",
+        });
+      } catch (error: any) {
+        const errorResponse = {
+          error: {
+            code: error.response?.status || 500,
+            message: error.message || "Internal server error. Please try again later.",
+            metadata: error.response?.data || {}
+          }
+        };
+        setApiResponse(errorResponse);
+
+        toast({
+          title: "Request Failed",
+          description: error.message || "Failed to connect to the API. Please check your configuration.",
+          variant: "destructive"
+        });
+      }
 
       toast({
         title: "Test Successful! ✅",
@@ -324,7 +444,7 @@ export default function ApiTesting() {
                   </div>
                   <Input
                     type="password"
-                    placeholder="sk-or-nxs-your-api-key-here"
+                    placeholder="nxs-your-api-key-here"
                     value={apiToken}
                     onChange={(e) => handleTokenChange(e.target.value)}
                     className="bg-slate-800 border-slate-600 text-slate-200 text-xs"
@@ -400,9 +520,12 @@ export default function ApiTesting() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-slate-800 border-slate-600">
-                        <SelectItem value="openai/gpt-3.5-turbo-instruct">openai/gpt-3.5-turbo-instruct</SelectItem>
-                        <SelectItem value="openai/gpt-4">openai/gpt-4</SelectItem>
-                        <SelectItem value="anthropic/claude-3-haiku">anthropic/claude-3-haiku</SelectItem>
+                        {/* call shared llm_details.json apply map for more models and show 300+ models */}
+                        {llmDetails?.data?.map((model: any) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -458,9 +581,12 @@ export default function ApiTesting() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-slate-800 border-slate-600">
-                        <SelectItem value="openai/gpt-4o-mini">openai/gpt-4o-mini</SelectItem>
-                        <SelectItem value="openai/gpt-4">openai/gpt-4</SelectItem>
-                        <SelectItem value="anthropic/claude-3.5-sonnet">anthropic/claude-3.5-sonnet</SelectItem>
+                        {/* call shared llm_details.json apply map for more models and show 300+ models */}
+                        {llmDetails?.data?.map((model: any) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -572,21 +698,180 @@ export default function ApiTesting() {
           <div className="p-6 space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-4">REQUEST</h3>
-              <div className="bg-slate-900 rounded-lg p-4 font-mono text-xs overflow-x-auto">
-                <div className="text-blue-400 mb-2">
-                  {selectedEndpointData?.method} {selectedEndpointData?.path}
+
+              <div className="space-y-4">
+                {/* Tabs */}
+                <div className="border-b border-slate-700">
+                  <div className="flex space-x-2">
+                    {(['cURL', 'TypeScript', 'Python'] as const).map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === tab
+                          ? 'text-indigo-400 border-b-2 border-indigo-400'
+                          : 'text-slate-400 hover:text-slate-300'
+                          }`}
+                      >
+                        {tab}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="text-slate-400 mb-2">Authorization: Bearer ****</div>
-                <div className="text-slate-400 mb-4">Content-Type: application/json</div>
-                <pre className="text-slate-300 whitespace-pre-wrap">
-                  {JSON.stringify(
-                    selectedEndpoint === 'chat-completion' ? chatRequestBody :
-                      selectedEndpoint === 'completion' ? requestBody :
-                        {},
-                    null,
-                    2
-                  )}
-                </pre>
+
+                {/* Tab Content */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-slate-400 hover:text-slate-300"
+                      onClick={() => {
+                        const codeExamples = {
+                          'cURL': `curl -X ${selectedEndpointData?.method} \\
+  'http://localhost:5173${selectedEndpointData?.path}' \\
+  -H 'Authorization: Bearer ${apiToken}' \\
+  -H 'Content-Type: application/json' \\
+  -d '${JSON.stringify(
+                            selectedEndpoint === 'chat-completion' ? chatRequestBody :
+                              selectedEndpoint === 'completion' ? requestBody : {},
+                            null,
+                            2
+                          )}'`,
+                          'TypeScript': `import axios from 'axios';
+
+const payload = ${JSON.stringify(
+                            selectedEndpoint === 'chat-completion' ? chatRequestBody :
+                              selectedEndpoint === 'completion' ? requestBody : {},
+                            null,
+                            2
+                          )};
+
+async function makeRequest() {
+  try {
+    const response = await axios({
+      method: '${selectedEndpointData?.method}',
+      url: 'http://localhost:5173${selectedEndpointData?.path}',
+      headers: {
+        'Authorization': 'Bearer ${apiToken}',
+        'Content-Type': 'application/json',
+      },
+      data: payload,
+    });
+    
+    console.log(response.data);
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+makeRequest();`,
+                          'Python': `import requests
+import json
+
+url = "http://localhost:5173${selectedEndpointData?.path}"
+headers = {
+    "Authorization": "Bearer ${apiToken}",
+    "Content-Type": "application/json"
+}
+
+payload = ${JSON.stringify(
+                            selectedEndpoint === 'chat-completion' ? chatRequestBody :
+                              selectedEndpoint === 'completion' ? requestBody : {},
+                            null,
+                            2
+                          )}
+
+try:
+    response = requests.${selectedEndpointData?.method.toLowerCase()}(
+        url,
+        headers=headers,
+        json=payload
+    )
+    response.raise_for_status()
+    print(json.dumps(response.json(), indent=2))
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")`
+                        };
+
+                        copyToClipboard(codeExamples[activeTab]);
+                      }}
+                    >
+                      <Copy className="w-3 h-3 mr-1" />
+                      Copy Code
+                    </Button>
+                  </div>
+                  <div className="bg-slate-900 rounded-lg p-4 font-mono text-xs overflow-x-auto">
+                    <pre className="text-slate-300 whitespace-pre-wrap">
+                      {activeTab === 'cURL' ?
+                        `curl -X ${selectedEndpointData?.method} \\
+  'http://localhost:5173${selectedEndpointData?.path}' \\
+  -H 'Authorization: Bearer ${apiToken}' \\
+  -H 'Content-Type: application/json' \\
+  -d '${JSON.stringify(
+                          selectedEndpoint === 'chat-completion' ? chatRequestBody :
+                            selectedEndpoint === 'completion' ? requestBody : {},
+                          null,
+                          2
+                        )}'` :
+                        activeTab === 'TypeScript' ?
+                          `import axios from 'axios';
+
+const payload = ${JSON.stringify(
+                            selectedEndpoint === 'chat-completion' ? chatRequestBody :
+                              selectedEndpoint === 'completion' ? requestBody : {},
+                            null,
+                            2
+                          )};
+
+async function makeRequest() {
+  try {
+    const response = await axios({
+      method: '${selectedEndpointData?.method}',
+      url: 'http://localhost:5173${selectedEndpointData?.path}',
+      headers: {
+        'Authorization': 'Bearer ${apiToken}',
+        'Content-Type': 'application/json',
+      },
+      data: payload,
+    });
+    
+    console.log(response.data);
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+makeRequest();` :
+                          `import requests
+import json
+
+url = "http://localhost:5173${selectedEndpointData?.path}"
+headers = {
+    "Authorization": "Bearer ${apiToken}",
+    "Content-Type": "application/json"
+}
+
+payload = ${JSON.stringify(
+                            selectedEndpoint === 'chat-completion' ? chatRequestBody :
+                              selectedEndpoint === 'completion' ? requestBody : {},
+                            null,
+                            2
+                          )}
+
+try:
+    response = requests.${selectedEndpointData?.method.toLowerCase()}(
+        url,
+        headers=headers,
+        json=payload
+    )
+    response.raise_for_status()
+    print(json.dumps(response.json(), indent=2))
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")`
+                      }
+                    </pre>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -595,7 +880,7 @@ export default function ApiTesting() {
                 className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50"
                 data-testid="send-request-button"
                 onClick={handleSendRequest}
-                disabled={isTestingApi || !isAuthenticated}
+              // disabled={isTestingApi || !isAuthenticated}
               >
                 {isTestingApi ? (
                   <>

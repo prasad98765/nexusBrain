@@ -3,10 +3,11 @@ import requests
 import logging
 import hashlib
 import time
+import json
 from datetime import datetime
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, Response, stream_with_context
 
-from .auth_utils import require_auth
+from .auth_utils import require_auth, require_auth_for_expose_api
 from .redis_cache_service import get_cache_service
 from .models import db, ApiToken, ApiUsageLog
 
@@ -184,18 +185,47 @@ def get_openrouter_headers():
 
 
 def forward_to_openrouter(endpoint: str, payload: dict):
-    """Forward POST to OpenRouter with proper headers and return response in Flask form."""
+    """Forward POST request and return response in Flask form."""
     url = f"{OPENROUTER_BASE_URL}{endpoint}"
     try:
         resp = requests.post(url, headers=get_openrouter_headers(), json=payload)
-        # Forward status codes and JSON or text
+        
+        # Handle different error cases
+        if resp.status_code != 200:
+            error_msg = ""
+            if resp.status_code == 429:
+                error_msg = "Service is busy. Please wait a moment and try again."
+                logger.warning(f"Rate limit hit for model: {payload.get('model')}")
+            elif resp.status_code == 401:
+                error_msg = "Invalid API credentials. Please check your configuration."
+                logger.error("Authentication failed with API provider")
+            elif resp.status_code >= 500:
+                error_msg = "Service is temporarily unavailable. Please try again later."
+                logger.error(f"External service error: {resp.status_code}")
+            else:
+                error_msg = "An unexpected error occurred. Please try again later."
+                logger.error(f"API error: {resp.status_code}")
+            return jsonify({"error": error_msg}), resp.status_code
+            
+        # Handle successful response
         try:
             body = resp.json()
         except ValueError:
-            body = {"error": resp.text}
+            logger.error("Failed to parse JSON response")
+            return jsonify({"error": "Invalid response format"}), 500
         return jsonify(body), resp.status_code
+        
+    except requests.exceptions.ConnectionError:
+        error_msg = "Unable to connect to service. Please check your internet connection."
+        logger.error("Connection failed to API provider")
+        return jsonify({"error": error_msg}), 503
+    except requests.exceptions.Timeout:
+        error_msg = "Request timed out. Please try again."
+        logger.error("Request timeout to API provider")
+        return jsonify({"error": error_msg}), 504
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Unexpected error: {str(e)}")
+        return jsonify({"error": "An unexpected error occurred. Please try again later."}), 500
     
 
 def forward_to_openrouter_for_model_and_provider(endpoint: str):
@@ -211,6 +241,93 @@ def forward_to_openrouter_for_model_and_provider(endpoint: str):
         return jsonify(body), resp.status_code
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+def forward_to_openrouter_stream(endpoint: str, payload: dict):
+    """Forward streaming requests and return a proper SSE response."""
+    url = f"{OPENROUTER_BASE_URL}{endpoint}"
+    headers = get_openrouter_headers()
+
+    def generate():
+        try:
+            resp = requests.post(url, headers=headers, json=payload, stream=True)
+            
+            # Handle HTTP errors
+            if resp.status_code != 200:
+                error_msg = ""
+                if resp.status_code == 429:
+                    error_msg = "Service is busy. Please wait a moment and try again."
+                    logger.warning(f"Rate limit hit for model: {payload.get('model')}")
+                elif resp.status_code == 401:
+                    error_msg = "Invalid API credentials. Please check your configuration."
+                    logger.error("Authentication failed with API provider")
+                elif resp.status_code >= 500:
+                    error_msg = "Service is temporarily unavailable. Please try again later."
+                    logger.error(f"External service error: {resp.status_code}")
+                else:
+                    # Sanitize error message to remove sensitive information
+                    error_msg = "An unexpected error occurred. Please try again later."
+                    logger.error(f"API error: {resp.status_code} - {resp.text}")
+                
+                yield f"data: {{\"error\": \"{error_msg}\"}}\n\n"
+                return
+
+            # Process the stream
+            for line in resp.iter_lines(decode_unicode=True):
+                if not line:
+                    continue
+                    
+                # Skip comments
+                if line.startswith(":"):
+                    continue
+                    
+                # Handle SSE data
+                if line.startswith("data: "):
+                    line = line[len("data: "):].strip()
+                    if not line:
+                        continue
+                        
+                    # Handle stream end
+                    if line == "[DONE]":
+                        logger.info("Stream completed")
+                        break
+                        
+                    try:
+                        # Parse and validate JSON
+                        chunk_json = json.loads(line)
+                        
+                        # Format as proper SSE
+                        yield f"data: {json.dumps(chunk_json)}\n\n"
+                    except json.JSONDecodeError as je:
+                        logger.error(f"JSON decode error in stream: {str(je)}")
+                        continue
+                    except Exception as e:
+                        logger.error(f"Error processing stream chunk: {str(e)}")
+                        continue
+
+        except requests.exceptions.ConnectionError:
+            error_msg = "Unable to connect to service. Please check your internet connection."
+            logger.error("Connection failed to API provider")
+            yield f"data: {{\"error\": \"{error_msg}\"}}\n\n"
+        except requests.exceptions.Timeout:
+            error_msg = "Request timed out. Please try again."
+            logger.error("Request timeout to API provider")
+            yield f"data: {{\"error\": \"{error_msg}\"}}\n\n"
+        except Exception as e:
+            # Sanitize the error message to avoid exposing internal details
+            error_msg = "An unexpected error occurred. Please try again later."
+            logger.error(f"Unexpected error in stream: {str(e)}")
+            yield f"data: {{\"error\": \"{error_msg}\"}}\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"  # Disable nginx buffering
+        }
+    )
 
 
 def validate_fields(data: dict, required: dict):
@@ -253,18 +370,19 @@ def is_list_of_messages(x):
 # ——— Routes ———
 
 @api_llm_routes.route("/v1/models", methods=["GET"])
-@require_auth
+@require_auth_for_expose_api
 def get_models():
     return forward_to_openrouter_for_model_and_provider("/models")
 
 
 @api_llm_routes.route("/v1/providers", methods=["GET"])
-@require_auth
+@require_auth_for_expose_api
 def get_providers():
     return forward_to_openrouter_for_model_and_provider("/providers")
 
 
 @api_llm_routes.route("/v1/create", methods=["POST"])
+@require_auth_for_expose_api
 def create_completion():
     start_time = time.time()
     
@@ -339,7 +457,108 @@ def create_completion():
         return jsonify(cached_response), 200
     
     # Cache miss - forward to OpenRouter
-    response, status_code = forward_to_openrouter("/completions", payload)
+    if payload.get("stream"):
+        logger.info(f"Cache MISS for completion model: {payload['model']} with streaming - forwarding to OpenRouter")
+        start_stream_time = time.time()
+        
+        def stream_and_cache():
+            combined_response = {
+                "id": None,
+                "model": payload["model"],
+                "choices": [],
+                "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+            }
+            combined_text = ""
+            
+            # Get the generator from forward_to_openrouter_stream
+            response = forward_to_openrouter_stream("/completions", payload)
+            
+            # Wrap the generator to collect and combine chunks
+            def wrapped_generator():
+                nonlocal combined_text, combined_response
+                
+                for chunk in response.response:  # response.response contains the generator
+                    # Forward the chunk to client
+                    yield chunk
+                    
+                    # Process chunk for combining
+                    try:
+                        if chunk.startswith("data: "):
+                            chunk_data = json.loads(chunk[6:])  # Remove "data: " prefix
+                            
+                            # Update combined response
+                            if "id" in chunk_data and not combined_response["id"]:
+                                combined_response["id"] = chunk_data["id"]
+                            
+                            if "choices" in chunk_data and chunk_data["choices"]:
+                                text = chunk_data["choices"][0].get("text", "")
+                                combined_text += text
+                                
+                            # Update usage if present
+                            if "usage" in chunk_data:
+                                for key in ["prompt_tokens", "completion_tokens", "total_tokens"]:
+                                    if key in chunk_data["usage"]:
+                                        combined_response["usage"][key] = chunk_data["usage"][key]
+                    
+                    except json.JSONDecodeError:
+                        logger.error("Failed to parse streaming chunk")
+                        continue
+                
+                # After stream completes, store in cache and log
+                combined_response["choices"] = [{
+                    "text": combined_text,
+                    "index": 0,
+                    "finish_reason": "stop"  # or extract from last chunk if available
+                }]
+                
+                # Add provider information if available in any chunk
+                if "provider" in chunk_data:
+                    combined_response["provider"] = chunk_data["provider"]
+                elif "model_info" in chunk_data and "provider" in chunk_data["model_info"]:
+                    combined_response["provider"] = chunk_data["model_info"]["provider"]
+                
+                # Add other model info if available
+                if "model_info" in chunk_data:
+                    combined_response["model_info"] = chunk_data["model_info"]
+                
+                # Store in cache if enabled
+                if api_token.caching_enabled:
+                    try:
+                        cache_service = get_cache_service()
+                        cache_service.store_response(payload, combined_response, "completion")
+                        logger.info(f"Stored combined streaming response in cache for model: {payload['model']}")
+                    except Exception as e:
+                        logger.error(f"Failed to store streaming response in cache: {e}")
+                
+                # Log API usage
+                response_time_ms = int((time.time() - start_stream_time) * 1000)
+                log_api_usage(
+                    api_token=api_token,
+                    endpoint="/v1/create",
+                    method="POST",
+                    payload=payload,
+                    response_data=combined_response,
+                    status_code=200,
+                    response_time_ms=response_time_ms,
+                    cached=False,
+                    cache_type=None
+                )
+            
+            # Return a new Response with our wrapped generator
+            return Response(
+                stream_with_context(wrapped_generator()),
+                mimetype="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no"
+                }
+            )
+        
+        return stream_and_cache()
+    else:
+        logger.info(f"Cache MISS for completion model: {payload['model']} - forwarding to OpenRouter")
+        response, status_code = forward_to_openrouter("/completions", payload)
     
     response_time_ms = int((time.time() - start_time) * 1000)
     response_data = None
@@ -381,6 +600,7 @@ def create_completion():
 
 
 @api_llm_routes.route("/v1/chat/create", methods=["POST"])
+@require_auth_for_expose_api
 def create_chat_completion():
     start_time = time.time()
     
@@ -469,8 +689,116 @@ def create_chat_completion():
         return jsonify(cached_response), 200
     
     # Cache miss - forward to OpenRouter
-    logger.info(f"Cache MISS for chat model: {payload['model']} - forwarding to OpenRouter")
-    response, status_code = forward_to_openrouter("/chat/completions", payload)
+    if payload.get("stream"):
+        logger.info(f"Cache MISS for chat model: {payload['model']} with streaming - forwarding to OpenRouter")
+        start_stream_time = time.time()
+        
+        def stream_and_cache():
+            combined_response = {
+                "id": None,
+                "model": payload["model"],
+                "choices": [],
+                "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+            }
+            combined_content = ""
+            last_chunk_data = None
+            
+            # Get the generator from forward_to_openrouter_stream
+            response = forward_to_openrouter_stream("/chat/completions", payload)
+            
+            # Wrap the generator to collect and combine chunks
+            def wrapped_generator():
+                nonlocal combined_content, combined_response, last_chunk_data
+                
+                for chunk in response.response:
+                    # Forward the chunk to client
+                    yield chunk
+                    
+                    # Process chunk for combining
+                    try:
+                        if chunk.startswith("data: "):
+                            chunk_data = json.loads(chunk[6:])  # Remove "data: " prefix
+                            last_chunk_data = chunk_data  # Store the last chunk for metadata
+                            
+                            # Update combined response
+                            if "id" in chunk_data and not combined_response["id"]:
+                                combined_response["id"] = chunk_data["id"]
+                            
+                            if "choices" in chunk_data and chunk_data["choices"]:
+                                content = chunk_data["choices"][0].get("delta", {}).get("content", "")
+                                if content:
+                                    combined_content += content
+                            
+                            # Update usage if present
+                            if "usage" in chunk_data:
+                                for key in ["prompt_tokens", "completion_tokens", "total_tokens"]:
+                                    if key in chunk_data["usage"]:
+                                        combined_response["usage"][key] = chunk_data["usage"][key]
+                            
+                            # Capture provider info as soon as it's available
+                            if "provider" in chunk_data and "provider" not in combined_response:
+                                combined_response["provider"] = chunk_data["provider"]
+                            if "model_info" in chunk_data:
+                                combined_response["model_info"] = chunk_data["model_info"]
+                                if "provider" not in combined_response and "provider" in chunk_data["model_info"]:
+                                    combined_response["provider"] = chunk_data["model_info"]["provider"]
+                    
+                    except json.JSONDecodeError:
+                        logger.error("Failed to parse streaming chunk")
+                        continue
+                
+                # After stream completes, store in cache and log
+                finish_reason = "stop"
+                if last_chunk_data and "choices" in last_chunk_data and last_chunk_data["choices"]:
+                    finish_reason = last_chunk_data["choices"][0].get("finish_reason", "stop")
+                
+                combined_response["choices"] = [{
+                    "message": {
+                        "role": "assistant",
+                        "content": combined_content
+                    },
+                    "index": 0,
+                    "finish_reason": finish_reason
+                }]
+                
+                # Store in cache if enabled
+                if api_token.caching_enabled:
+                    try:
+                        cache_service = get_cache_service()
+                        cache_service.store_response(payload, combined_response, "chat")
+                        logger.info(f"Stored combined streaming chat response in cache for model: {payload['model']}")
+                    except Exception as e:
+                        logger.error(f"Failed to store streaming chat response in cache: {e}")
+                
+                # Log API usage
+                response_time_ms = int((time.time() - start_stream_time) * 1000)
+                log_api_usage(
+                    api_token=api_token,
+                    endpoint="/v1/chat/create",
+                    method="POST",
+                    payload=payload,
+                    response_data=combined_response,
+                    status_code=200,
+                    response_time_ms=response_time_ms,
+                    cached=False,
+                    cache_type=None
+                )
+            
+            # Return a new Response with our wrapped generator
+            return Response(
+                stream_with_context(wrapped_generator()),
+                mimetype="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no"
+                }
+            )
+        
+        return stream_and_cache()
+    else:
+        logger.info(f"Cache MISS for chat model: {payload['model']} - forwarding to OpenRouter")
+        response, status_code = forward_to_openrouter("/chat/completions", payload)
     
     response_time_ms = int((time.time() - start_time) * 1000)
     response_data = None

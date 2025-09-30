@@ -21,7 +21,8 @@ import {
   Info,
   Layers,
   Filter,
-  TrendingUp
+  TrendingUp,
+  Database
 } from 'lucide-react';
 
 interface Model {
@@ -152,37 +153,37 @@ export default function ApiDocumentation() {
     { param: 'prompt', purpose: 'The prompt(s) to generate completions for, encoded as a string, array of strings, array of tokens, or array of token arrays.', required: true },
     { param: 'max_tokens', purpose: 'The maximum number of tokens that can be generated in the chat completion.', required: false },
     { param: 'temperature', purpose: 'What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.', required: false },
-    { param: 'top_p', purpose: 'An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass.', required: false },
-    { param: 'n', purpose: 'How many completions to generate for each prompt.', required: false },
+    // { param: 'top_p', purpose: 'An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass.', required: false },
+    // { param: 'n', purpose: 'How many completions to generate for each prompt.', required: false },
     { param: 'stream', purpose: 'Whether to stream back partial progress. If set, tokens will be sent as data-only server-sent events as they become available.', required: false },
-    { param: 'logprobs', purpose: 'Include the log probabilities on the logprobs most likely tokens, as well the chosen tokens.', required: false },
-    { param: 'echo', purpose: 'Echo back the prompt in addition to the completion.', required: false },
-    { param: 'stop', purpose: 'Up to 4 sequences where the API will stop generating further tokens. The returned text will not contain the stop sequence.', required: false },
-    { param: 'presence_penalty', purpose: 'Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far.', required: false },
-    { param: 'frequency_penalty', purpose: 'Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far.', required: false },
-    { param: 'best_of', purpose: 'Generates best_of completions server-side and returns the "best" (the one with the highest log probability per token).', required: false },
-    { param: 'logit_bias', purpose: 'Modify the likelihood of specified tokens appearing in the completion.', required: false },
-    { param: 'user', purpose: 'A unique identifier representing your end-user, which can help OpenRouter to monitor and detect abuse.', required: false },
-    { param: 'suffix', purpose: 'The suffix that comes after a completion of inserted text.', required: false }
+    // { param: 'logprobs', purpose: 'Include the log probabilities on the logprobs most likely tokens, as well the chosen tokens.', required: false },
+    // { param: 'echo', purpose: 'Echo back the prompt in addition to the completion.', required: false },
+    // { param: 'stop', purpose: 'Up to 4 sequences where the API will stop generating further tokens. The returned text will not contain the stop sequence.', required: false },
+    // { param: 'presence_penalty', purpose: 'Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far.', required: false },
+    // { param: 'frequency_penalty', purpose: 'Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far.', required: false },
+    // { param: 'best_of', purpose: 'Generates best_of completions server-side and returns the "best" (the one with the highest log probability per token).', required: false },
+    // { param: 'logit_bias', purpose: 'Modify the likelihood of specified tokens appearing in the completion.', required: false },
+    // { param: 'user', purpose: 'A unique identifier representing your end-user, which can help OpenRouter to monitor and detect abuse.', required: false },
+    // { param: 'suffix', purpose: 'The suffix that comes after a completion of inserted text.', required: false }
   ];
 
   const chatParams = [
     { param: 'model', purpose: 'ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.', required: true },
-    { param: 'messages', purpose: 'A list of messages comprising the conversation so far.', required: true },
+    { param: "messages", purpose: "An ordered list of role-based message objects forming the conversation history; each object must include a 'role' (system, developer, user, assistant, tool) and a 'content' string.", required: true },
     { param: 'max_tokens', purpose: 'The maximum number of tokens that can be generated in the chat completion.', required: false },
     { param: 'temperature', purpose: 'What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.', required: false },
-    { param: 'top_p', purpose: 'An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass.', required: false },
-    { param: 'n', purpose: 'How many chat completion choices to generate for each input message.', required: false },
+    // { param: 'top_p', purpose: 'An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass.', required: false },
+    // { param: 'n', purpose: 'How many chat completion choices to generate for each input message.', required: false },
     { param: 'stream', purpose: 'If set, partial message deltas will be sent, like in ChatGPT. Tokens will be sent as data-only server-sent events as they become available.', required: false },
-    { param: 'stop', purpose: 'Up to 4 sequences where the API will stop generating further tokens.', required: false },
-    { param: 'presence_penalty', purpose: 'Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far.', required: false },
-    { param: 'frequency_penalty', purpose: 'Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far.', required: false },
-    { param: 'logit_bias', purpose: 'Modify the likelihood of specified tokens appearing in the completion.', required: false },
-    { param: 'user', purpose: 'A unique identifier representing your end-user, which can help OpenRouter to monitor and detect abuse.', required: false },
-    { param: 'response_format', purpose: 'An object specifying the format that the model must output. Compatible with GPT-4 Turbo and all GPT-3.5 Turbo models newer than gpt-3.5-turbo-1106.', required: false },
-    { param: 'seed', purpose: 'This feature is in Beta. If specified, our system will make a best effort to sample deterministically.', required: false },
-    { param: 'tools', purpose: 'A list of tools the model may call. Currently, only functions are supported as a tool.', required: false },
-    { param: 'tool_choice', purpose: 'Controls which (if any) function is called by the model.', required: false }
+    // { param: 'stop', purpose: 'Up to 4 sequences where the API will stop generating further tokens.', required: false },
+    // { param: 'presence_penalty', purpose: 'Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far.', required: false },
+    // { param: 'frequency_penalty', purpose: 'Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far.', required: false },
+    // { param: 's', purpose: 'Modify the likelihood of specified tokens appearing in the completion.', required: false },
+    // { param: 'user', purpose: 'A unique identifier representing your end-user, which can help OpenRouter to monitor and detect abuse.', required: false },
+    // { param: 'response_format', purpose: 'An object specifying the format that the model must output. Compatible with GPT-4 Turbo and all GPT-3.5 Turbo models newer than gpt-3.5-turbo-1106.', required: false },
+    // { param: 'seed', purpose: 'This feature is in Beta. If specified, our system will make a best effort to sample deterministically.', required: false },
+    // { param: 'tools', purpose: 'A list of tools the model may call. Currently, only functions are supported as a tool.', required: false },
+    // { param: 'tool_choice', purpose: 'Controls which (if any) function is called by the model.', required: false }
   ];
 
   const sidebarItems = [
@@ -191,6 +192,7 @@ export default function ApiDocumentation() {
     { id: 'completions', label: 'Completions', icon: Code },
     { id: 'chat', label: 'Chat Completions', icon: Sparkles },
     { id: 'streaming', label: 'Streaming', icon: Zap },
+    { id: 'caching', label: 'Response Caching', icon: Database },
     { id: 'errors', label: 'Error Responses', icon: ExternalLink }
   ];
 
@@ -447,6 +449,7 @@ export default function ApiDocumentation() {
                 size="sm"
                 className="border-slate-700 text-slate-300"
                 data-testid="button-dashboard"
+                onClick={() => window.open('https://nexusaihub.com/nexus/api-integrations', '_blank')}
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
                 Dashboard
@@ -455,8 +458,11 @@ export default function ApiDocumentation() {
                 size="sm"
                 className="bg-gradient-to-r from-indigo-500 to-purple-600"
                 data-testid="button-get-api-key"
+                onClick={handleTryIt}
+
               >
-                Get API Key
+                <Play className="w-4 h-4 mr-2" />
+                Try It Live
               </Button>
             </div>
           </div>
@@ -523,7 +529,7 @@ export default function ApiDocumentation() {
                         <div className="w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-bold">2</div>
                         <div>
                           <p className="font-medium">Choose your model</p>
-                          <p className="text-slate-400 text-sm">Select from 50+ AI models including GPT-4, Claude, and more</p>
+                          <p className="text-slate-400 text-sm">Select from 300+ AI models including GPT-4, Claude, and more</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
@@ -689,6 +695,77 @@ export default function ApiDocumentation() {
                     <p className="text-slate-400 text-sm mt-3">
                       When streaming is enabled, you'll receive partial responses as they're generated, allowing for real-time user experiences.
                     </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {activeEndpoint === 'caching' && (
+              <div className="space-y-8">
+                <div>
+                  <h1 className="text-3xl font-bold mb-4">Response Caching</h1>
+                  <p className="text-slate-300 text-lg leading-relaxed">
+                    Nexus AI Hub provides two types of response caching to optimize performance and reduce costs: Exact Caching and Semantic Caching.
+                  </p>
+                </div>
+
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader>
+                    <CardTitle>Exact Caching</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-slate-300">
+                      Exact caching matches requests precisely, requiring the exact same parameters and prompt to return a cached response.
+                    </p>
+                    <div className="bg-slate-900 rounded-lg p-4 font-mono text-sm">
+                      <pre className="text-slate-300 whitespace-pre-wrap">
+                        {`// Example: Exact Match Required
+{
+  "model": "openai/gpt-4",
+  "messages": [
+    {"role": "user", "content": "What is AI?"}
+  ],
+  "temperature": 0.7
+}`}
+                      </pre>
+                    </div>
+                    <p className="text-slate-400 text-sm">
+                      Only requests with identical parameters and content will hit the cache.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader>
+                    <CardTitle>Semantic Caching</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-slate-300">
+                      Semantic caching uses AI to match similar requests, even if they're worded differently, based on a configurable similarity threshold.
+                    </p>
+                    <div className="bg-slate-900 rounded-lg p-4 font-mono text-sm">
+                      <pre className="text-slate-300 whitespace-pre-wrap">
+                        {`// These questions might hit the same cache:
+{
+  "messages": [{"role": "user", "content": "What is artificial intelligence?"}]
+}
+
+{
+  "messages": [{"role": "user", "content": "Can you explain AI?"}]
+}`}
+                      </pre>
+                    </div>
+                    <div className="bg-indigo-500/20 border border-indigo-500/30 rounded-lg p-4 mt-4">
+                      <h4 className="text-indigo-300 font-medium mb-2">Configurable Threshold</h4>
+                      <p className="text-slate-300 text-sm">
+                        Set semantic_cache_threshold
+                        <ul className="list-disc list-inside mt-2 space-y-1">
+                          <li>0.0 - Exact matching only</li>
+                          <li>0.8 - Conservative semantic matching</li>
+                          <li>0.95 - Aggressive semantic matching</li>
+                        </ul>
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -964,22 +1041,35 @@ console.error(response.error?.message);`}
                   <pre className="text-slate-300 whitespace-pre-wrap">
                     {activeEndpoint === 'chat' ?
                       `{
-  "id": "chatcmpl-abc123",
-  "object": "chat.completion", 
-  "choices": [
-    {
-      "message": {
-        "role": "assistant",
-        "content": "The meaning of life..."
-      },
-      "finish_reason": "stop"
+    "id": "gen-1759174197-G4wgnNBDR07wdzd4gOY2",
+    "provider": "OpenAI",
+    "model": "openai/gpt-4o-mini",
+    "object": "chat.completion.chunk",
+    "created": 1759174198,
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "role": "assistant",
+                "content": ""
+            },
+            "finish_reason": null,
+            "native_finish_reason": null,
+            "logprobs": null
+        }
+    ],
+    "usage": {
+        "prompt_tokens": 1108,
+        "completion_tokens": 398,
+        "total_tokens": 1506,
+        "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+            "reasoning_tokens": 0
+        }
     }
-  ],
-  "usage": {
-    "prompt_tokens": 25,
-    "completion_tokens": 67,
-    "total_tokens": 92
-  }
 }` :
                       `{
   "id": "cmpl-abc123",
@@ -998,20 +1088,6 @@ console.error(response.error?.message);`}
 }`}
                   </pre>
                 </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-700">
-                <Button
-                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
-                  data-testid="try-it-button"
-                  onClick={handleTryIt}
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Try It Live
-                </Button>
-                <p className="text-xs text-slate-400 mt-2 text-center">
-                  Opens interactive API testing interface
-                </p>
               </div>
             </div>
           </div>

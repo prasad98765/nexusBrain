@@ -98,6 +98,49 @@ def require_auth(f):
     
     return decorated_function
 
+def require_auth_for_expose_api(f):
+    """Decorator to authenticate requests using API tokens stored in database"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        from .models import ApiToken, db
+        import hashlib
+        from datetime import datetime
+
+        # Get token from Authorization header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': 'Missing or invalid Authorization header'}), 401
+        
+        token = auth_header[7:]  # Remove 'Bearer ' prefix
+        
+        # Validate token format
+        if not token.startswith('nxs-'):
+            return jsonify({'error': 'Invalid token format'}), 401
+        
+        # Hash the token to compare with stored hash
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        
+        # Look up token in database
+        api_token = ApiToken.query.filter_by(
+            token=token_hash,
+            is_active=True
+        ).first()
+        
+        if not api_token:
+            return jsonify({'error': 'Invalid or inactive API token'}), 401
+            
+        # Update last used timestamp
+        api_token.last_used_at = datetime.utcnow()
+        db.session.commit()
+        
+        # Add token info to request context for use in the route
+        request.api_token = api_token
+        
+        return f(*args, **kwargs)
+    
+    return decorated_function
+
+
 def require_verified_user(f):
     """Decorator to require verified user"""
     @wraps(f)
