@@ -227,8 +227,17 @@ class QARedisService:
             return False
         
         try:
-            cache_key = f"llm_cache:completion:{qa_id}"
-            data = self.redis_client.get(cache_key)
+            # Try both completion and chat cache keys
+            completion_key = f"llm_cache:completion:{qa_id}"
+            chat_key = f"llm_cache:chat:{qa_id}"
+            
+            data = self.redis_client.get(completion_key)
+            if data is None:
+                data = self.redis_client.get(chat_key)
+                if data is not None:
+                    cache_key = chat_key
+            else:
+                cache_key = completion_key
             
             if not data:
                 logger.warning(f"Cache entry {qa_id} not found for update")
@@ -252,6 +261,15 @@ class QARedisService:
             # Save back to Redis with original TTL if any
             ttl = self.redis_client.ttl(cache_key)
             ttl_value = int(ttl) if ttl is not None and isinstance(ttl, (int, float)) and int(ttl) > 0 else None
+
+            # Handle chat format if needed
+            if 'message' in cache_data['response']['choices'][0]:
+                cache_data['response']['choices'][0]['message']['content'] = new_answer
+            elif 'content' in cache_data['response']['choices'][0]:
+                cache_data['response']['choices'][0]['content'] = new_answer
+            else:
+                cache_data['response']['choices'][0]['text'] = new_answer
+
             if ttl_value and ttl_value > 0:
                 self.redis_client.setex(cache_key, ttl_value, json.dumps(cache_data))
             else:

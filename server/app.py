@@ -1,5 +1,6 @@
 import os
 import logging
+import redis
 from flask import Flask
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -10,7 +11,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Initialize extensions
-db = SQLAlchemy()
+db = SQLAlchemy(engine_options={
+    "pool_pre_ping": True,
+    "pool_recycle": 1800,   # recycle every 30 min
+    "pool_size": 10,
+    "max_overflow": 20,
+})
 
 def create_app():
     app = Flask(__name__)
@@ -24,6 +30,16 @@ def create_app():
         database_url = database_url.replace('postgresql://', 'postgresql+psycopg2://')
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+     # --- Sessions via Redis (instead of SQLAlchemy/Postgres) ---
+    app.config['SESSION_TYPE'] = 'redis'
+    app.config['SESSION_REDIS'] = redis.Redis(
+        host=os.getenv('REDIS_HOST', 'localhost'),
+        port=int(os.getenv('REDIS_PORT', 6379)),
+        db=0,
+        socket_keepalive=True,
+        health_check_interval=30,  # avoids idle timeouts
+    )
     
     # Google OAuth configuration
     os.environ['GOOGLE_CLIENT_ID'] = '721339353722-aqnl6orqhu784lo1csncj24rbh28b9n6.apps.googleusercontent.com'
@@ -37,6 +53,8 @@ def create_app():
     app.config['SESSION_USE_SIGNER'] = True
     app.config['SESSION_KEY_PREFIX'] = 'nexus:'
     app.config['PERMANENT_SESSION_LIFETIME'] = 7 * 24 * 60 * 60  # 7 days
+
+
     
     # Initialize extensions with app
     db.init_app(app)

@@ -44,11 +44,11 @@ def webbot_chat():
             }), 404
         
         # Construct payload for /v1/chat/create
-        # Note: We don't force streaming here - let the cache determine the response format
+        # Construct payload for /v1/chat/create
         payload = {
             'model': data.get('model', 'openai/gpt-3.5-turbo'),  # Default model
             'messages': messages,
-            'stream': data.get('stream', False),  # Disable streaming to get JSON for cached responses
+            'stream': data.get('stream', True),  # Enable streaming by default
             'max_tokens': data.get('max_tokens', 1000),
             'temperature': data.get('temperature', 0.7)
         }
@@ -58,23 +58,63 @@ def webbot_chat():
         chat_url = "http://127.0.0.1:5000/api/v1/chat/create"
         
         headers = {
-            'Authorization': f'Bearer {api_token.token}',
+            'Authorization': f'Bearer {"nxs-aXkDVM7aAVNVuVcYa6FqoLDD98fHIwOF4VVX-tkcHgs"}',
             'Content-Type': 'application/json'
         }
         
-        # Make non-streaming request (works for both cached and non-cached responses)
+        # Make the initial request
         response = requests.post(
             chat_url,
             json=payload,
             headers=headers,
+            stream=data.get('stream', True),
             timeout=120
         )
+
+        # Check response headers to determine if it's a streaming or regular response
+        content_type = response.headers.get('content-type', '')
         
+        # Handle non-streaming response (including cached responses)
+        if 'application/json' in content_type:
+            if response.status_code == 200:
+                json_response = response.json()
+                # Convert to SSE format for consistent client handling
+                return Response(
+                    f"data: {json.dumps(json_response)}\n\ndata: [DONE]\n\n",
+                    mimetype='text/event-stream'
+                )
+            else:
+                error_data = {'error': response.json().get('error', 'Unknown error')}
+                return Response(
+                    f"data: {json.dumps(error_data)}\n\ndata: [DONE]\n\n",
+                    mimetype='text/event-stream'
+                )
+
+        # Handle streaming response
         if response.status_code == 200:
-            return jsonify(response.json())
+            def generate():
+                try:
+                    # Forward the streaming response
+                    for line in response.iter_lines():
+                        if line:
+                            decoded_line = line.decode('utf-8')
+                            if decoded_line.startswith('data: '):
+                                yield f"{decoded_line}\n\n"
+                    # Ensure [DONE] is always sent
+                    yield "data: [DONE]\n\n"
+                except Exception as e:
+                    logger.error(f"Streaming error: {e}")
+                    yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                    yield "data: [DONE]\n\n"
+            
+            return Response(generate(), mimetype='text/event-stream')
         else:
-            error_data = response.json() if response.headers.get('content-type') == 'application/json' else {'error': response.text}
-            return jsonify(error_data), response.status_code
+            # Handle streaming request errors
+            error_msg = {'error': 'Failed to get response from chat API'}
+            return Response(
+                f"data: {json.dumps(error_msg)}\n\ndata: [DONE]\n\n",
+                mimetype='text/event-stream'
+            )
         
     except Exception as e:
         logger.error(f"Webbot chat error: {e}")

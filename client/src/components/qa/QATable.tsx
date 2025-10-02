@@ -1,4 +1,23 @@
 import React, { useState } from 'react';
+// Dialog imports already present below, so removed duplicate
+import { Trash2 } from 'lucide-react';
+function ConfirmDeleteDialog({ open, onOpenChange, onConfirm, isDeleting }: { open: boolean; onOpenChange: (open: boolean) => void; onConfirm: () => void; isDeleting: boolean }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange} >
+      <DialogContent className="w-[350px] p-6 text-center" style={{ color: "white" }}>
+        <Trash2 className="w-10 h-10 mx-auto mb-4 text-destructive" />
+        <h4 className="text-lg font-semibold mb-2">Are you sure you want to delete this Q/A?</h4>
+        <p className="text-muted-foreground mb-6">This action cannot be undone.</p>
+        <div className="flex justify-center gap-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isDeleting} data-testid="button-cancel-delete">Cancel</Button>
+          <Button variant="destructive" onClick={onConfirm} disabled={isDeleting} data-testid="button-confirm-delete">
+            {isDeleting ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}Delete
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Table,
@@ -72,9 +91,10 @@ interface EditPopoverProps {
   onOpenChange: (open: boolean) => void;
   onSave: (id: string, newAnswer: string) => void;
   isSaving: boolean;
+  setEditingEntry: (entry: QAEntry | null) => void;
 }
 
-function EditAnswerPopover({ entry, open, onOpenChange, onSave, isSaving }: EditPopoverProps) {
+function EditAnswerPopover({ entry, open, onOpenChange, onSave, isSaving, setEditingEntry }: EditPopoverProps) {
   const [editedAnswer, setEditedAnswer] = useState(entry.answer);
 
   const handleSave = () => {
@@ -88,6 +108,7 @@ function EditAnswerPopover({ entry, open, onOpenChange, onSave, isSaving }: Edit
   const handleCancel = () => {
     setEditedAnswer(entry.answer);
     onOpenChange(false);
+    setEditingEntry(null);
   };
 
   return (
@@ -186,6 +207,45 @@ function EditAnswerPopover({ entry, open, onOpenChange, onSave, isSaving }: Edit
 }
 
 export default function QATable() {
+  // State for delete dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingEntry, setDeletingEntry] = useState<QAEntry | null>(null);
+
+  // Delete mutation
+  const deleteAnswerMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await axios.delete(`/api/qa/entries/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/qa/entries'] });
+      setDeleteDialogOpen(false);
+      setDeletingEntry(null);
+      toast({
+        title: 'Q/A Deleted',
+        description: 'The Q/A entry has been deleted.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to Delete Q/A',
+        description: error.response?.data?.error || 'An error occurred while deleting the Q/A entry.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleDeleteClick = (entry: QAEntry) => {
+    setDeletingEntry(entry);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deletingEntry) {
+      deleteAnswerMutation.mutate(deletingEntry.id);
+    }
+  };
   const { user, token } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -479,25 +539,50 @@ export default function QATable() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {editingEntry?.id === entry.id ? (
-                      <EditAnswerPopover
-                        entry={entry}
-                        open={editPopoverOpen}
-                        onOpenChange={setEditPopoverOpen}
-                        onSave={handleSaveAnswer}
-                        isSaving={updateAnswerMutation.isPending}
-                      />
-                    ) : (
+                    <div className='flex gap-2'>
+                      <div className="flex items-center gap-1">
+                        {editingEntry?.id === entry.id ? (
+                          <EditAnswerPopover
+                            entry={entry}
+                            open={editPopoverOpen}
+                            onOpenChange={setEditPopoverOpen}
+                            onSave={handleSaveAnswer}
+                            isSaving={updateAnswerMutation.isPending}
+                            setEditingEntry={setEditingEntry}
+                          />
+                        ) : (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleEditAnswer(entry)}
+                              data-testid={`button-edit-answer-${entry.id}`}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                       <Button
                         variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditAnswer(entry)}
-                        data-testid={`button-edit-answer-${entry.id}`}
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteClick(entry)}
+                        data-testid={`button-delete-answer-${entry.id}`}
+                        title="Delete Q/A"
                       >
-                        <Edit className="w-4 h-4" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
-                    )}
+                    </div>
                   </TableCell>
+                  {/* Delete confirmation dialog */}
+                  <ConfirmDeleteDialog
+                    open={deleteDialogOpen}
+                    onOpenChange={setDeleteDialogOpen}
+                    onConfirm={handleConfirmDelete}
+                    isDeleting={deleteAnswerMutation.isPending}
+                  />
                 </TableRow>
               ))
             )}

@@ -15,7 +15,7 @@ function MarkdownText({ content }: { content: string }) {
   const renderMarkdown = (text: string) => {
     // Split by code blocks first
     const parts = text.split(/(```[\s\S]*?```|`[^`]+`)/g);
-    
+
     return parts.map((part, index) => {
       // Handle code blocks
       if (part.startsWith('```') && part.endsWith('```')) {
@@ -26,7 +26,7 @@ function MarkdownText({ content }: { content: string }) {
           </pre>
         );
       }
-      
+
       // Handle inline code
       if (part.startsWith('`') && part.endsWith('`')) {
         return (
@@ -35,12 +35,12 @@ function MarkdownText({ content }: { content: string }) {
           </code>
         );
       }
-      
+
       // Handle regular text with bold and italic
       const segments: (string | JSX.Element)[] = [];
       let remaining = part;
       let segmentKey = 0;
-      
+
       while (remaining) {
         // Match **bold**
         const boldMatch = remaining.match(/\*\*([^\*]+)\*\*/);
@@ -56,7 +56,7 @@ function MarkdownText({ content }: { content: string }) {
           remaining = remaining.slice(boldMatch.index + boldMatch[0].length);
           continue;
         }
-        
+
         // Match *italic*
         const italicMatch = remaining.match(/\*([^\*]+)\*/);
         if (italicMatch && italicMatch.index !== undefined) {
@@ -71,12 +71,12 @@ function MarkdownText({ content }: { content: string }) {
           remaining = remaining.slice(italicMatch.index + italicMatch[0].length);
           continue;
         }
-        
+
         // No more matches, add remaining text
         segments.push(remaining);
         break;
       }
-      
+
       return <span key={index}>{segments}</span>;
     });
   };
@@ -145,7 +145,7 @@ export default function WebBotChat({ isOpen, onClose }: WebBotChatProps) {
         },
         body: JSON.stringify({
           messages: newMessages,
-          stream: false  // Use non-streaming for consistent response format
+          stream: true
         })
       });
 
@@ -154,23 +154,81 @@ export default function WebBotChat({ isOpen, onClose }: WebBotChatProps) {
         throw new Error(errorData.error || 'Failed to get response');
       }
 
-      // Handle JSON response (works for both cached and non-cached)
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
+      // Check if it's a streaming response
+      const contentType = response.headers.get('content-type');
+      const isStreamingResponse = contentType?.includes('text/event-stream');
+
+      if (isStreamingResponse) {
+        // Handle streaming response
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let streamedContent = '';
+
+        if (reader) {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              // Decode chunk and process SSE messages
+              const chunk = decoder.decode(value);
+              const lines = chunk.split('\n');
+
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(6).trim();
+                  if (data === '[DONE]') continue;
+
+                  try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.error) throw new Error(parsed.error);
+
+                    // Handle both delta and full message formats
+                    const content = parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.message?.content;
+                    if (content) {
+                      streamedContent += content;
+                      // Update UI with streamed content
+                      setMessages(prev => {
+                        const newMessages = [...prev];
+                        // Update or add assistant message
+                        const lastMessage = newMessages[newMessages.length - 1];
+                        if (lastMessage && lastMessage.role === 'assistant') {
+                          lastMessage.content = streamedContent;
+                        } else {
+                          newMessages.push({
+                            role: 'assistant',
+                            content: streamedContent
+                          });
+                        }
+                        return newMessages;
+                      });
+                    }
+                  } catch (e) {
+                    if (data !== '[DONE]') {
+                      console.error('Parse error:', e, 'Data:', data);
+                    }
+                  }
+                }
+              }
+            }
+          } finally {
+            reader.releaseLock();
+          }
+        }
+      } else {
+        // Handle non-streaming response
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        const content = data.choices?.[0]?.message?.content || '';
+        if (content) {
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: content
+          }]);
+        }
       }
 
-      // Extract message content from OpenRouter response format
-      const content = data.choices?.[0]?.message?.content || '';
-      
-      if (content) {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: content
-        }]);
-      }
-      
       setIsLoading(false);
 
     } catch (error: any) {
@@ -223,7 +281,7 @@ export default function WebBotChat({ isOpen, onClose }: WebBotChatProps) {
           <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
             <Sparkles className="w-10 h-10 text-white" />
           </div>
-          
+
           <div className="text-center space-y-3">
             <h4 className="text-lg font-semibold text-slate-100">Welcome to Testing Bot</h4>
             <div className="space-y-2 text-sm text-slate-400">
@@ -248,15 +306,13 @@ export default function WebBotChat({ isOpen, onClose }: WebBotChatProps) {
             {messages.map((message, index) => (
               <div
                 key={index}
-                className={`flex items-start gap-3 ${
-                  message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                }`}
+                className={`flex items-start gap-3 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                  }`}
               >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  message.role === 'user'
-                    ? 'bg-indigo-600'
-                    : 'bg-gradient-to-br from-purple-500 to-indigo-500'
-                }`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === 'user'
+                  ? 'bg-indigo-600'
+                  : 'bg-gradient-to-br from-purple-500 to-indigo-500'
+                  }`}>
                   {message.role === 'user' ? (
                     <User className="w-4 h-4 text-white" />
                   ) : (
@@ -264,17 +320,16 @@ export default function WebBotChat({ isOpen, onClose }: WebBotChatProps) {
                   )}
                 </div>
                 <div
-                  className={`max-w-[75%] rounded-lg p-3 ${
-                    message.role === 'user'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-700 text-slate-100'
-                  }`}
+                  className={`max-w-[75%] rounded-lg p-3 ${message.role === 'user'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-700 text-slate-100'
+                    }`}
                 >
                   <MarkdownText content={message.content} />
                 </div>
               </div>
             ))}
-            
+
             {/* Typing indicator */}
             {isLoading && (
               <div className="flex items-start gap-3">
@@ -290,7 +345,7 @@ export default function WebBotChat({ isOpen, onClose }: WebBotChatProps) {
                 </div>
               </div>
             )}
-            
+
             <div ref={messagesEndRef} />
           </div>
 

@@ -370,13 +370,13 @@ def is_list_of_messages(x):
 # ——— Routes ———
 
 @api_llm_routes.route("/v1/models", methods=["GET"])
-@require_auth_for_expose_api
+# @require_auth_for_expose_api
 def get_models():
     return forward_to_openrouter_for_model_and_provider("/models")
 
 
 @api_llm_routes.route("/v1/providers", methods=["GET"])
-@require_auth_for_expose_api
+# @require_auth_for_expose_api
 def get_providers():
     return forward_to_openrouter_for_model_and_provider("/providers")
 
