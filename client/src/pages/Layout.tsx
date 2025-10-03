@@ -1,19 +1,46 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu, Bot, Users, Settings, Workflow, ChevronsLeftRightEllipsis, Activity, MessageCircle } from "lucide-react";
+import { LogOut, Menu, Bot, Users, Settings, Workflow, ChevronsLeftRightEllipsis, Activity, MessageCircle, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import WebBotChat from "@/components/webbot/WebBotChat";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function Layout() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [active, setActive] = useState<string>("dashboard");
   const [isBotOpen, setIsBotOpen] = useState(false);
+  const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
+
+  // Fetch workspace balance
+  const { data: balanceData } = useQuery<{ balance: number; workspaceId: string }>({
+    queryKey: ['/api/workspaces', user?.workspace_id, 'balance'],
+    enabled: !!user?.workspace_id,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
 
   const handleLogout = () => {
     localStorage.removeItem("auth_token");
     window.location.href = "/auth";
+  };
+
+  const handleAddBalance = () => {
+    setIsBalanceModalOpen(true);
+  };
+
+  const handleEmailSupport = () => {
+    const email = 'support@nexusaihub.co.in';
+    const subject = 'Request to Add Balance';
+    const body = 'Hello, I would like to add balance of [enter amount].';
+    window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   return (
@@ -29,6 +56,25 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Balance Display */}
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-700/50 rounded-lg border border-slate-600">
+              <Wallet className="h-4 w-4 text-green-400" />
+              <span className="text-sm font-medium">
+                ${(balanceData?.balance || 0).toFixed(2)}
+              </span>
+            </div>
+            
+            {/* Add Balance Button */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleAddBalance}
+              className="border-indigo-500 text-indigo-400 hover:bg-indigo-500/10"
+              data-testid="button-add-balance"
+            >
+              Add Balance
+            </Button>
+            
             <span className="text-sm text-slate-300">
               Welcome, {user?.first_name || "User"}!
             </span>
@@ -151,6 +197,37 @@ export default function Layout() {
 
       {/* Web Bot Chat Window */}
       <WebBotChat isOpen={isBotOpen} onClose={() => setIsBotOpen(false)} />
+
+      {/* Add Balance Modal */}
+      <Dialog open={isBalanceModalOpen} onOpenChange={setIsBalanceModalOpen}>
+        <DialogContent className="sm:max-w-md bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-slate-100">Add Balance</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Request to add balance to your account
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-slate-300">
+              If you want to add balance, please send a request to{' '}
+              <a 
+                href="mailto:support@nexusaihub.co.in" 
+                className="text-indigo-400 hover:text-indigo-300 underline"
+              >
+                support@nexusaihub.co.in
+              </a>
+              {' '}with the amount.
+            </p>
+            <Button 
+              onClick={handleEmailSupport}
+              className="w-full bg-indigo-600 hover:bg-indigo-700"
+              data-testid="button-email-support"
+            >
+              Open Email Client
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
