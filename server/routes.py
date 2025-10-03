@@ -879,6 +879,23 @@ def get_workspace(workspace_id):
         print(f"Get workspace error: {e}")
         return jsonify({'message': 'Failed to fetch workspace'}), 500
 
+@workspace_bp.route('/workspaces/<workspace_id>/balance')
+@require_auth
+def get_workspace_balance(workspace_id):
+    try:
+        workspace = Workspace.query.filter_by(id=workspace_id).first()
+        if not workspace:
+            return jsonify({'message': 'Workspace not found'}), 404
+        
+        return jsonify({
+            'balance': workspace.balance,
+            'workspaceId': workspace.id
+        })
+        
+    except Exception as e:
+        print(f"Get workspace balance error: {e}")
+        return jsonify({'message': 'Failed to fetch workspace balance'}), 500
+
 # Conversation routes
 @conversation_bp.route('/workspaces/<workspace_id>/conversations')
 @require_auth
