@@ -119,10 +119,17 @@ def log_api_usage(api_token, endpoint, method, payload, response_data, status_co
                 (item for item in llm_details.get("data", []) if item.get("canonical_slug") == model_permaslug),
                 None,
             )
-            # Extract per-token rates
-            prompt_price = float(model_pricing["pricing"].get("prompt", 0))
-            completion_price = float(model_pricing["pricing"].get("completion", 0))
-            reasoning_price = float(model_pricing["pricing"].get("internal_reasoning", 0))
+            
+            # Extract per-token rates with safe defaults if model pricing not found
+            if model_pricing and "pricing" in model_pricing:
+                prompt_price = float(model_pricing["pricing"].get("prompt", 0))
+                completion_price = float(model_pricing["pricing"].get("completion", 0))
+                reasoning_price = float(model_pricing["pricing"].get("internal_reasoning", 0))
+            else:
+                logger.warning(f"Pricing not found for model: {model_permaslug}, using zero cost")
+                prompt_price = 0.0
+                completion_price = 0.0
+                reasoning_price = 0.0
 
             # Extract token counts
             prompt_tokens = usage.get("prompt_tokens", 0)
