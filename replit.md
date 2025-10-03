@@ -62,3 +62,18 @@ Preferred communication style: Simple, everyday language.
 - **Session Behavior**: Fresh session on every open, complete reset when closed or refreshed
 - **Features**: Token-by-token streaming with SSE buffering, auto-scroll, clean dark theme UI
 - **Files**: `server/webbot_routes.py`, `client/src/components/webbot/WebBotChat.tsx`, `client/src/pages/Layout.tsx`
+
+### Balance Management System (Oct 3, 2025)
+- **Database**: Added `balance` column to `workspaces` table (NUMERIC 10,2, default $100)
+- **Pre-Call Validation**: Automatic balance check before each API call with 402 error for insufficient funds
+- **Cost Calculation**: Real-time cost calculation based on OpenRouter pricing with 5.5% platform fee
+- **Automatic Deduction**: Balance automatically deducted after successful API usage (prompt + completion + reasoning tokens)
+- **Error Handling**: Safe fallback for missing model pricing metadata (zero cost + warning log)
+- **Frontend UI**: 
+  - Live balance display with wallet icon in top navigation bar (auto-refresh every 30s)
+  - "Add Balance" button triggering support contact modal
+  - Email workflow to support@nexusaihub.co.in for balance top-up requests
+- **Backend Endpoints**: 
+  - `GET /api/workspaces/:id/balance` - Returns current workspace balance
+  - Balance check and deduction functions in `server/llm_routes.py`
+- **Files**: `server/models.py`, `server/llm_routes.py`, `server/routes.py`, `client/src/pages/Layout.tsx`
