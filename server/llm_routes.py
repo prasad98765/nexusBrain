@@ -9,7 +9,7 @@ from flask import Blueprint, request, jsonify, Response, stream_with_context
 
 from .auth_utils import require_auth, require_auth_for_expose_api
 from .redis_cache_service import get_cache_service
-from .models import db, ApiToken, ApiUsageLog
+from .models import db, ApiToken, ApiUsageLog, Workspace
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -58,6 +58,35 @@ def format_cost(value: float) -> str:
     else:
         return f"${value:.6f}"
     
+def check_workspace_balance(workspace_id, estimated_cost=0.01):
+    """Check if workspace has sufficient balance. Returns (has_balance, current_balance, error_msg)"""
+    try:
+        workspace = Workspace.query.get(workspace_id)
+        if not workspace:
+            return False, 0, "Workspace not found"
+        
+        if workspace.balance < estimated_cost:
+            return False, workspace.balance, f"Insufficient balance. Current balance: ${workspace.balance:.6f}. Please add more funds."
+        
+        return True, workspace.balance, None
+    except Exception as e:
+        logger.error(f"Error checking workspace balance: {e}")
+        return False, 0, "Error checking balance"
+
+def deduct_workspace_balance(workspace_id, cost):
+    """Deduct cost from workspace balance"""
+    try:
+        workspace = Workspace.query.get(workspace_id)
+        if workspace:
+            workspace.balance = max(0, workspace.balance - cost)
+            db.session.commit()
+            logger.info(f"Deducted ${cost:.6f} from workspace {workspace_id}. New balance: ${workspace.balance:.6f}")
+            return True
+    except Exception as e:
+        logger.error(f"Error deducting workspace balance: {e}")
+        db.session.rollback()
+    return False
+
 def log_api_usage(api_token, endpoint, method, payload, response_data, status_code, 
                   response_time_ms, cached=False, cache_type=None, error_message=None):
     """Create comprehensive API usage log entry."""
@@ -171,6 +200,10 @@ def log_api_usage(api_token, endpoint, method, payload, response_data, status_co
         db.session.commit()
         
         logger.info(f"Logged API usage - Model: {model}, Tokens: {usage_data.get('prompt_tokens', 0) + usage_data.get('completion_tokens', 0)}, Cached: {cached}")
+        
+        # Deduct balance from workspace if not cached and cost is calculated
+        if not cached and usage_data.get('usage'):
+            deduct_workspace_balance(api_token.workspace_id, usage_data.get('usage'))
         
     except Exception as e:
         logger.error(f"Failed to log API usage: {e}")
@@ -656,6 +689,12 @@ def create_chat_completion():
         payload["user"] = data["user"]
     if "metadata" in data:
         payload["metadata"] = data["metadata"]
+
+    # Check workspace balance before processing (skip for cached responses)
+    # We'll do a proper check after cache miss
+    has_balance, current_balance, balance_error = check_workspace_balance(api_token.workspace_id, 0.0001)
+    if not has_balance:
+        return jsonify({"error": balance_error}), 402  # 402 Payment Required
 
     # Check cache if caching is enabled
     cached_response = None
