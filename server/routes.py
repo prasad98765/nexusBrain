@@ -401,7 +401,9 @@ def get_user():
     """Get current user info from JWT token"""
     try:
         user_id = request.user.get('user_id')
+        workspace_id = request.user.get('workspace_id')
         user = User.query.get(user_id)
+        workspace = Workspace.query.get(workspace_id)
         
         if not user:
             return jsonify({'message': 'User not found'}), 404
@@ -414,8 +416,11 @@ def get_user():
             'profile_image_url': user.profile_image_url,
             'is_verified': user.is_verified,
             'auth_provider': user.auth_provider,
+            'workspace_id': workspace.id,
+            "balance": workspace.balance,
             'created_at': user.created_at.isoformat(),
-            'updated_at': user.updated_at.isoformat()
+            'updated_at': user.updated_at.isoformat(),
+
         }), 200
         
     except Exception as e:

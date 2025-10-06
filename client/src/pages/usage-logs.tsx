@@ -58,6 +58,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useModelStore } from '@/store/modelStore';
 
 interface UsageLog {
   id: string;
@@ -445,72 +446,8 @@ export default function UsageLogsPage() {
   };
 
   // Fetch providers and their available models
-  const { data: providersData, isLoading: isLoadingProviders, error: providersError } = useQuery<ProvidersResponse>({
-    queryKey: ['providers'],
-    queryFn: async () => {
-      try {
-        const response = await fetch('/api/v1/providers', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
+  const { models, providers, fetchModelsAndProviders } = useModelStore();
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || 'Failed to fetch providers');
-        }
-
-        const data = await response.json();
-        return {
-          providers: data.data?.map((provider: any) => ({
-            id: provider.id || provider.slug,
-            name: provider.name,
-            models: provider.models || []
-          })) || []
-        };
-      } catch (error) {
-        console.error('Provider fetch error:', error);
-        throw error;
-      }
-    },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    retry: 2,
-  });
-
-  // Fetch providers and their available models
-  const { data: modelsData, isLoading: isLoadingModels, error: modelsError } = useQuery<ModelsResponse>({
-    queryKey: ['models'],
-    queryFn: async () => {
-      try {
-        const response = await fetch('/api/v1/models', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || 'Failed to fetch models');
-        }
-
-        const data = await response.json();
-        return {
-          models: data.data?.map((model: any) => ({
-            id: model.id || model.slug,
-            name: model.name,
-            provider: model.provider || null
-          })) || []
-        };
-      } catch (error) {
-        console.error('Model fetch error:', error);
-        throw error;
-      }
-    },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    retry: 2,
-  });
 
   const resetFilters = () => {
     setModel('all');
@@ -590,7 +527,7 @@ export default function UsageLogsPage() {
               <SelectContent>
                 <SelectItem value="all">All Models</SelectItem>
 
-                {modelsData?.models?.map((mod: any) => (
+                {models?.map((mod: any) => (
                   <SelectItem key={mod.id} value={mod.id}>
                     {mod.name}
                   </SelectItem>
@@ -608,7 +545,7 @@ export default function UsageLogsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Providers</SelectItem>
-                {providersData?.providers?.map((prov: any) => (
+                {providers?.map((prov: any) => (
                   <SelectItem key={prov.id} value={prov.name}>
                     {prov.name}
                   </SelectItem>

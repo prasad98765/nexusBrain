@@ -91,35 +91,6 @@ export default function APIIntegrationsPage() {
             staleTime: 5 * 60 * 1000, // 5 minutes
         });
 
-    // call /v1/models api and set model as one set and use this in select model dropdown
-    const { data: modelData, isLoading: modelLoading, error: modelError } =
-        useQuery<{ models: string[] }>({
-            queryKey: ["/api/v1/models"],
-            queryFn: async () => {
-                const response = await axios.get<{ data: { id: string }[] }>(
-                    "/api/v1/models",
-                    {
-                        headers: { Authorization: `Bearer ${token}` },
-                    }
-                );
-
-                // Extract the object has id and name property
-                const models: any = response.data.data.map((m: any) => ({
-                    id: m.id,
-                    name: m.name,
-                }));
-
-                return { models };
-            },
-            staleTime: 5 * 60 * 1000, // 5 minutes
-        });
-
-    console.log("modelData", modelData?.models);
-
-    const modelOptions = modelData?.models || [];
-    console.log("modelOptions", modelOptions);
-
-
     // Mutations
     const createTokenMutation = useMutation({
         mutationFn: async (data: InsertApiToken) => {

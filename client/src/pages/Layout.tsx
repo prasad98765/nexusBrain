@@ -21,11 +21,11 @@ export default function Layout() {
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
 
   // Fetch workspace balance
-  const { data: balanceData } = useQuery<{ balance: number; workspaceId: string }>({
-    queryKey: ['/api/workspaces', user?.workspace_id, 'balance'],
-    enabled: !!user?.workspace_id,
-    refetchInterval: 30000, // Refetch every 30 seconds
-  });
+  // const { data: balanceData } = useQuery<{ balance: number; workspaceId: string }>({
+  //   queryKey: ['/api/workspaces', user?.workspace_id, 'balance'],
+  //   // enabled: !!user?.workspace_id,
+  //   refetchInterval: 30000, // Refetch every 30 seconds
+  // });
 
   const handleLogout = () => {
     localStorage.removeItem("auth_token");
@@ -60,21 +60,21 @@ export default function Layout() {
             <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-700/50 rounded-lg border border-slate-600">
               <Wallet className="h-4 w-4 text-green-400" />
               <span className="text-sm font-medium">
-                ${(balanceData?.balance || 0).toFixed(2)}
+                ${Number((Math.floor((user?.balance || 0) * 100) / 100).toFixed(2))}
               </span>
             </div>
-            
+
             {/* Add Balance Button */}
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleAddBalance}
               className="border-indigo-500 text-indigo-400 hover:bg-indigo-500/10"
               data-testid="button-add-balance"
             >
               Add Balance
             </Button>
-            
+
             <span className="text-sm text-slate-300">
               Welcome, {user?.first_name || "User"}!
             </span>
@@ -153,25 +153,23 @@ export default function Layout() {
           <div className="mt-auto flex flex-col gap-4">
             {/* Web Bot Button */}
             <button
-              className={`p-3 rounded-lg transition-colors group relative ${
-                isBotOpen ? 'bg-indigo-600' : 'hover:bg-slate-700'
-              }`}
+              className={`p-3 rounded-lg transition-colors group relative ${isBotOpen ? 'bg-indigo-600' : 'hover:bg-slate-700'
+                }`}
               onClick={() => setIsBotOpen(!isBotOpen)}
               title="AI Assistant"
               data-testid="button-toggle-webbot"
             >
               <MessageCircle
-                className={`h-5 w-5 ${
-                  isBotOpen
-                    ? 'text-white'
-                    : 'text-slate-400 group-hover:text-slate-200'
-                }`}
+                className={`h-5 w-5 ${isBotOpen
+                  ? 'text-white'
+                  : 'text-slate-400 group-hover:text-slate-200'
+                  }`}
               />
               {!isBotOpen && (
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-800"></span>
               )}
             </button>
-            
+
             {/* <button
               className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${active === 'settings' ? 'bg-slate-700' : ''
                 }`}
@@ -210,15 +208,15 @@ export default function Layout() {
           <div className="space-y-4 py-4">
             <p className="text-sm text-slate-300">
               If you want to add balance, please send a request to{' '}
-              <a 
-                href="mailto:support@nexusaihub.co.in" 
+              <a
+                href="mailto:support@nexusaihub.co.in"
                 className="text-indigo-400 hover:text-indigo-300 underline"
               >
                 support@nexusaihub.co.in
               </a>
               {' '}with the amount.
             </p>
-            <Button 
+            <Button
               onClick={handleEmailSupport}
               className="w-full bg-indigo-600 hover:bg-indigo-700"
               data-testid="button-email-support"

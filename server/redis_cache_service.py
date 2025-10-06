@@ -38,13 +38,15 @@ class CacheEntry:
 
 class RedisCacheService:
     def __init__(self, 
+                 cache_threshold: Optional[float] = None,
                  redis_url: Optional[str] = os.getenv("REDIS_URL"),
-                 similarity_threshold: float = 0.75,
+                 similarity_threshold: float = 0.50,
                  embedding_model: str = "all-MiniLM-L6-v2"):
         self.redis_url = redis_url or os.getenv("REDIS_URL")
-        self.similarity_threshold = similarity_threshold
+        self.similarity_threshold = cache_threshold if cache_threshold is not None else similarity_threshold
         self.embedding_model_name = embedding_model
         ML_AVAILABLE = True
+        logger.info(f"Initialized RedisCacheService with similarity threshold: {self.similarity_threshold}")
 
         # Initialize Redis connection
         self.redis_client = None
@@ -334,11 +336,28 @@ class RedisCacheService:
 # Global cache service instance
 cache_service = None
 
-def get_cache_service() -> RedisCacheService:
-    """Get or create the global cache service instance."""
+def get_cache_service(cache_threshold: Optional[float] = None) -> RedisCacheService:
+    """
+    Get or create the global cache service instance.
+    
+    Args:
+        cache_threshold: Optional float between 0 and 1 to set semantic similarity threshold.
+                        Higher values mean stricter matching (e.g., 0.8 requires 80% similarity).
+                        Lower values allow more flexible matching (e.g., 0.6 allows 60% similarity).
+                        Default is None, which uses the service's default threshold (0.75).
+    
+    Returns:
+        RedisCacheService instance
+    """
     global cache_service
     if cache_service is None:
         # Let RedisCacheService read REDIS_URL from environment
         # User should set REDIS_URL like: rediss://:password@redis-14311.crce206.ap-south-1-1.ec2.redns.redis-cloud.com:14311/0
-        cache_service = RedisCacheService()
+        if cache_threshold is not None and not (0.1 <= cache_threshold <= 0.99):
+            logger.warning(f"Invalid cache_threshold {cache_threshold}, must be between 0.1 and 0.99. Using default.")
+            cache_threshold = None
+        cache_service = RedisCacheService(cache_threshold=cache_threshold)
+    elif cache_threshold is not None and cache_threshold != cache_service.similarity_threshold:
+        logger.info(f"Updating similarity threshold from {cache_service.similarity_threshold} to {cache_threshold}")
+        cache_service.similarity_threshold = cache_threshold
     return cache_service

@@ -1,13 +1,38 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { useModelStore } from '@/store/modelStore';
 import { Input } from '@/components/ui/input';
-import { X, Send, Bot, User, Sparkles } from 'lucide-react';
+import { X, Send, Bot, User, Sparkles, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
+}
+
+interface ChatConfig {
+  model: string;
+  temperature: number;
+  cacheThreshold: number;
+  isCached: boolean;
+  isStreaming: boolean;
 }
 
 // Simple markdown renderer component
@@ -94,9 +119,32 @@ export default function WebBotChat({ isOpen, onClose }: WebBotChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showConfig, setShowConfig] = useState(false);
+  const { models } = useModelStore();
+  const [config, setConfig] = useState<ChatConfig>({
+    model: 'gpt-3.5-turbo',
+    temperature: 0.7,
+    cacheThreshold: 0.8,
+    isCached: true,
+    isStreaming: true,
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { token } = useAuth();
   const { toast } = useToast();
+
+  // Load models when component mounts
+  const { fetchModelsAndProviders } = useModelStore();
+  useEffect(() => {
+    if (token) {
+      fetchModelsAndProviders(token).catch((error) => {
+        toast({
+          title: "Error",
+          description: "Failed to load models. Please try again later.",
+          variant: "destructive"
+        });
+      });
+    }
+  }, [fetchModelsAndProviders, token, toast]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -145,7 +193,11 @@ export default function WebBotChat({ isOpen, onClose }: WebBotChatProps) {
         },
         body: JSON.stringify({
           messages: newMessages,
-          stream: true
+          model: config.model,
+          temperature: config.temperature,
+          cache_threshold: config.cacheThreshold,
+          use_cache: config.isCached,
+          stream: config.isStreaming
         })
       });
 
@@ -264,16 +316,96 @@ export default function WebBotChat({ isOpen, onClose }: WebBotChatProps) {
             <p className="text-xs text-indigo-100">Always here to help</p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClose}
-          className="text-white hover:bg-white/20"
-          data-testid="button-close-webbot"
-        >
-          <X className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowConfig(true)}
+            className="text-white hover:bg-white/20"
+            data-testid="button-config-webbot"
+          >
+            <Settings className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="text-white hover:bg-white/20"
+            data-testid="button-close-webbot"
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
+
+      {/* Configuration Modal */}
+      <Dialog open={showConfig} onOpenChange={setShowConfig}>
+        <DialogContent className="bg-slate-800 text-white border border-slate-700">
+          <DialogHeader>
+            <DialogTitle>Chat Configuration</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label>Model</Label>
+              <Select
+                value={config.model}
+                onValueChange={(value) => setConfig(prev => ({ ...prev, model: value }))}
+              >
+                <SelectTrigger className="bg-slate-700 border-slate-600">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600">
+                  {models.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Temperature: {config.temperature}</Label>
+              <Slider
+                value={[config.temperature]}
+                onValueChange={([value]) => setConfig(prev => ({ ...prev, temperature: value }))}
+                min={0}
+                max={1}
+                step={0.1}
+                className="py-2"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Cache Threshold: {config.cacheThreshold}</Label>
+              <Slider
+                value={[config.cacheThreshold]}
+                onValueChange={([value]) => setConfig(prev => ({ ...prev, cacheThreshold: value }))}
+                min={0.1}
+                max={0.99}
+                step={0.01}
+                className="py-2"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label>Enable Cache</Label>
+              <Switch
+                checked={config.isCached}
+                onCheckedChange={(checked) => setConfig(prev => ({ ...prev, isCached: checked }))}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label>Enable Streaming</Label>
+              <Switch
+                checked={config.isStreaming}
+                onCheckedChange={(checked) => setConfig(prev => ({ ...prev, isStreaming: checked }))}
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Content */}
       {!started ? (

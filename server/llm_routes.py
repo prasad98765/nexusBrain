@@ -62,6 +62,7 @@ def check_workspace_balance(workspace_id, estimated_cost=0.01):
     """Check if workspace has sufficient balance. Returns (has_balance, current_balance, error_msg)"""
     try:
         workspace = Workspace.query.get(workspace_id)
+        logger.info(f"Checking balance for workspace {workspace_id}, current balance: ${workspace.balance if workspace else 'N/A'}, estimated cost: ${estimated_cost}")
         if not workspace:
             return False, 0, "Workspace not found"
         
@@ -469,8 +470,8 @@ def create_completion():
     cached_response = None
     cache_type = None
     
-    if api_token.caching_enabled:
-        cache_service = get_cache_service()
+    if data.get("is_cached"):
+        cache_service = get_cache_service(data.get("cache_threshold", 0.50))
         # Pass the semantic cache threshold from the API token
         cached_response, cache_type = cache_service.get_cached_response(
             payload, "completion", threshold=api_token.semantic_cache_threshold
@@ -562,7 +563,7 @@ def create_completion():
                     combined_response["model_info"] = chunk_data["model_info"]
                 
                 # Store in cache if enabled
-                if api_token.caching_enabled:
+                if data.get("is_cached"):
                     try:
                         cache_service = get_cache_service()
                         cache_service.store_response(payload, combined_response, "completion")
@@ -609,7 +610,7 @@ def create_completion():
         try:
             response_data = response.get_json() if hasattr(response, 'get_json') else response.json
             
-            if api_token.caching_enabled:
+            if data.get("is_cached"):
                 cache_service.store_response(payload, response_data, "completion")
                 logger.info(f"Stored completion response in cache for model: {payload['model']}")
                 
@@ -707,7 +708,7 @@ def create_chat_completion():
     cached_response = None
     cache_type = None
     
-    if api_token.caching_enabled:
+    if data.get("is_cached"):
         cache_service = get_cache_service()
         # Pass the semantic cache threshold from the API token
         cached_response, cache_type = cache_service.get_cached_response(
@@ -808,7 +809,7 @@ def create_chat_completion():
                 }]
                 
                 # Store in cache if enabled
-                if api_token.caching_enabled:
+                if data.get("is_cached"):
                     try:
                         cache_service = get_cache_service()
                         cache_service.store_response(payload, combined_response, "chat")
@@ -855,7 +856,7 @@ def create_chat_completion():
         try:
             response_data = response.get_json() if hasattr(response, 'get_json') else response.json
             
-            if api_token.caching_enabled:
+            if data.get("is_cached"):
                 cache_service.store_response(payload, response_data, "chat")
                 logger.info(f"Stored chat response in cache for model: {payload['model']}")
                 

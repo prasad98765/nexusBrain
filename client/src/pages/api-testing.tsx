@@ -48,7 +48,9 @@ export default function ApiTesting() {
     prompt: 'Write a creative story about artificial intelligence:',
     max_tokens: 150,
     temperature: 0.7,
-    stream: false
+    stream: false,
+    cache_threshold: 0.50,
+    is_cached: false
   });
   const [chatRequestBody, setChatRequestBody] = useState({
     model: 'openai/gpt-4o-mini',
@@ -58,7 +60,9 @@ export default function ApiTesting() {
     ] as Message[],
     max_tokens: 150,
     temperature: 0.7,
-    stream: false
+    stream: false,
+    cache_threshold: 0.50,
+    is_cached: false
   });
   {/* call shared llm_details.json apply map for more models and show 300+ models */ }
   const [llmDetails, setLlmDetails] = useState<any>([]);

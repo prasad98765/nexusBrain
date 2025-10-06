@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
+import { useModelStore } from '@/store/modelStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -30,7 +32,7 @@ interface Model {
   name: string;
   description: string;
   context_length: number;
-  pricing: {
+  pricing?: {
     prompt: string;
     completion: string;
   };
@@ -55,8 +57,7 @@ interface Provider {
 
 export default function ApiDocumentation() {
   const [activeEndpoint, setActiveEndpoint] = useState('completions');
-  const [models, setModels] = useState<Model[]>([]);
-  const [providers, setProviders] = useState<Provider[]>([]);
+  const { models, providers, fetchModelsAndProviders } = useModelStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingModels, setLoadingModels] = useState(false);
   const [isLlmDetailsOpen, setIsLlmDetailsOpen] = useState(false);
@@ -69,34 +70,23 @@ export default function ApiDocumentation() {
     window.location.href = '/docs/api-reference/test';
   };
 
-  const fetchModelsAndProviders = async () => {
-    setLoadingModels(true);
-    try {
-      const [modelsResponse, providersResponse] = await Promise.all([
-        fetch('https://openrouter.ai/api/v1/models'),
-        fetch('https://openrouter.ai/api/v1/providers')
-      ]);
-
-      if (modelsResponse.ok && providersResponse.ok) {
-        const modelsData = await modelsResponse.json();
-        const providersData = await providersResponse.json();
-        setModels(modelsData.data || []);
-        setProviders(providersData.data || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch models and providers:', error);
-    } finally {
-      setLoadingModels(false);
-    }
-  };
+  const { token } = useAuth();
 
   useEffect(() => {
-    if (isLlmDetailsOpen && models.length === 0) {
-      fetchModelsAndProviders();
+    if (isLlmDetailsOpen && models.length === 0 && token) {
+      setLoadingModels(true);
+      fetchModelsAndProviders(token)
+        .catch((error) => {
+          console.error('Failed to fetch models:', error);
+          // You might want to add a toast notification here
+        })
+        .finally(() => {
+          setLoadingModels(false);
+        });
     }
-  }, [isLlmDetailsOpen, models.length]);
+  }, [isLlmDetailsOpen, models.length, fetchModelsAndProviders, token]);
 
-  const filteredModels = models.filter(model => {
+  const filteredModels = models.filter((model: any) => {
     // Search filter
     const matchesSearch = model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       model.id.toLowerCase().includes(searchQuery.toLowerCase());
@@ -129,7 +119,7 @@ export default function ApiDocumentation() {
   };
 
   // Group models by provider for accordion display
-  const modelsByProvider = sortedModels.reduce((acc, model) => {
+  const modelsByProvider = sortedModels.reduce((acc, model: any) => {
     const providerSlug = model.id.split('/')[0];
     if (!acc[providerSlug]) {
       acc[providerSlug] = [];
@@ -156,7 +146,18 @@ export default function ApiDocumentation() {
     // { param: 'top_p', purpose: 'An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass.', required: false },
     // { param: 'n', purpose: 'How many completions to generate for each prompt.', required: false },
     { param: 'stream', purpose: 'Whether to stream back partial progress. If set, tokens will be sent as data-only server-sent events as they become available.', required: false },
-    // { param: 'logprobs', purpose: 'Include the log probabilities on the logprobs most likely tokens, as well the chosen tokens.', required: false },
+    {
+      param: 'cache_threshold',
+      purpose: 'Set the similarity threshold (between 0.1 and 0.99) above which cached entries are returned instead of calling the LLM.',
+      required: false
+    },
+
+    {
+      param: 'is_cached',
+      purpose: 'Return a cached answer if available and store your question for future caching.',
+      required: false
+    }
+
     // { param: 'echo', purpose: 'Echo back the prompt in addition to the completion.', required: false },
     // { param: 'stop', purpose: 'Up to 4 sequences where the API will stop generating further tokens. The returned text will not contain the stop sequence.', required: false },
     // { param: 'presence_penalty', purpose: 'Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far.', required: false },
@@ -175,6 +176,17 @@ export default function ApiDocumentation() {
     // { param: 'top_p', purpose: 'An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass.', required: false },
     // { param: 'n', purpose: 'How many chat completion choices to generate for each input message.', required: false },
     { param: 'stream', purpose: 'If set, partial message deltas will be sent, like in ChatGPT. Tokens will be sent as data-only server-sent events as they become available.', required: false },
+    {
+      param: 'cache_threshold',
+      purpose: 'Set the similarity threshold (between 0.1 and 0.99) above which cached entries are returned instead of calling the LLM.',
+      required: false
+    },
+
+    {
+      param: 'is_cached',
+      purpose: 'Return a cached answer if available and store your question for future caching.',
+      required: false
+    }
     // { param: 'stop', purpose: 'Up to 4 sequences where the API will stop generating further tokens.', required: false },
     // { param: 'presence_penalty', purpose: 'Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far.', required: false },
     // { param: 'frequency_penalty', purpose: 'Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far.', required: false },
@@ -1019,13 +1031,19 @@ console.error(response.error?.message);`}
     }
   ],
   "max_tokens": 150,
-  "temperature": 0.7
+  "temperature": 0.7,
+  "stream": false,
+  "cache_threshold": 0.50,
+  "is_cached": false
 }` :
                       `{
   "model": "openai/gpt-3.5-turbo-instruct",
   "prompt": "Write a story about AI:",
   "max_tokens": 150,
-  "temperature": 0.7
+  "temperature": 0.7,
+  "stream": false,
+  "cache_threshold": 0.50,
+  "is_cached": false
 }`}
                   </pre>
                 </div>

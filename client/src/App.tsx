@@ -20,7 +20,7 @@ import LandingPageEnhanced from "@/pages/landing-page-enhanced";
 import ChatbotPage from "@/pages/chatbot";
 import ContactPropertiesPage from "@/pages/settings/contact-properties-page";
 import ContactsPage from "@/components/contacts/ContactsTable"
-import { Routes, Route, BrowserRouter } from "react-router-dom";
+import { Routes, Route, BrowserRouter, useNavigate, useLocation, Navigate } from "react-router-dom";
 import AgentsPage from "./pages/agents-page";
 import Layout from "./pages/Layout";
 import SettingsPage from "./pages/settings-page";
@@ -77,6 +77,8 @@ function Router() {
   //   );
   // }
 
+  console.log("isAuthenticated", isAuthenticated);
+
   return (
     <Routes>
       {/* Static Landing Pages - Always accessible */}
@@ -94,34 +96,31 @@ function Router() {
       {/* Chatbot Interface - Always accessible for embedded use */}
       <Route path="/chatbot" Component={ChatbotPage} />
 
-      {!isAuthenticated ? (
-        <>
-          <Route path="/auth" Component={AuthPage} />
-          <Route path="/forgot-password" Component={ForgotPasswordPage} />
-          <Route path="/" Component={() => { window.location.href = '/auth'; return null; }} />
-        </>
-      ) : (
-        <>
+      <Route path="/auth" element={isAuthenticated ? <Layout /> : <AuthPage />} >
+        <Route index element={<Home />} />
+      </Route>
+      <Route path="/forgot-password" Component={ForgotPasswordPage} />
+      <Route path="/" Component={() => { window.location.href = '/auth'; return null; }} />
 
-          <Route path="/nexus" element={<Layout />}>
-            <Route index element={<Home />} />
-            {/* <Route path="agents" element={<AgentsPage />} /> */}
-            <Route path="agents" element={<ComingSoon title="Agents (Coming Soon)" />} />
+      <>
+        <Route path="/nexus" element={<Layout />} >
+          <Route index element={<Home />} />
+          {/* <Route path="agents" element={<AgentsPage />} /> */}
+          <Route path="agents" element={<ComingSoon title="Agents (Coming Soon)" />} />
 
-            {/* <Route path="contacts" element={<ContactsPage workspaceId={""} />} /> */}
-            <Route path="contacts" element={<ComingSoon title="Contacts (Coming Soon)" />} />
+          {/* <Route path="contacts" element={<ContactsPage workspaceId={""} />} /> */}
+          <Route path="contacts" element={<ComingSoon title="Contacts (Coming Soon)" />} />
 
-            <Route path="settings" element={<SettingsPage workspaceId={""} />} />
-            {/* <Route path="flow-builder" element={<FlowBuilderInner agentId={""} onBackClick={function (): void {
+          <Route path="settings" element={<SettingsPage workspaceId={""} />} />
+          {/* <Route path="flow-builder" element={<FlowBuilderInner agentId={""} onBackClick={function (): void {
               throw new Error("Function not implemented.");
             }} />} /> */}
-            <Route path="flow-builder" element={<ComingSoon title="Flow Builder (ComingSoon) " />} />
-            <Route path="API-integrations" element={<APIIntegrationsPage />} />
-          </Route>
-          <Route path="/business-info" Component={BusinessInfoPage} />
-          <Route path="/settings/contact-properties" Component={ContactPropertiesPage} />
-        </>
-      )}
+          <Route path="flow-builder" element={<ComingSoon title="Flow Builder (ComingSoon) " />} />
+          <Route path="API-integrations" element={<APIIntegrationsPage />} />
+        </Route>
+        <Route path="/business-info" Component={BusinessInfoPage} />
+        <Route path="/settings/contact-properties" Component={ContactPropertiesPage} />
+      </>
       <Route Component={Home} />
     </Routes>
   );

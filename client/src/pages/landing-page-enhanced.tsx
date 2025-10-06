@@ -90,7 +90,7 @@ export default function LandingPageEnhanced() {
   };
 
   const handleGetStarted = () => {
-    navigate('/nexus');
+    navigate('/auth');
   };
 
   // AI Tools Features
