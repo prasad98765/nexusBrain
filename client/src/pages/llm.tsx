@@ -42,27 +42,27 @@ export default function LLM() {
         return () => clearInterval(interval);
     }, []);
     return (
-        <div className="min-h-screen bg-background" style={{ color: "white" }}>
-            <header className="w-full bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
+        <div className="min-h-screen bg-gray-50" style={{ color: "#1A1A1A" }}>
+            <header className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6">
                     <div className="flex justify-between items-center h-16">
                         <div className="flex items-center gap-3" onClick={() => handleNav('/landing-page')} style={{ cursor: 'pointer' }}>
-                            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center animate-pulse">
+                            <div className="w-8 h-8 gradient-yellow-purple rounded-lg flex items-center justify-center animate-pulse">
                                 <span className="text-white font-bold text-sm">⚡</span>
                             </div>
-                            <span className="text-lg sm:text-xl font-bold text-slate-100">Nexus AI Hub</span>
+                            <span className="text-lg sm:text-xl font-bold text-gray-900">Nexus AI Hub</span>
                         </div>
 
                         <div className="flex items-center gap-4">
                             <Button
                                 onClick={handleGetStarted}
-                                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-sm sm:text-base px-4 sm:px-6 transform hover:scale-105 transition-all duration-300"
+                                className="btn-gradient hover:opacity-90 text-white text-sm sm:text-base px-4 sm:px-6 transform hover:scale-105 transition-all duration-300"
                             >
                                 Get Started
                             </Button>
 
                             <button
-                                className="md:hidden text-slate-300 hover:text-slate-100"
+                                className="md:hidden text-gray-600 hover:text-gray-900"
                                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                             >
                                 {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -73,12 +73,12 @@ export default function LLM() {
 
                 {/* Mobile Menu */}
                 {mobileMenuOpen && (
-                    <div className="md:hidden bg-slate-800 border-t border-slate-700 px-4 py-4 space-y-3">
-                        <a href="#agent-bots" className="block text-slate-300 hover:text-slate-100 transition-colors">Agent Bots</a>
-                        <a href="#ai-search" className="block text-slate-300 hover:text-slate-100 transition-colors">AI Search</a>
-                        <a href="#ai-technology" className="block text-slate-300 hover:text-slate-100 transition-colors">Technology</a>
-                        <a href="#how-it-works" className="block text-slate-300 hover:text-slate-100 transition-colors">How It Works</a>
-                        <a href="#how-it-works" className="block text-slate-300 hover:text-slate-100 transition-colors">About Ai</a>
+                    <div className="md:hidden bg-white border-t border-gray-200 px-4 py-4 space-y-3">
+                        <a href="#agent-bots" className="block text-gray-600 hover:text-gray-900 transition-colors">Agent Bots</a>
+                        <a href="#ai-search" className="block text-gray-600 hover:text-gray-900 transition-colors">AI Search</a>
+                        <a href="#ai-technology" className="block text-gray-600 hover:text-gray-900 transition-colors">Technology</a>
+                        <a href="#how-it-works" className="block text-gray-600 hover:text-gray-900 transition-colors">How It Works</a>
+                        <a href="#how-it-works" className="block text-gray-600 hover:text-gray-900 transition-colors">About Ai</a>
                     </div>
                 )}
             </header>
@@ -87,30 +87,30 @@ export default function LLM() {
                 {/* Immersive Hero Section */}
                 <section className="relative min-h-screen flex items-center justify-center px-6 py-20 overflow-hidden">
                     {/* Animated Background */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-900/20 to-purple-900/20">
-                        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse"></div>
-                        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
-                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/5 rounded-full blur-2xl animate-pulse animation-delay-2000"></div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-yellow-50/30 to-purple-50/30">
+                        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-yellow-300/20 rounded-full blur-3xl animate-pulse"></div>
+                        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-300/20 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-yellow-200/15 rounded-full blur-2xl animate-pulse animation-delay-2000"></div>
                     </div>
 
                     <div className="max-w-6xl mx-auto text-center relative z-10">
                         <div className="mb-8">
-                            <Badge variant="outline" className="text-indigo-400 border-indigo-400 px-4 py-2 text-lg animate-pulse mb-6">
+                            <Badge variant="outline" className="bg-gradient-to-r from-yellow-400 to-purple-600 text-white border-0 px-4 py-2 text-lg animate-pulse mb-6">
                                 <Sparkles className="h-4 w-4 mr-2" />
                                 Powered by 400+ AI Models
                             </Badge>
                         </div>
 
                         <h1 className="text-4xl lg:text-7xl font-bold mb-8 leading-tight">
-                            <span className="bg-gradient-to-r from-white via-indigo-200 to-purple-200 bg-clip-text text-transparent">
+                            <span className="bg-gradient-to-r gradient-text bg-clip-text text-transparent">
                                 Large Language
                             </span><br />
-                            <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-pulse">
+                            <span className="bg-gradient-to-r gradient-text bg-clip-text text-transparent animate-pulse">
                                 Models Revolution
                             </span>
                         </h1>
 
-                        <p className="text-xl text-slate-300 mb-12 max-w-4xl mx-auto leading-relaxed">
+                        <p className="text-xl text-gray-600 mb-12 max-w-4xl mx-auto leading-relaxed">
                             Discover the most advanced AI models that understand, generate, and transform human language. 
                             Experience the power of GPT-4, Claude, Gemini, and 400+ other models through our unified platform 
                             with intelligent casting, semantic caching, and real-time streaming.
@@ -119,7 +119,7 @@ export default function LLM() {
                         <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
                             <Button
                                 onClick={handleGetStarted}
-                                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-8 py-4 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
+                                className="btn-gradient hover:opacity-90 text-white px-8 py-4 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
                             >
                                 <Brain className="h-5 w-5 mr-2" />
                                 Explore AI Models
@@ -127,7 +127,7 @@ export default function LLM() {
                             <Button
                                 variant="outline"
                                 onClick={() => document.getElementById('casting-section')?.scrollIntoView({ behavior: 'smooth' })}
-                                className="border-2 border-indigo-400 text-indigo-400 hover:bg-indigo-500 hover:text-white px-8 py-4 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
+                                className="border-2 border-purple-400 text-purple-600 hover:bg-yellow-400 hover:text-white px-8 py-4 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
                             >
                                 <Settings className="h-5 w-5 mr-2" />
                                 Learn About Casting
@@ -136,21 +136,21 @@ export default function LLM() {
 
                         {/* Interactive Stats */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
-                            <div className="text-center space-y-2 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-indigo-500 transition-colors">
-                                <div className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">400+</div>
-                                <div className="text-slate-400">AI Models</div>
+                            <div className="text-center space-y-2 p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-gray-200 hover:border-purple-500 transition-colors">
+                                <div className="text-3xl font-bold bg-gradient-to-r gradient-text bg-clip-text text-transparent">400+</div>
+                                <div className="text-gray-500">AI Models</div>
                             </div>
-                            <div className="text-center space-y-2 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-purple-500 transition-colors">
-                                <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">∞</div>
-                                <div className="text-slate-400">Possibilities</div>
+                            <div className="text-center space-y-2 p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-gray-200 hover:border-purple-500 transition-colors">
+                                <div className="text-3xl font-bold bg-gradient-to-r gradient-text bg-clip-text text-transparent">∞</div>
+                                <div className="text-gray-500">Possibilities</div>
                             </div>
-                            <div className="text-center space-y-2 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-pink-500 transition-colors">
-                                <div className="text-3xl font-bold bg-gradient-to-r from-pink-400 to-red-400 bg-clip-text text-transparent">Real-time</div>
-                                <div className="text-slate-400">Streaming</div>
+                            <div className="text-center space-y-2 p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-gray-200 hover:border-pink-500 transition-colors">
+                                <div className="text-3xl font-bold bg-gradient-to-r gradient-text bg-clip-text text-transparent">Real-time</div>
+                                <div className="text-gray-500">Streaming</div>
                             </div>
-                            <div className="text-center space-y-2 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-blue-500 transition-colors">
+                            <div className="text-center space-y-2 p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-gray-200 hover:border-blue-500 transition-colors">
                                 <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Smart</div>
-                                <div className="text-slate-400">Caching</div>
+                                <div className="text-gray-500">Caching</div>
                             </div>
                         </div>
                     </div>
@@ -168,20 +168,20 @@ export default function LLM() {
                     <div className="max-w-6xl mx-auto">
                         {/* Quick Navigation */}
                         <div className="mb-16">
-                            <Card className="bg-slate-800/50 border-slate-700 p-6">
+                            <Card className="bg-white/50 border-gray-200 p-6">
                                 <h3 className="text-xl font-bold text-white mb-4 text-center">Explore LLM Features</h3>
                                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                                     <Button
                                         variant="outline"
                                         onClick={() => document.getElementById('casting-section')?.scrollIntoView({ behavior: 'smooth' })}
-                                        className="text-sm border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/20"
+                                        className="text-sm border-purple-500/50 text-purple-600 hover:bg-yellow-400/20"
                                     >
                                         Casting
                                     </Button>
                                     <Button
                                         variant="outline"
                                         onClick={() => document.getElementById('caching-section')?.scrollIntoView({ behavior: 'smooth' })}
-                                        className="text-sm border-blue-500/50 text-blue-400 hover:bg-blue-500/20"
+                                        className="text-sm border-blue-500/50 text-yellow-500 hover:bg-yellow-500/20"
                                     >
                                         Caching
                                     </Button>
@@ -215,16 +215,16 @@ export default function LLM() {
                         </div>
                         {/* AI Casting Information Section */}
                         <section id="casting-section" className="mb-20">
-                            <Card className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-2 border-indigo-500/50 hover:shadow-2xl transition-all duration-300">
+                            <Card className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-2 border-purple-500/50 hover:shadow-2xl transition-all duration-300">
                                 <CardHeader>
                                     <div className="text-center space-y-4 mb-8">
-                                        <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto">
+                                        <div className="w-16 h-16 btn-gradient rounded-2xl flex items-center justify-center mx-auto">
                                             <Settings className="h-8 w-8 text-white" />
                                         </div>
-                                        <h2 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                                        <h2 className="text-4xl font-bold bg-gradient-to-r gradient-text bg-clip-text text-transparent">
                                             AI Response Casting
                                         </h2>
-                                        <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+                                        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
                                             Transform and refine AI responses to perfectly match your needs with our advanced casting technology
                                         </p>
                                     </div>
@@ -233,7 +233,7 @@ export default function LLM() {
                                     <div className="grid lg:grid-cols-2 gap-12 items-center">
                                         <div>
                                             <h3 className="text-2xl font-bold mb-6">What is AI Casting?</h3>
-                                            <p className="text-slate-300 mb-6 leading-relaxed">
+                                            <p className="text-gray-600 mb-6 leading-relaxed">
                                                 AI Casting is our proprietary technology that allows you to edit, refine, and transform AI-generated responses 
                                                 in real-time. Think of it as a sophisticated post-processing layer that adapts any AI output to match your 
                                                 exact requirements, tone, and style.
@@ -241,12 +241,12 @@ export default function LLM() {
                                             
                                             <div className="space-y-4">
                                                 <div className="flex items-start gap-4">
-                                                    <div className="w-8 h-8 bg-indigo-500/20 rounded-lg flex items-center justify-center mt-1">
-                                                        <Target className="w-4 h-4 text-indigo-400" />
+                                                    <div className="w-8 h-8 bg-yellow-400/20 rounded-lg flex items-center justify-center mt-1">
+                                                        <Target className="w-4 h-4 text-purple-600" />
                                                     </div>
                                                     <div>
                                                         <h4 className="font-semibold text-white mb-1">Precision Control</h4>
-                                                        <p className="text-slate-400 text-sm">Fine-tune responses for exact tone, length, and complexity</p>
+                                                        <p className="text-gray-500 text-sm">Fine-tune responses for exact tone, length, and complexity</p>
                                                     </div>
                                                 </div>
                                                 
@@ -256,7 +256,7 @@ export default function LLM() {
                                                     </div>
                                                     <div>
                                                         <h4 className="font-semibold text-white mb-1">Real-time Editing</h4>
-                                                        <p className="text-slate-400 text-sm">Modify responses instantly without regenerating from scratch</p>
+                                                        <p className="text-gray-500 text-sm">Modify responses instantly without regenerating from scratch</p>
                                                     </div>
                                                 </div>
                                                 
@@ -266,29 +266,29 @@ export default function LLM() {
                                                     </div>
                                                     <div>
                                                         <h4 className="font-semibold text-white mb-1">Context Preservation</h4>
-                                                        <p className="text-slate-400 text-sm">Maintain semantic meaning while adapting presentation</p>
+                                                        <p className="text-gray-500 text-sm">Maintain semantic meaning while adapting presentation</p>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                         
-                                        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-                                            <h4 className="text-lg font-semibold mb-4 text-indigo-400">Casting Example</h4>
+                                        <div className="bg-white/50 rounded-xl p-6 border border-gray-200">
+                                            <h4 className="text-lg font-semibold mb-4 text-purple-600">Casting Example</h4>
                                             
                                             <div className="space-y-4">
-                                                <div className="bg-slate-700/50 rounded-lg p-4">
-                                                    <div className="text-sm text-slate-400 mb-2">Original AI Response:</div>
+                                                <div className="bg-white/50 rounded-lg p-4">
+                                                    <div className="text-sm text-gray-500 mb-2">Original AI Response:</div>
                                                     <div className="text-white text-sm font-mono">
                                                         "Machine learning is a subset of artificial intelligence that enables computers to learn."
                                                     </div>
                                                 </div>
                                                 
                                                 <div className="flex justify-center">
-                                                    <ArrowRight className="h-6 w-6 text-indigo-400 animate-pulse" />
+                                                    <ArrowRight className="h-6 w-6 text-purple-600 animate-pulse" />
                                                 </div>
                                                 
-                                                <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 rounded-lg p-4">
-                                                    <div className="text-sm text-indigo-400 mb-2">After Casting (Executive Summary):</div>
+                                                <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+                                                    <div className="text-sm text-purple-600 mb-2">After Casting (Executive Summary):</div>
                                                     <div className="text-white text-sm font-mono">
                                                         "ML drives business transformation by automating decision-making processes, reducing operational costs by 30-40%."
                                                     </div>
@@ -298,32 +298,32 @@ export default function LLM() {
                                     </div>
                                     
                                     <div className="mt-12 grid md:grid-cols-3 gap-6">
-                                        <Card className="bg-slate-800/50 border-slate-700 p-6 hover:border-indigo-500 transition-colors">
-                                            <div className="w-12 h-12 bg-indigo-500/20 rounded-lg flex items-center justify-center mb-4">
-                                                <MessageSquare className="w-6 h-6 text-indigo-400" />
+                                        <Card className="bg-white/50 border-gray-200 p-6 hover:border-purple-500 transition-colors">
+                                            <div className="w-12 h-12 bg-yellow-400/20 rounded-lg flex items-center justify-center mb-4">
+                                                <MessageSquare className="w-6 h-6 text-purple-600" />
                                             </div>
                                             <h4 className="font-semibold text-white mb-2">Tone Adjustment</h4>
-                                            <p className="text-slate-400 text-sm">
+                                            <p className="text-gray-500 text-sm">
                                                 Convert formal responses to casual, professional to friendly, or technical to simplified explanations.
                                             </p>
                                         </Card>
                                         
-                                        <Card className="bg-slate-800/50 border-slate-700 p-6 hover:border-purple-500 transition-colors">
+                                        <Card className="bg-white/50 border-gray-200 p-6 hover:border-purple-500 transition-colors">
                                             <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
                                                 <FileText className="w-6 h-6 text-purple-400" />
                                             </div>
                                             <h4 className="font-semibold text-white mb-2">Format Transformation</h4>
-                                            <p className="text-slate-400 text-sm">
+                                            <p className="text-gray-500 text-sm">
                                                 Transform responses into bullet points, executive summaries, technical documentation, or creative content.
                                             </p>
                                         </Card>
                                         
-                                        <Card className="bg-slate-800/50 border-slate-700 p-6 hover:border-pink-500 transition-colors">
+                                        <Card className="bg-white/50 border-gray-200 p-6 hover:border-pink-500 transition-colors">
                                             <div className="w-12 h-12 bg-pink-500/20 rounded-lg flex items-center justify-center mb-4">
                                                 <Target className="w-6 h-6 text-pink-400" />
                                             </div>
                                             <h4 className="font-semibold text-white mb-2">Audience Targeting</h4>
-                                            <p className="text-slate-400 text-sm">
+                                            <p className="text-gray-500 text-sm">
                                                 Adapt content for different audiences: executives, developers, students, or general public.
                                             </p>
                                         </Card>
@@ -337,13 +337,13 @@ export default function LLM() {
                             <Card className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border-2 border-blue-500/50 hover:shadow-2xl transition-all duration-300">
                                 <CardHeader>
                                     <div className="text-center space-y-4 mb-8">
-                                        <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto">
+                                        <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-purple-600 rounded-2xl flex items-center justify-center mx-auto">
                                             <Zap className="h-8 w-8 text-white" />
                                         </div>
                                         <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
                                             Semantic Caching
                                         </h2>
-                                        <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+                                        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
                                             Intelligent caching that understands meaning, not just text - dramatically reducing costs and response times
                                         </p>
                                     </div>
@@ -352,45 +352,45 @@ export default function LLM() {
                                     <div className="grid lg:grid-cols-2 gap-12 items-center mb-12">
                                         <div>
                                             <h3 className="text-2xl font-bold mb-6">Beyond Traditional Caching</h3>
-                                            <p className="text-slate-300 mb-6 leading-relaxed">
+                                            <p className="text-gray-600 mb-6 leading-relaxed">
                                                 Unlike traditional caching that requires exact text matches, semantic caching understands the meaning 
                                                 behind queries. It can serve cached responses for questions that are semantically similar, even if 
                                                 the wording is completely different.
                                             </p>
                                             
-                                            <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700 mb-6">
-                                                <h4 className="text-lg font-semibold mb-4 text-blue-400">Performance Benefits</h4>
+                                            <div className="bg-white/50 rounded-xl p-6 border border-gray-200 mb-6">
+                                                <h4 className="text-lg font-semibold mb-4 text-yellow-500">Performance Benefits</h4>
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div className="text-center">
                                                         <div className="text-2xl font-bold text-green-400">95%</div>
-                                                        <div className="text-sm text-slate-400">Cost Reduction</div>
+                                                        <div className="text-sm text-gray-500">Cost Reduction</div>
                                                     </div>
                                                     <div className="text-center">
-                                                        <div className="text-2xl font-bold text-blue-400">10x</div>
-                                                        <div className="text-sm text-slate-400">Faster Response</div>
+                                                        <div className="text-2xl font-bold text-yellow-500">10x</div>
+                                                        <div className="text-sm text-gray-500">Faster Response</div>
                                                     </div>
                                                     <div className="text-center">
                                                         <div className="text-2xl font-bold text-purple-400">80%</div>
-                                                        <div className="text-sm text-slate-400">Cache Hit Rate</div>
+                                                        <div className="text-sm text-gray-500">Cache Hit Rate</div>
                                                     </div>
                                                     <div className="text-center">
-                                                        <div className="text-2xl font-bold text-indigo-400">100ms</div>
-                                                        <div className="text-sm text-slate-400">Avg Response</div>
+                                                        <div className="text-2xl font-bold text-purple-600">100ms</div>
+                                                        <div className="text-sm text-gray-500">Avg Response</div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                         
                                         <div className="space-y-6">
-                                            <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-                                                <h4 className="text-lg font-semibold mb-4 text-blue-400">Semantic Matching Examples</h4>
+                                            <div className="bg-white/50 rounded-xl p-6 border border-gray-200">
+                                                <h4 className="text-lg font-semibold mb-4 text-yellow-500">Semantic Matching Examples</h4>
                                                 
                                                 <div className="space-y-4">
                                                     <div>
-                                                        <div className="text-sm text-slate-400 mb-2">Query 1:</div>
-                                                        <div className="text-white text-sm bg-slate-700/50 rounded p-2 mb-2">"How do I create a React component?"</div>
-                                                        <div className="text-sm text-slate-400 mb-2">Query 2 (Cache Hit):</div>
-                                                        <div className="text-white text-sm bg-slate-700/50 rounded p-2">"What's the process for building React components?"</div>
+                                                        <div className="text-sm text-gray-500 mb-2">Query 1:</div>
+                                                        <div className="text-white text-sm bg-white/50 rounded p-2 mb-2">"How do I create a React component?"</div>
+                                                        <div className="text-sm text-gray-500 mb-2">Query 2 (Cache Hit):</div>
+                                                        <div className="text-white text-sm bg-white/50 rounded p-2">"What's the process for building React components?"</div>
                                                     </div>
                                                     
                                                     <div className="text-center">
@@ -404,32 +404,32 @@ export default function LLM() {
                                     </div>
                                     
                                     <div className="grid md:grid-cols-3 gap-6">
-                                        <Card className="bg-slate-800/50 border-slate-700 p-6 hover:border-blue-500 transition-colors">
-                                            <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-4">
-                                                <Clock className="w-6 h-6 text-blue-400" />
+                                        <Card className="bg-white/50 border-gray-200 p-6 hover:border-blue-500 transition-colors">
+                                            <div className="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center mb-4">
+                                                <Clock className="w-6 h-6 text-yellow-500" />
                                             </div>
                                             <h4 className="font-semibold text-white mb-2">Instant Responses</h4>
-                                            <p className="text-slate-400 text-sm">
+                                            <p className="text-gray-500 text-sm">
                                                 Serve cached responses in milliseconds instead of waiting for full AI model processing.
                                             </p>
                                         </Card>
                                         
-                                        <Card className="bg-slate-800/50 border-slate-700 p-6 hover:border-indigo-500 transition-colors">
-                                            <div className="w-12 h-12 bg-indigo-500/20 rounded-lg flex items-center justify-center mb-4">
-                                                <TrendingUp className="w-6 h-6 text-indigo-400" />
+                                        <Card className="bg-white/50 border-gray-200 p-6 hover:border-purple-500 transition-colors">
+                                            <div className="w-12 h-12 bg-yellow-400/20 rounded-lg flex items-center justify-center mb-4">
+                                                <TrendingUp className="w-6 h-6 text-purple-600" />
                                             </div>
                                             <h4 className="font-semibold text-white mb-2">Cost Optimization</h4>
-                                            <p className="text-slate-400 text-sm">
+                                            <p className="text-gray-500 text-sm">
                                                 Reduce API costs by up to 95% through intelligent caching of semantically similar queries.
                                             </p>
                                         </Card>
                                         
-                                        <Card className="bg-slate-800/50 border-slate-700 p-6 hover:border-purple-500 transition-colors">
+                                        <Card className="bg-white/50 border-gray-200 p-6 hover:border-purple-500 transition-colors">
                                             <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
                                                 <Brain className="w-6 h-6 text-purple-400" />
                                             </div>
                                             <h4 className="font-semibold text-white mb-2">Smart Learning</h4>
-                                            <p className="text-slate-400 text-sm">
+                                            <p className="text-gray-500 text-sm">
                                                 Cache becomes smarter over time, learning from usage patterns and improving hit rates.
                                             </p>
                                         </Card>
@@ -443,13 +443,13 @@ export default function LLM() {
                             <Card className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-2 border-emerald-500/50 hover:shadow-2xl transition-all duration-300">
                                 <CardHeader>
                                     <div className="text-center space-y-4 mb-8">
-                                        <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto">
+                                        <div className="w-16 h-16 btn-gradient rounded-2xl flex items-center justify-center mx-auto">
                                             <Database className="h-8 w-8 text-white" />
                                         </div>
                                         <h2 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
                                             RAG - Retrieval Augmented Generation
                                         </h2>
-                                        <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+                                        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
                                             Combine the power of AI models with your private knowledge base for accurate, contextual responses
                                         </p>
                                     </div>
@@ -458,7 +458,7 @@ export default function LLM() {
                                     <div className="grid lg:grid-cols-2 gap-12 items-center mb-12">
                                         <div>
                                             <h3 className="text-2xl font-bold mb-6">How RAG Works</h3>
-                                            <p className="text-slate-300 mb-6 leading-relaxed">
+                                            <p className="text-gray-600 mb-6 leading-relaxed">
                                                 RAG enhances AI models by retrieving relevant information from your documents, databases, 
                                                 or knowledge bases before generating responses. This ensures answers are grounded in your 
                                                 specific data and always up-to-date.
@@ -471,7 +471,7 @@ export default function LLM() {
                                                     </div>
                                                     <div>
                                                         <h4 className="font-semibold text-white">Query Processing</h4>
-                                                        <p className="text-slate-400 text-sm">User question is analyzed and converted to search vectors</p>
+                                                        <p className="text-gray-500 text-sm">User question is analyzed and converted to search vectors</p>
                                                     </div>
                                                 </div>
                                                 
@@ -481,7 +481,7 @@ export default function LLM() {
                                                     </div>
                                                     <div>
                                                         <h4 className="font-semibold text-white">Retrieval</h4>
-                                                        <p className="text-slate-400 text-sm">Most relevant documents are retrieved from your knowledge base</p>
+                                                        <p className="text-gray-500 text-sm">Most relevant documents are retrieved from your knowledge base</p>
                                                     </div>
                                                 </div>
                                                 
@@ -491,26 +491,26 @@ export default function LLM() {
                                                     </div>
                                                     <div>
                                                         <h4 className="font-semibold text-white">Augmented Generation</h4>
-                                                        <p className="text-slate-400 text-sm">AI generates response using both its training and retrieved context</p>
+                                                        <p className="text-gray-500 text-sm">AI generates response using both its training and retrieved context</p>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                         
-                                        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+                                        <div className="bg-white/50 rounded-xl p-6 border border-gray-200">
                                             <h4 className="text-lg font-semibold mb-4 text-emerald-400">RAG vs Standard AI</h4>
                                             
                                             <div className="space-y-4">
                                                 <div>
-                                                    <div className="text-sm text-slate-400 mb-2">Standard AI Response:</div>
+                                                    <div className="text-sm text-gray-500 mb-2">Standard AI Response:</div>
                                                     <div className="bg-red-500/10 border border-red-500/30 rounded p-3 mb-4">
                                                         <div className="text-sm text-white">"I don't have access to your company's specific vacation policy..."</div>
                                                     </div>
                                                 </div>
                                                 
                                                 <div>
-                                                    <div className="text-sm text-slate-400 mb-2">RAG-Enhanced Response:</div>
-                                                    <div className="bg-emerald-500/10 border border-emerald-500/30 rounded p-3">
+                                                    <div className="text-sm text-gray-500 mb-2">RAG-Enhanced Response:</div>
+                                                    <div className="bg-yellow-300/20 border border-emerald-500/30 rounded p-3">
                                                         <div className="text-sm text-white">"Based on your employee handbook, you get 15 days PTO in your first year, increasing to 20 days after 3 years..."</div>
                                                     </div>
                                                 </div>
@@ -519,32 +519,32 @@ export default function LLM() {
                                     </div>
                                     
                                     <div className="grid md:grid-cols-3 gap-6">
-                                        <Card className="bg-slate-800/50 border-slate-700 p-6 hover:border-emerald-500 transition-colors">
+                                        <Card className="bg-white/50 border-gray-200 p-6 hover:border-emerald-500 transition-colors">
                                             <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center mb-4">
                                                 <FileText className="w-6 h-6 text-emerald-400" />
                                             </div>
                                             <h4 className="font-semibold text-white mb-2">Document Understanding</h4>
-                                            <p className="text-slate-400 text-sm">
+                                            <p className="text-gray-500 text-sm">
                                                 Upload PDFs, docs, websites, and databases. AI understands context and relationships across all content.
                                             </p>
                                         </Card>
                                         
-                                        <Card className="bg-slate-800/50 border-slate-700 p-6 hover:border-teal-500 transition-colors">
+                                        <Card className="bg-white/50 border-gray-200 p-6 hover:border-teal-500 transition-colors">
                                             <div className="w-12 h-12 bg-teal-500/20 rounded-lg flex items-center justify-center mb-4">
                                                 <Target className="w-6 h-6 text-teal-400" />
                                             </div>
                                             <h4 className="font-semibold text-white mb-2">Precise Answers</h4>
-                                            <p className="text-slate-400 text-sm">
+                                            <p className="text-gray-500 text-sm">
                                                 Get answers grounded in your specific data with source citations and confidence scores.
                                             </p>
                                         </Card>
                                         
-                                        <Card className="bg-slate-800/50 border-slate-700 p-6 hover:border-green-500 transition-colors">
+                                        <Card className="bg-white/50 border-gray-200 p-6 hover:border-green-500 transition-colors">
                                             <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center mb-4">
                                                 <Activity className="w-6 h-6 text-green-400" />
                                             </div>
                                             <h4 className="font-semibold text-white mb-2">Always Current</h4>
-                                            <p className="text-slate-400 text-sm">
+                                            <p className="text-gray-500 text-sm">
                                                 Real-time updates ensure AI responses reflect your latest documents and data changes.
                                             </p>
                                         </Card>
@@ -557,7 +557,7 @@ export default function LLM() {
                         <section className="mb-20">
                             <div className="text-center mb-12">
                                 <h2 className="text-4xl font-bold text-white mb-4">Advanced AI Capabilities</h2>
-                                <p className="text-xl text-slate-400">Cutting-edge features that set us apart</p>
+                                <p className="text-xl text-gray-500">Cutting-edge features that set us apart</p>
                             </div>
                             
                             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -572,10 +572,10 @@ export default function LLM() {
                                         </h3>
                                     </CardHeader>
                                     <CardContent>
-                                        <p className="text-slate-300 text-sm mb-4">
+                                        <p className="text-gray-600 text-sm mb-4">
                                             Enable AI to execute real actions: send emails, make API calls, manage calendars, and integrate with external services.
                                         </p>
-                                        <div className="space-y-2 text-xs text-slate-400">
+                                        <div className="space-y-2 text-xs text-gray-500">
                                             <div className="flex items-center gap-2">
                                                 <CheckCircle className="h-3 w-3 text-orange-400" />
                                                 <span>Real-time API integration</span>
@@ -594,15 +594,15 @@ export default function LLM() {
                                         <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl flex items-center justify-center mb-4">
                                             <Network className="h-6 w-6 text-white" />
                                         </div>
-                                        <h3 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                                        <h3 className="text-xl font-bold bg-gradient-to-r gradient-text bg-clip-text text-transparent">
                                             MCP Server
                                         </h3>
                                     </CardHeader>
                                     <CardContent>
-                                        <p className="text-slate-300 text-sm mb-4">
+                                        <p className="text-gray-600 text-sm mb-4">
                                             Model Context Protocol servers provide enhanced capabilities with real-time data access.
                                         </p>
-                                        <div className="space-y-2 text-xs text-slate-400">
+                                        <div className="space-y-2 text-xs text-gray-500">
                                             <div className="flex items-center gap-2">
                                                 <CheckCircle className="h-3 w-3 text-purple-400" />
                                                 <span>Real-time context</span>
@@ -626,10 +626,10 @@ export default function LLM() {
                                         </h3>
                                     </CardHeader>
                                     <CardContent>
-                                        <p className="text-slate-300 text-sm mb-4">
+                                        <p className="text-gray-600 text-sm mb-4">
                                             Advanced context management ensures optimal memory usage and conversation flow.
                                         </p>
-                                        <div className="space-y-2 text-xs text-slate-400">
+                                        <div className="space-y-2 text-xs text-gray-500">
                                             <div className="flex items-center gap-2">
                                                 <CheckCircle className="h-3 w-3 text-cyan-400" />
                                                 <span>Memory optimization</span>
@@ -653,10 +653,10 @@ export default function LLM() {
                                         </h3>
                                     </CardHeader>
                                     <CardContent>
-                                        <p className="text-slate-300 text-sm mb-4">
+                                        <p className="text-gray-600 text-sm mb-4">
                                             Stream responses in real-time for better user experience, just like ChatGPT.
                                         </p>
-                                        <div className="space-y-2 text-xs text-slate-400">
+                                        <div className="space-y-2 text-xs text-gray-500">
                                             <div className="flex items-center gap-2">
                                                 <CheckCircle className="h-3 w-3 text-green-400" />
                                                 <span>Instant feedback</span>
@@ -727,12 +727,12 @@ export default function LLM() {
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-2xl font-bold">Interactive Model Comparison</h3>
                                     <div className="flex gap-2">
-                                        <Badge className="bg-indigo-500/20 text-indigo-400">400+ Models Available</Badge>
+                                        <Badge className="bg-yellow-400/20 text-purple-600">400+ Models Available</Badge>
                                         <Badge className="bg-green-500/20 text-green-400">Real-time Pricing</Badge>
                                     </div>
                                 </div>
                                 
-                                <div className="mb-6 text-slate-400">
+                                <div className="mb-6 text-gray-500">
                                     <p>Compare top AI models by performance, cost, and capabilities. All models available through our unified API.</p>
                                 </div>
                                 <div className="overflow-x-auto">

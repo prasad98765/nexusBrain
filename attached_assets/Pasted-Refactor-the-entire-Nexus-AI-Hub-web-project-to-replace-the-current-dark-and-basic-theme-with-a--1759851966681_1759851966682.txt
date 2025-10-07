@@ -1,0 +1,62 @@
+Refactor the entire **Nexus AI Hub** web project to replace the current dark and basic theme with a modern, interactive design inspired by **yellow.ai**.
+
+### 🎨 Design & Theme Requirements
+
+1. **Overall Look:**
+
+   * Switch from the dark theme to a **light, elegant, and high-contrast interface**.
+   * Use **vibrant gradients** (yellow + purple or yellow + white) for accents.
+   * Improve spacing, rounded elements, and soft shadows for a premium look.
+
+2. **Color Palette:**
+
+   * Primary: `#FFD600` (Yellow.ai yellow)
+   * Secondary / Accent: `#5A31F4` (Purple)
+   * Background: `#FAFAFA` (Light gray / white)
+   * Text: `#1A1A1A`
+   * Keep all text and icon colors optimized for readability on light backgrounds.
+
+3. **Typography:**
+
+   * Font: `Inter`, `Poppins`, or `Manrope` (Google Fonts)
+   * Headings: bold and wide-spaced
+   * Body: medium weight with more white space
+
+4. **Components & Layout:**
+
+   * Update all buttons to rounded corners (`border-radius: 12px`)
+   * Add gradient hover effects (e.g., yellow-to-purple)
+   * Apply consistent button sizing and padding
+   * Replace icons with **lucide-react** or **Phosphor Icons**
+   * Add smooth transition animations (hover, scroll, fade-in)
+
+5. **Hero Section:**
+
+   * Add a **looping AI-themed video or background animation** (e.g., gradient waves, particles, or neural patterns)
+   * Keep the main heading and CTA (“Get Started Free”, “Explore Features”) clear and centered
+   * Use layered gradients instead of dark overlays
+
+6. **Interactivity:**
+
+   * Add **scroll-based animations** for elements (fade-in, slide-up, parallax)
+   * Add hover scaling or glowing effects to cards and icons
+   * Include subtle motion effects similar to yellow.ai’s landing page
+
+7. **Apply Changes Across All Routes:**
+
+   * `/features`
+   * `/why-choose`
+   * `/about`
+   * `/get-started`
+   * `/home`
+   * Maintain consistent typography, spacing, and component styling
+
+8. **Optional Enhancements:**
+
+   * Add animated gradient background (CSS or canvas)
+   * Update favicon and logo to match new color scheme
+   * Include micro-interactions (button click ripples, floating CTA, etc.)
+
+### ✅ Goal
+
+Deliver a **modern, bright, interactive** UI theme that looks and feels like **yellow.ai**, with consistent styling across all routes and components. Prioritize visual polish, smooth animation, and user engagement while keeping load performance optimized.

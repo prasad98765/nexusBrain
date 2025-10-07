@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useLocation } from 'wouter';
@@ -15,10 +13,7 @@ import {
   TrendingUp,
   Shield,
   Clock,
-  Code,
   Code2,
-  Database,
-  Cpu,
   Network,
   Menu,
   X,
@@ -35,26 +30,20 @@ import {
   Settings,
   Bot,
   Globe,
-  Infinity,
   Target,
   Award,
   MessageSquare,
   Eye,
-  Play,
-  Quote,
-  ExternalLink
+  Play
 } from 'lucide-react';
 import '../styles/landing-animations.css';
 import UniversalTranslator from '@/components/UniversalTranslator';
-import { Outlet, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import HtmlPageGenerator from '@/components/HtmlPageGenerator';
 
 export default function LandingPageEnhanced() {
   const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [demoText, setDemoText] = useState('');
-  const [demoMode, setDemoMode] = useState('format');
-  const [isListening, setIsListening] = useState(false);
   const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
   const [typedText, setTypedText] = useState('');
   const [typeIndex, setTypeIndex] = useState(0);
@@ -64,7 +53,6 @@ export default function LandingPageEnhanced() {
   const heroText = "Connect 400+ LLM Models with One Key";
   const navigate = useNavigate();
 
-  // Typing animation effect
   useEffect(() => {
     if (typeIndex < heroText.length) {
       const timeout = setTimeout(() => {
@@ -94,22 +82,21 @@ export default function LandingPageEnhanced() {
     navigate('/auth');
   };
 
-  // AI Tools Features
   const aiTools = [
-    { icon: Type, name: 'Format Text', description: 'Instantly clean and format messy text', color: 'from-blue-500 to-indigo-600' },
-    { icon: Mail, name: 'Email Writer', description: 'Write professional emails in seconds', color: 'from-indigo-500 to-purple-600' },
-    { icon: Languages, name: 'Language Translator', description: 'Convert text to any language', color: 'from-purple-500 to-pink-600' },
-    { icon: Code2, name: 'HTML Page Generator', description: 'Create beautiful websites from text prompts', color: 'from-emerald-500 to-teal-600' },
-    { icon: Volume2, name: 'Text-to-Speech', description: 'Natural AI voice for your text', color: 'from-pink-500 to-red-600' },
-    { icon: Mic, name: 'Speech-to-Text', description: 'Turn voice into accurate text', color: 'from-red-500 to-orange-600' },
-    { icon: CheckCircle, name: 'Grammar Checker', description: 'Catch errors in real-time', color: 'from-orange-500 to-yellow-600' },
-    { icon: PenTool, name: 'Grammar Corrector', description: 'Rewrite with perfect grammar', color: 'from-yellow-500 to-green-600' },
-    { icon: Image, name: 'AI Image Generator', description: 'Create unique visuals from prompts', color: 'from-green-500 to-teal-600' },
-    { icon: Lightbulb, name: 'Idea Generator', description: 'Get fresh ideas for blogs, posts, or projects', color: 'from-teal-500 to-cyan-600' },
-    { icon: FileDown, name: 'Summarizer', description: 'Turn long text into concise summaries', color: 'from-cyan-500 to-blue-600' },
-    { icon: FileText, name: 'Note & Document Assistant', description: 'Organize, rewrite, and refine your documents', color: 'from-blue-500 to-purple-600' },
-    { icon: Settings, name: 'AI Response Casting', description: 'Edit and refine AI responses to match your exact needs', color: 'from-purple-500 to-pink-600' },
-    { icon: Bot, name: 'Custom AI Agents', description: 'Personalized assistants for your workflow', color: 'from-pink-500 to-indigo-600' }
+    { icon: Type, name: 'Format Text', description: 'Instantly clean and format messy text', color: 'from-yellow-400 to-yellow-500' },
+    { icon: Mail, name: 'Email Writer', description: 'Write professional emails in seconds', color: 'from-purple-500 to-purple-600' },
+    { icon: Languages, name: 'Language Translator', description: 'Convert text to any language', color: 'from-yellow-500 to-orange-500' },
+    { icon: Code2, name: 'HTML Page Generator', description: 'Create beautiful websites from text prompts', color: 'from-purple-600 to-indigo-600' },
+    { icon: Volume2, name: 'Text-to-Speech', description: 'Natural AI voice for your text', color: 'from-pink-500 to-rose-500' },
+    { icon: Mic, name: 'Speech-to-Text', description: 'Turn voice into accurate text', color: 'from-amber-500 to-yellow-600' },
+    { icon: CheckCircle, name: 'Grammar Checker', description: 'Catch errors in real-time', color: 'from-teal-500 to-cyan-600' },
+    { icon: PenTool, name: 'Grammar Corrector', description: 'Rewrite with perfect grammar', color: 'from-violet-500 to-purple-600' },
+    { icon: Image, name: 'AI Image Generator', description: 'Create unique visuals from prompts', color: 'from-emerald-500 to-teal-600' },
+    { icon: Lightbulb, name: 'Idea Generator', description: 'Get fresh ideas for blogs, posts, or projects', color: 'from-yellow-400 to-amber-500' },
+    { icon: FileDown, name: 'Summarizer', description: 'Turn long text into concise summaries', color: 'from-yellow-400 to-purple-600' },
+    { icon: FileText, name: 'Note & Document Assistant', description: 'Organize, rewrite, and refine your documents', color: 'from-purple-500 to-fuchsia-600' },
+    { icon: Settings, name: 'AI Response Casting', description: 'Edit and refine AI responses to match your exact needs', color: 'from-orange-500 to-red-600' },
+    { icon: Bot, name: 'Custom AI Agents', description: 'Personalized assistants for your workflow', color: 'from-indigo-500 to-purple-600' }
   ];
 
   const testimonials = [
@@ -127,64 +114,44 @@ export default function LandingPageEnhanced() {
     },
     {
       name: "David L.",
-      role: "Entrepreneur",
-      content: "Finally, all AI tools in one place! The custom agents feature has transformed my business workflow.",
-      rating: 5
-    },
-    {
-      name: "Priya K.",
-      role: "Student",
-      content: "The summarizer and note assistant have made studying so much easier. I can't imagine working without it now.",
+      role: "Developer",
+      content: "The LLM integration is phenomenal. Having access to 400+ models through one API is a dream come true!",
       rating: 5
     }
   ];
 
-  const handleDemo = (mode: string) => {
-    setDemoMode(mode);
-    if (mode === 'format') {
-      setDemoText('this is messy text that needs formatting...');
-      setTimeout(() => setDemoText('This is messy text that needs formatting.'), 1000);
-    } else if (mode === 'translate') {
-      setDemoText('Hello, how are you today?');
-      setTimeout(() => setDemoText('Hola, ¿cómo estás hoy?'), 1000);
-    } else if (mode === 'grammar') {
-      setDemoText('I are going to the store yesterday.');
-      setTimeout(() => setDemoText('I went to the store yesterday.'), 1000);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100">
+    <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* Navigation */}
-      <header className="w-full bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
+      <header className="w-full bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3" onClick={() => handleNav('/landing-page')} style={{ cursor: 'pointer' }}>
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center animate-pulse">
-                <span className="text-white font-bold text-sm">⚡</span>
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleNav('/landing-page')}>
+              <div className="w-10 h-10 gradient-yellow-purple rounded-xl flex items-center justify-center animate-float shadow-lg">
+                <span className="text-white font-bold text-lg">⚡</span>
               </div>
-              <span className="text-lg sm:text-xl font-bold text-slate-100">Nexus AI Hub</span>
+              <span className="text-xl font-bold bg-gradient-to-r from-yellow-500 to-purple-600 bg-clip-text text-transparent">
+                Nexus AI Hub
+              </span>
             </div>
 
-            <nav className="hidden md:flex items-center gap-6">
-              <a href="#features" className="text-slate-300 hover:text-slate-100 transition-colors">Features</a>
-              <a href="#why-choose" className="text-slate-300 hover:text-slate-100 transition-colors">Why Choose</a>
-              {/* <a href="#demo" className="text-slate-300 hover:text-slate-100 transition-colors">Demo</a>
-              <a href="#testimonials" className="text-slate-300 hover:text-slate-100 transition-colors">Reviews</a> */}
-              {/* redirect to About AI */}
-              <a onClick={() => { window.location.href = '/About/AI'; }} style={{ cursor: 'pointer' }} className="text-slate-300 hover:text-slate-100 transition-colors">About AI</a>
+            <nav className="hidden md:flex items-center gap-8">
+              <a href="#features" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">Features</a>
+              <a href="#why-choose" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">Why Choose</a>
+              <a onClick={() => { window.location.href = '/About/AI'; }} className="text-gray-700 hover:text-purple-600 transition-colors font-medium cursor-pointer">About AI</a>
             </nav>
 
             <div className="flex items-center gap-4">
               <Button
                 onClick={handleGetStarted}
-                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-sm sm:text-base px-4 sm:px-6 transform hover:scale-105 transition-all duration-300"
+                className="btn-gradient text-gray-900 font-semibold px-6 py-2 rounded-xl border-0 shadow-lg"
+                data-testid="button-get-started"
               >
                 Get Started Free
               </Button>
 
               <button
-                className="md:hidden text-slate-300 hover:text-slate-100"
+                className="md:hidden text-gray-700 hover:text-purple-600"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
                 {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -195,92 +162,93 @@ export default function LandingPageEnhanced() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-slate-800 border-t border-slate-700 px-4 py-4 space-y-3">
-            <a href="#features" className="block text-slate-300 hover:text-slate-100 transition-colors">Features</a>
-            <a href="#why-choose" className="block text-slate-300 hover:text-slate-100 transition-colors">Why Choose</a>
-            <a href="#demo" className="block text-slate-300 hover:text-slate-100 transition-colors">Demo</a>
-            <a href="#testimonials" className="block text-slate-300 hover:text-slate-100 transition-colors">Reviews</a>
+          <div className="md:hidden bg-white border-t border-gray-200 px-4 py-4 space-y-3">
+            <a href="#features" className="block text-gray-700 hover:text-purple-600 transition-colors font-medium">Features</a>
+            <a href="#why-choose" className="block text-gray-700 hover:text-purple-600 transition-colors font-medium">Why Choose</a>
+            <a onClick={() => { window.location.href = '/About/AI'; }} className="block text-gray-700 hover:text-purple-600 transition-colors font-medium cursor-pointer">About AI</a>
           </div>
         )}
       </header>
 
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 py-20 overflow-hidden">
-        {/* Animated background */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse -top-48 -left-48"></div>
-          <div className="absolute w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse -bottom-48 -right-48"></div>
+      {/* Hero Section with Animated Background */}
+      <section className="relative min-h-[90vh] flex items-center justify-center px-4 sm:px-6 py-20 overflow-hidden">
+        {/* Animated Gradient Background */}
+        <div className="absolute inset-0">
+          <div className="absolute w-[600px] h-[600px] bg-gradient-to-br from-yellow-300/30 to-transparent rounded-full blur-3xl animate-float -top-40 -left-40"></div>
+          <div className="absolute w-[500px] h-[500px] bg-gradient-to-br from-purple-400/30 to-transparent rounded-full blur-3xl animate-float animation-delay-1000 -bottom-40 -right-40"></div>
+          <div className="absolute w-[400px] h-[400px] bg-gradient-to-br from-pink-300/20 to-transparent rounded-full blur-3xl animate-float animation-delay-500 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
         </div>
 
-        <div className="max-w-5xl mx-auto text-center space-y-8 z-10">
+        <div className="max-w-6xl mx-auto text-center space-y-8 z-10 animate-fade-in-up">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Sparkles className="h-6 w-6 text-yellow-400 animate-bounce" />
-            <span className="text-yellow-400 font-medium">Powered by LangChain</span>
-            <Sparkles className="h-6 w-6 text-yellow-400 animate-bounce" />
+            <Sparkles className="h-6 w-6 text-yellow-500 animate-pulse" />
+            <span className="text-purple-600 font-semibold text-lg">Powered by LangChain</span>
+            <Sparkles className="h-6 w-6 text-yellow-500 animate-pulse" />
           </div>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-            <span className="bg-gradient-to-r from-white via-indigo-200 to-white bg-clip-text text-transparent">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
+            <span className="gradient-text">
               {typedText}
             </span>
-            <span className="animate-pulse">|</span>
+            <span className="animate-pulse text-purple-600">|</span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-slate-400 max-w-4xl mx-auto leading-relaxed animate-fade-in-up animation-delay-300">
-            <Zap className="inline h-5 w-5 mr-2 text-yellow-400" />
-            Access over 400+ advanced AI models through LLM integration. When you're stuck choosing the right model, our intelligent system automatically selects the best one for your specific task. Edit and refine AI responses with our advanced casting functionality.
+          <p className="text-xl sm:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed animate-fade-in-up animation-delay-300">
+            <Zap className="inline h-6 w-6 mr-2 text-yellow-500" />
+            Access over 400+ advanced AI models through LLM integration. Our intelligent system automatically selects the best model for your task.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up animation-delay-600">
             <Button
               onClick={handleGetStarted}
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-8 py-4 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300 btn-pulse"
+              className="btn-gradient text-gray-900 px-8 py-6 text-lg font-bold rounded-xl shadow-2xl"
+              data-testid="hero-get-started"
             >
               <Sparkles className="h-5 w-5 mr-2" />
               Get Started Free
             </Button>
             <Button
-              variant="outline"
               onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-              className="border-2 border-indigo-400 text-indigo-400 hover:bg-indigo-500 hover:text-white px-8 py-4 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
+              className="btn-purple-gradient text-white px-8 py-6 text-lg font-bold rounded-xl shadow-2xl"
+              data-testid="hero-explore"
             >
               <Eye className="h-5 w-5 mr-2" />
               Explore Features
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 max-w-4xl mx-auto animate-fade-in-up animation-delay-800">
-            <div className="text-center space-y-2">
-              <div className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">400+</div>
-              <div className="text-slate-400">LLM Models Connected</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 max-w-4xl mx-auto animate-fade-in-up animation-delay-800">
+            <div className="text-center space-y-2 p-6 bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg">
+              <div className="text-5xl font-bold gradient-text">400+</div>
+              <div className="text-gray-600 font-medium">LLM Models Connected</div>
             </div>
-            <div className="text-center space-y-2">
-              <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">1</div>
-              <div className="text-slate-400">Universal API Key</div>
+            <div className="text-center space-y-2 p-6 bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg">
+              <div className="text-5xl font-bold gradient-text">1</div>
+              <div className="text-gray-600 font-medium">Universal API Key</div>
             </div>
-            <div className="text-center space-y-2">
-              <div className="text-3xl font-bold bg-gradient-to-r from-pink-400 to-red-400 bg-clip-text text-transparent">AI</div>
-              <div className="text-slate-400">Smart Model Selection</div>
+            <div className="text-center space-y-2 p-6 bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg">
+              <div className="text-5xl font-bold gradient-text">AI</div>
+              <div className="text-gray-600 font-medium">Smart Model Selection</div>
             </div>
           </div>
         </div>
 
-        {/* Scroll indicator */}
+        {/* Scroll Indicator */}
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-          <div className="w-6 h-10 border-2 border-slate-400 rounded-full flex justify-center">
-            <div className="w-1 h-3 bg-slate-400 rounded-full mt-2 animate-pulse"></div>
+          <div className="w-6 h-10 border-2 border-purple-400 rounded-full flex justify-center">
+            <div className="w-1 h-3 bg-purple-400 rounded-full mt-2 animate-pulse"></div>
           </div>
         </div>
       </section>
 
       {/* Core Features Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 bg-slate-800/30">
+      <section id="features" className="py-20 px-4 sm:px-6 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center space-y-6 mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-white animate-fade-in-up">
-              <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">AI Tools</span>
+          <div className="text-center space-y-6 mb-16 animate-fade-in-up">
+            <h2 className="text-5xl md:text-6xl font-bold">
+              <span className="gradient-text">AI Tools</span>
             </h2>
-            <p className="text-xl text-slate-400 max-w-3xl mx-auto animate-fade-in-up animation-delay-200">
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Connect to 400+ LLM models, edit AI responses with casting, and access powerful tools – all in one platform
             </p>
           </div>
@@ -291,32 +259,31 @@ export default function LandingPageEnhanced() {
               return (
                 <Card
                   key={index}
-                  className={`bg-slate-800/80 border-slate-700 hover:border-slate-600 transition-all duration-300 transform hover:scale-105 hover:shadow-xl cursor-pointer group ${hoveredFeature === index ? 'shadow-2xl' : ''
-                    }`}
+                  className={`bg-white border-2 border-gray-200 hover:border-purple-400 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl cursor-pointer group rounded-xl ${
+                    hoveredFeature === index ? 'shadow-2xl border-purple-400' : ''
+                  }`}
                   onMouseEnter={() => setHoveredFeature(index)}
                   onMouseLeave={() => setHoveredFeature(null)}
                   onClick={() => {
-                    // Open Universal Translator when Language Translator card is clicked (index 2)
                     if (index === 2 && tool.name === 'Language Translator') {
                       setTranslatorOpen(true);
                     }
-                    // Open HTML Page Generator when HTML Page Generator card is clicked (index 3)
                     if (index === 3 && tool.name === 'HTML Page Generator') {
                       setHtmlGeneratorOpen(true);
                     }
                   }}
                   data-testid={`feature-card-${index}`}
                 >
-                  <CardHeader className="pb-2">
-                    <div className={`w-12 h-12 bg-gradient-to-r ${tool.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                      <IconComponent className="h-6 w-6 text-white" />
+                  <CardHeader className="pb-4">
+                    <div className={`w-14 h-14 bg-gradient-to-r ${tool.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
+                      <IconComponent className="h-7 w-7 text-white" />
                     </div>
-                    <CardTitle className="text-lg text-white group-hover:text-indigo-300 transition-colors">
+                    <CardTitle className="text-lg text-gray-900 group-hover:text-purple-600 transition-colors font-bold">
                       {tool.name}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <CardDescription className="text-slate-400 group-hover:text-slate-300 transition-colors">
+                    <CardDescription className="text-gray-600 group-hover:text-gray-700 transition-colors">
                       {tool.description}
                     </CardDescription>
                   </CardContent>
@@ -326,462 +293,282 @@ export default function LandingPageEnhanced() {
           </div>
 
           <div className="text-center mt-12">
-            <Badge variant="outline" className="text-indigo-400 border-indigo-400 px-4 py-2 text-lg animate-pulse">
-              <Settings className="h-4 w-4 mr-2" />
+            <Badge className="bg-gradient-to-r from-yellow-400 to-purple-600 text-white border-0 px-6 py-3 text-base font-semibold rounded-xl shadow-lg">
+              <Settings className="h-5 w-5 mr-2" />
               Coming Soon: RAG Tools, Function Calling, MCP Server, and More...
             </Badge>
           </div>
         </div>
       </section>
 
-      {/* Why Choose Nexus AI Hub */}
-      <section id="why-choose" className="py-20 px-4 sm:px-6">
+      {/* Why Choose Section */}
+      <section id="why-choose" className="py-20 px-4 sm:px-6 bg-gradient-to-br from-gray-50 to-purple-50">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center space-y-6 mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-white animate-fade-in-up">
-              Why Choose <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Nexus AI Hub</span>
+          <div className="text-center space-y-6 mb-16 animate-fade-in-up">
+            <h2 className="text-5xl md:text-6xl font-bold">
+              Why Choose <span className="gradient-text">Nexus AI Hub</span>
             </h2>
-            <p className="text-xl text-slate-400 max-w-3xl mx-auto animate-fade-in-up animation-delay-200">
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               The ultimate AI-powered platform designed for everyone
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="text-center space-y-4 animate-fade-in-scale">
-              <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto hover-glow">
-                <Globe className="h-8 w-8 text-white" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            <div className="text-center space-y-4 animate-fade-in-up p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all">
+              <div className="w-20 h-20 gradient-yellow-purple rounded-2xl flex items-center justify-center mx-auto shadow-lg transform hover:scale-110 transition-transform">
+                <Globe className="h-10 w-10 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-white">All-in-One Hub</h3>
-              <p className="text-slate-400">
+              <h3 className="text-2xl font-bold text-gray-900">All-in-One Hub</h3>
+              <p className="text-gray-600 leading-relaxed">
                 No need to jump between tools. Everything you need in a single, unified platform.
               </p>
             </div>
 
-            <div className="text-center space-y-4 animate-fade-in-scale animation-delay-200">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto hover-glow">
-                <Network className="h-8 w-8 text-white" />
+            <div className="text-center space-y-4 animate-fade-in-up animation-delay-200 p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all">
+              <div className="w-20 h-20 gradient-purple-yellow rounded-2xl flex items-center justify-center mx-auto shadow-lg transform hover:scale-110 transition-transform">
+                <Network className="h-10 w-10 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-white">LLM Integration</h3>
-              <p className="text-slate-400">
+              <h3 className="text-2xl font-bold text-gray-900">LLM Integration</h3>
+              <p className="text-gray-600 leading-relaxed">
                 Direct access to 400+ LLM models from top providers like OpenAI, Anthropic, Google, and more through a single unified API.
               </p>
             </div>
 
-            <div className="text-center space-y-4 animate-fade-in-scale animation-delay-400">
-              <div className="w-16 h-16 bg-gradient-to-r from-pink-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto hover-glow">
-                <TrendingUp className="h-8 w-8 text-white" />
+            <div className="text-center space-y-4 animate-fade-in-up animation-delay-400 p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all">
+              <div className="w-20 h-20 gradient-yellow-purple rounded-2xl flex items-center justify-center mx-auto shadow-lg transform hover:scale-110 transition-transform">
+                <TrendingUp className="h-10 w-10 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-white">Future-Proof</h3>
-              <p className="text-slate-400">
-                New AI tools and features added regularly to keep you ahead of the curve.
+              <h3 className="text-2xl font-bold text-gray-900">Future-Proof</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Stay ahead with automatic updates and access to the latest AI models as they're released.
               </p>
             </div>
 
-            <div className="text-center space-y-4 animate-fade-in-scale animation-delay-600">
-              <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto hover-glow">
-                <Target className="h-8 w-8 text-white" />
+            <div className="text-center space-y-4 animate-fade-in-up animation-delay-600 p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all">
+              <div className="w-20 h-20 gradient-purple-yellow rounded-2xl flex items-center justify-center mx-auto shadow-lg transform hover:scale-110 transition-transform">
+                <Zap className="h-10 w-10 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-white">Easy to Use</h3>
-              <p className="text-slate-400">
-                Simple, clean, intuitive interface designed for effortless productivity.
+              <h3 className="text-2xl font-bold text-gray-900">Lightning Fast</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Get instant results with our optimized infrastructure and smart caching system.
               </p>
             </div>
 
-            <div className="text-center space-y-4 animate-fade-in-scale animation-delay-800">
-              <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-yellow-600 rounded-2xl flex items-center justify-center mx-auto hover-glow">
-                <Users className="h-8 w-8 text-white" />
+            <div className="text-center space-y-4 animate-fade-in-up animation-delay-800 p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all">
+              <div className="w-20 h-20 gradient-yellow-purple rounded-2xl flex items-center justify-center mx-auto shadow-lg transform hover:scale-110 transition-transform">
+                <Shield className="h-10 w-10 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-white">For Everyone</h3>
-              <p className="text-slate-400">
-                Students, professionals, creators, and businesses – built for all use cases.
+              <h3 className="text-2xl font-bold text-gray-900">Secure & Private</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Enterprise-grade security with end-to-end encryption. Your data is always protected.
               </p>
             </div>
 
-            <div className="text-center space-y-4 animate-fade-in-scale animation-delay-1000">
-              <div className="w-16 h-16 bg-gradient-to-r from-yellow-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto hover-glow">
-                <Shield className="h-8 w-8 text-white" />
+            <div className="text-center space-y-4 animate-fade-in-up animation-delay-1000 p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all">
+              <div className="w-20 h-20 gradient-purple-yellow rounded-2xl flex items-center justify-center mx-auto shadow-lg transform hover:scale-110 transition-transform">
+                <Target className="h-10 w-10 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-white">Secure & Reliable</h3>
-              <p className="text-slate-400">
-                Enterprise-grade security with 99.9% uptime for peace of mind.
+              <h3 className="text-2xl font-bold text-gray-900">Smart Selection</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Our AI automatically picks the best model for your task. No configuration needed.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* LLM Benefits Section */}
-      <section className="py-20 px-4 sm:px-6 bg-slate-800/20">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center space-y-6 mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-white animate-fade-in-up">
-              <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">LLM</span> Integration
-            </h2>
-            <p className="text-xl text-slate-400 max-w-3xl mx-auto animate-fade-in-up animation-delay-200">
-              Experience the power of unified AI model access through our LLM integration
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-            <Card className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 p-8">
-              <CardContent>
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
-                    <Zap className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-semibold text-white">One Key, All Models</h3>
-                </div>
-                <p className="text-slate-300 text-lg leading-relaxed">
-                  Connect to GPT-4, Claude, Gemini, Llama, and 400+ other models using just one API key. No need to manage multiple accounts or subscriptions.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 p-8">
-              <CardContent>
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
-                    <Target className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-semibold text-white">Smart Model Selection</h3>
-                </div>
-                <p className="text-slate-300 text-lg leading-relaxed">
-                  Can't decide which model to use? Our intelligent system analyzes your request and automatically routes it to the best-performing model for your specific task.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="text-center">
-            <Button
-              onClick={() => window.open('https://LLM.ai', '_blank')}
-              variant="outline"
-              className="border-2 border-indigo-400 text-indigo-400 hover:bg-indigo-500 hover:text-white px-8 py-4 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
-            >
-              <ExternalLink className="h-5 w-5 mr-2" />
-              Learn More About LLM
-            </Button>
-          </div>
-        </div>
-      </section>
-      {/* <section id="demo" className="py-20 px-4 sm:px-6 bg-slate-800/50">
+      {/* LLM Integration Highlight */}
+      <section className="py-20 px-4 sm:px-6 bg-white">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center space-y-6 mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-white animate-fade-in-up">
-              See It in <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Action</span>
-            </h2>
-            <p className="text-xl text-slate-400 max-w-3xl mx-auto animate-fade-in-up animation-delay-200">
-              Try our AI tools right here – no signup required!
-            </p>
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6 animate-fade-in-up">
+              <Badge className="bg-gradient-to-r from-yellow-400 to-purple-600 text-white border-0 px-4 py-2 text-sm font-semibold rounded-lg">
+                <Zap className="h-4 w-4 mr-2 inline" />
+                LLM Integration
+              </Badge>
+              <h2 className="text-4xl md:text-5xl font-bold gradient-text">
+                One Key, All Models
+              </h2>
+              <p className="text-xl text-gray-600 leading-relaxed">
+                Connect to 400+ LLM models from OpenAI, Anthropic, Google, Meta, and more through a single unified API. No more managing multiple API keys or integrations.
+              </p>
+              <ul className="space-y-4">
+                {[
+                  'Universal API access to all major LLM providers',
+                  'Automatic model selection based on your task',
+                  'Cost optimization across different models',
+                  'Real-time model performance tracking'
+                ].map((feature, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <CheckCircle className="h-6 w-6 text-green-500 flex-shrink-0 mt-1" />
+                    <span className="text-gray-700">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button
+                onClick={handleGetStarted}
+                className="btn-gradient text-gray-900 px-8 py-6 text-lg font-bold rounded-xl shadow-lg"
+              >
+                Start Building Now <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <Card className="bg-slate-800/80 border-slate-700 p-6">
-              <CardHeader>
-                <CardTitle className="text-xl text-white flex items-center gap-2">
-                  <Play className="h-5 w-5 text-indigo-400" />
-                  Interactive Demo
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex gap-2 flex-wrap">
-                  <Button
-                    variant={demoMode === 'format' ? 'default' : 'outline'}
-                    onClick={() => handleDemo('format')}
-                    className="text-sm"
-                  >
-                    Format Text
-                  </Button>
-                  <Button
-                    variant={demoMode === 'translate' ? 'default' : 'outline'}
-                    onClick={() => handleDemo('translate')}
-                    className="text-sm"
-                  >
-                    Translate
-                  </Button>
-                  <Button
-                    variant={demoMode === 'grammar' ? 'default' : 'outline'}
-                    onClick={() => handleDemo('grammar')}
-                    className="text-sm"
-                  >
-                    Grammar Check
-                  </Button>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="bg-slate-700/50 rounded-lg p-4">
-                    <div className="text-sm text-slate-400 mb-2">Input:</div>
-                    <div className="text-white font-mono text-sm">
-                      {demoMode === 'format' && 'this is messy text that needs formatting...'}
-                      {demoMode === 'translate' && 'Hello, how are you today?'}
-                      {demoMode === 'grammar' && 'I are going to the store yesterday.'}
+            <div className="relative animate-fade-in-up animation-delay-300">
+              <div className="bg-gradient-to-br from-purple-100 to-yellow-100 rounded-3xl p-8 shadow-2xl">
+                <div className="space-y-4">
+                  <div className="bg-white rounded-xl p-6 shadow-lg transform hover:scale-105 transition-all">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 gradient-yellow-purple rounded-lg flex items-center justify-center">
+                        <Bot className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-gray-900">GPT-4o</h4>
+                        <p className="text-sm text-gray-500">OpenAI</p>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-gradient-to-r from-yellow-400 to-purple-600 h-2 rounded-full w-4/5"></div>
                     </div>
                   </div>
 
-                  <div className="flex justify-center">
-                    <ArrowRight className="h-6 w-6 text-indigo-400 animate-pulse" />
+                  <div className="bg-white rounded-xl p-6 shadow-lg transform hover:scale-105 transition-all">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 gradient-purple-yellow rounded-lg flex items-center justify-center">
+                        <Bot className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-gray-900">Claude 3.5</h4>
+                        <p className="text-sm text-gray-500">Anthropic</p>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-gradient-to-r from-purple-600 to-yellow-400 h-2 rounded-full w-3/5"></div>
+                    </div>
                   </div>
 
-                  <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 rounded-lg p-4">
-                    <div className="text-sm text-indigo-400 mb-2">AI Result:</div>
-                    <div className="text-white font-mono text-sm">
-                      {demoText || 'Click a demo button to see AI in action!'}
+                  <div className="bg-white rounded-xl p-6 shadow-lg transform hover:scale-105 transition-all">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 gradient-yellow-purple rounded-lg flex items-center justify-center">
+                        <Bot className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-gray-900">Gemini Pro</h4>
+                        <p className="text-sm text-gray-500">Google</p>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-gradient-to-r from-yellow-400 to-purple-600 h-2 rounded-full w-2/3"></div>
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            <div className="space-y-6">
-              <Card className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 p-6">
-                <CardContent>
-                  <div className="flex items-center gap-3 mb-3">
-                    <Mic className="h-6 w-6 text-indigo-400" />
-                    <h3 className="text-lg font-semibold text-white">Speech-to-Text</h3>
-                  </div>
-                  <p className="text-slate-300 mb-4">Speak naturally and watch your words appear instantly with 99% accuracy.</p>
-                  <Button
-                    variant="outline"
-                    className="w-full border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/20"
-                    onClick={() => setIsListening(!isListening)}
-                  >
-                    {isListening ? 'Stop Listening' : 'Try Voice Input'}
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 p-6">
-                <CardContent>
-                  <div className="flex items-center gap-3 mb-3">
-                    <Image className="h-6 w-6 text-purple-400" />
-                    <h3 className="text-lg font-semibold text-white">AI Image Generator</h3>
-                  </div>
-                  <p className="text-slate-300 mb-4">Type any description and watch AI create stunning visuals in seconds.</p>
-                  <Input
-                    placeholder="Describe an image..."
-                    className="bg-slate-700/50 border-slate-600 text-white mb-3"
-                  />
-                  <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700">
-                    Generate Image
-                  </Button>
-                </CardContent>
-              </Card>
+              </div>
             </div>
           </div>
         </div>
-      </section> */}
+      </section>
 
-      {/* Testimonials / Social Proof */}
-      {/* <section id="testimonials" className="py-20 px-4 sm:px-6">
+      {/* Testimonials */}
+      <section className="py-20 px-4 sm:px-6 bg-gradient-to-br from-purple-50 to-yellow-50">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center space-y-6 mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-white animate-fade-in-up">
-              What Our Users <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Say</span>
+          <div className="text-center space-y-6 mb-16 animate-fade-in-up">
+            <h2 className="text-5xl md:text-6xl font-bold gradient-text">
+              Loved by Creators
             </h2>
-            <p className="text-xl text-slate-400 max-w-3xl mx-auto animate-fade-in-up animation-delay-200">
-              Join thousands of happy users who've transformed their workflow
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              See what our users are saying about Nexus AI Hub
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <Card key={index} className="bg-slate-800/80 border-slate-700 p-6 hover:shadow-xl transition-shadow duration-300">
-                <CardContent className="space-y-4">
-                  <div className="flex gap-1">
+              <Card 
+                key={index} 
+                className="bg-white border-0 shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 rounded-2xl"
+              >
+                <CardContent className="p-8">
+                  <div className="flex gap-1 mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
+                      <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                     ))}
                   </div>
-                  <div className="flex items-start gap-3">
-                    <Quote className="h-5 w-5 text-indigo-400 mt-1 flex-shrink-0" />
-                    <p className="text-slate-300 text-sm leading-relaxed">
-                      "{testimonial.content}"
-                    </p>
-                  </div>
-                  <div className="pt-3 border-t border-slate-700">
-                    <div className="font-semibold text-white">{testimonial.name}</div>
-                    <div className="text-sm text-slate-400">{testimonial.role}</div>
+                  <p className="text-gray-700 mb-6 leading-relaxed italic">
+                    "{testimonial.content}"
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 gradient-purple-yellow rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold">{testimonial.name[0]}</span>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900">{testimonial.name}</h4>
+                      <p className="text-sm text-gray-500">{testimonial.role}</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         </div>
-      </section> */}
-
-      {/* Upcoming Features Section */}
-      <section className="py-20 px-4 sm:px-6 bg-slate-800/40">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center space-y-6 mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-white animate-fade-in-up">
-              What's <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Coming Next</span>
-            </h2>
-            <p className="text-xl text-slate-400 max-w-3xl mx-auto animate-fade-in-up animation-delay-200">
-              Exciting new features in development to make your AI experience even more powerful
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 p-6 hover:shadow-xl transition-shadow duration-300">
-              <CardContent>
-                <div className="flex items-center gap-3 mb-4">
-                  <Database className="h-8 w-8 text-indigo-400" />
-                  <h3 className="text-xl font-semibold text-white">RAG Tools</h3>
-                </div>
-                <p className="text-slate-300 leading-relaxed">
-                  Upload your documents and let AI answer questions based on your own data. Perfect for research, documentation, and knowledge management.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 p-6 hover:shadow-xl transition-shadow duration-300">
-              <CardContent>
-                <div className="flex items-center gap-3 mb-4">
-                  <Code className="h-8 w-8 text-purple-400" />
-                  <h3 className="text-xl font-semibold text-white">Function Calling</h3>
-                </div>
-                <p className="text-slate-300 leading-relaxed">
-                  Allow AI to execute real actions - from sending emails to managing calendars, making API calls, and integrating with your favorite tools.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-r from-pink-500/10 to-red-500/10 border border-pink-500/30 p-6 hover:shadow-xl transition-shadow duration-300">
-              <CardContent>
-                <div className="flex items-center gap-3 mb-4">
-                  <Network className="h-8 w-8 text-pink-400" />
-                  <h3 className="text-xl font-semibold text-white">MCP Server</h3>
-                </div>
-                <p className="text-slate-300 leading-relaxed">
-                  Connect to Model Context Protocol servers for enhanced AI capabilities including real-time data access and advanced integrations.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/30 p-6 hover:shadow-xl transition-shadow duration-300">
-              <CardContent>
-                <div className="flex items-center gap-3 mb-4">
-                  <Users className="h-8 w-8 text-red-400" />
-                  <h3 className="text-xl font-semibold text-white">Team Collaboration</h3>
-                </div>
-                <p className="text-slate-300 leading-relaxed">
-                  Share AI agents, collaborate on projects, and manage team access with advanced workspace management and permission controls.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-r from-orange-500/10 to-yellow-500/10 border border-orange-500/30 p-6 hover:shadow-xl transition-shadow duration-300">
-              <CardContent>
-                <div className="flex items-center gap-3 mb-4">
-                  <Bot className="h-8 w-8 text-orange-400" />
-                  <h3 className="text-xl font-semibold text-white">Advanced Agents</h3>
-                </div>
-                <p className="text-slate-300 leading-relaxed">
-                  Multi-step AI agents that can plan, execute complex workflows, and learn from your preferences to become more efficient over time.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-r from-yellow-500/10 to-green-500/10 border border-yellow-500/30 p-6 hover:shadow-xl transition-shadow duration-300">
-              <CardContent>
-                <div className="flex items-center gap-3 mb-4">
-                  <Globe className="h-8 w-8 text-yellow-400" />
-                  <h3 className="text-xl font-semibold text-white">API Ecosystem</h3>
-                </div>
-                <p className="text-slate-300 leading-relaxed">
-                  Full REST API access, webhooks, and SDK support to integrate Nexus AI Hub into your existing applications and workflows.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="text-center mt-12">
-            <p className="text-lg text-slate-400 mb-6">Want to be notified when these features launch?</p>
-            <Button
-              onClick={handleGetStarted}
-              variant="outline"
-              className="border-2 border-indigo-400 text-indigo-400 hover:bg-indigo-500 hover:text-white px-8 py-3 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
-            >
-              Join Early Access
-            </Button>
-          </div>
-        </div>
       </section>
 
-      {/* Call-to-Action Footer */}
-      <section className="py-20 px-4 sm:px-6 bg-gradient-to-br from-indigo-900/50 to-purple-900/50">
+      {/* Final CTA */}
+      <section className="py-20 px-4 sm:px-6 bg-gradient-to-r from-yellow-400 via-purple-500 to-yellow-400 animate-gradient">
         <div className="max-w-4xl mx-auto text-center space-y-8">
-          <div className="space-y-4">
-            <h2 className="text-4xl md:text-5xl font-bold text-white">
-              <span className="text-yellow-400">🌟</span> Join the Future of AI – Today
-            </h2>
-            <p className="text-xl text-slate-300 max-w-3xl mx-auto">
-              Don't let productivity slip away. Start using the most comprehensive AI platform today and transform how you work.
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <h2 className="text-4xl md:text-5xl font-bold text-white">
+            Ready to Transform Your Workflow?
+          </h2>
+          <p className="text-xl text-white/90">
+            Join thousands of users already experiencing the future of AI
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               onClick={handleGetStarted}
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-12 py-6 text-xl font-semibold rounded-xl transform hover:scale-105 transition-all duration-300 btn-pulse"
+              className="bg-white text-purple-600 hover:bg-gray-100 px-10 py-6 text-lg font-bold rounded-xl shadow-2xl transform hover:scale-105 transition-all"
+              data-testid="cta-get-started"
             >
-              <Sparkles className="h-6 w-6 mr-3" />
-              Start for Free
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-              className="border-2 border-white/30 text-white hover:bg-white/10 px-12 py-6 text-xl font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
-            >
-              <Eye className="h-6 w-6 mr-3" />
-              See All Features
+              <Sparkles className="h-5 w-5 mr-2" />
+              Get Started Free
             </Button>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 pt-8 border-t border-slate-700">
-            <div className="text-center space-y-2">
-              <Award className="h-8 w-8 text-yellow-400 mx-auto" />
-              <div className="text-lg font-semibold text-white">No Credit Card Required</div>
-              <div className="text-slate-400">Start using all features immediately</div>
+          <div className="flex items-center justify-center gap-8 text-white/90 flex-wrap">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5" />
+              <span>No Credit Card Required</span>
             </div>
-            <div className="text-center space-y-2">
-              <Shield className="h-8 w-8 text-green-400 mx-auto" />
-              <div className="text-lg font-semibold text-white">100% Secure</div>
-              <div className="text-slate-400">Your data is protected and private</div>
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              <span>100% Secure</span>
             </div>
-            <div className="text-center space-y-2">
-              <Infinity className="h-8 w-8 text-blue-400 mx-auto" />
-              <div className="text-lg font-semibold text-white">Cancel Anytime</div>
-              <div className="text-slate-400">No contracts, no commitments</div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              <span>Setup in 2 Minutes</span>
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-800/90 border-t border-slate-700 py-8 px-4 sm:px-6">
+      <footer className="bg-gray-900 text-white py-12 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">⚡</span>
+              <div className="w-10 h-10 gradient-yellow-purple rounded-xl flex items-center justify-center">
+                <span className="text-white font-bold text-lg">⚡</span>
               </div>
-              <span className="text-xl font-bold text-slate-100">Nexus AI Hub</span>
+              <span className="text-xl font-bold">Nexus AI Hub</span>
             </div>
-            <div className="text-slate-400 text-center">
+            <div className="text-gray-400 text-center">
               <p>© 2025 Nexus AI Hub. Powered by LangChain. All rights reserved.</p>
             </div>
           </div>
         </div>
       </footer>
 
-      {/* Universal Translator Modal */}
+      {/* Modals */}
       <UniversalTranslator
         isOpen={translatorOpen}
         onClose={() => setTranslatorOpen(false)}
       />
 
-      {/* HTML Page Generator */}
       <HtmlPageGenerator
         isOpen={htmlGeneratorOpen}
         onClose={() => setHtmlGeneratorOpen(false)}

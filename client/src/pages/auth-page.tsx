@@ -25,12 +25,12 @@ interface FormErrors {
 
 const NexusLogo = () => (
   <div className="flex items-center justify-center gap-3 mb-8">
-    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/25">
+    <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/25">
       <span className="text-white font-bold text-xl">N</span>
     </div>
     <div >
-      <h1 className="text-2xl font-bold text-slate-100">Nexus AI Hub</h1>
-      <p className="text-sm text-slate-400">Build Intelligent AI Agents That Connect Everything</p>
+      <h1 className="text-2xl font-bold text-gray-900">Nexus AI Hub</h1>
+      <p className="text-sm text-gray-500">Build Intelligent AI Agents That Connect Everything</p>
     </div>
   </div>
 );
@@ -231,17 +231,17 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         <NexusLogo />
 
-        <Card className="shadow-xl bg-slate-800/90 border-slate-700 backdrop-blur-sm">
+        <Card className="shadow-xl bg-white/90 border-gray-200 backdrop-blur-sm">
           <CardHeader className="space-y-2 text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <Mail className="h-6 w-6 text-indigo-500" />
-              <CardTitle className="text-xl text-slate-100">Welcome</CardTitle>
+              <Mail className="h-6 w-6 text-purple-600" />
+              <CardTitle className="text-xl text-gray-900">Welcome</CardTitle>
             </div>
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-gray-500">
               Sign in to your account or create a new one
             </CardDescription>
           </CardHeader>
@@ -303,7 +303,7 @@ export default function AuthPage() {
                         placeholder="Enter your email"
                         value={formData.email}
                         onChange={handleInputChange}
-                        className={` pl-10 bg-slate-900 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500  ${errors.email ? 'border-red-500' : ''}`}
+                        className={` pl-10 bg-gray-50 border-gray-300 text-gray-900 placeholder:text-slate-500 focus:border-purple-500  ${errors.email ? 'border-red-500' : ''}`}
                         disabled={loading}
                       />
                     </div>
@@ -323,7 +323,7 @@ export default function AuthPage() {
                         placeholder="Enter your password"
                         value={formData.password}
                         onChange={handleInputChange}
-                        className={`pl-10 bg-slate-900 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500  ${errors.password ? 'border-red-500' : ''}`}
+                        className={`pl-10 bg-gray-50 border-gray-300 text-gray-900 placeholder:text-slate-500 focus:border-purple-500  ${errors.password ? 'border-red-500' : ''}`}
                         disabled={loading}
                       />
                       <Button
@@ -370,7 +370,7 @@ export default function AuthPage() {
                     <span className="w-full border-t border-gray-300 dark:border-gray-700" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-slate-900 px-2 text-slate-400">Or continue with</span>
+                    <span className="bg-gray-50 px-2 text-gray-500">Or continue with</span>
                   </div>
 
                 </div>
@@ -401,7 +401,7 @@ export default function AuthPage() {
                           placeholder="First name"
                           value={formData.first_name}
                           onChange={handleInputChange}
-                          className={`pl-10 bg-slate-900 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500  ${errors.first_name ? 'border-red-500' : ''}`}
+                          className={`pl-10 bg-gray-50 border-gray-300 text-gray-900 placeholder:text-slate-500 focus:border-purple-500  ${errors.first_name ? 'border-red-500' : ''}`}
                           disabled={loading}
                         />
                       </div>
@@ -420,7 +420,7 @@ export default function AuthPage() {
                         value={formData.last_name}
                         onChange={handleInputChange}
                         disabled={loading}
-                        className='pl-10 bg-slate-900 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500'
+                        className='pl-10 bg-gray-50 border-gray-300 text-gray-900 placeholder:text-slate-500 focus:border-purple-500'
                       />
                     </div>
                   </div>
@@ -438,7 +438,7 @@ export default function AuthPage() {
                         placeholder="Enter your email"
                         value={formData.email}
                         onChange={handleInputChange}
-                        className={`pl-10 bg-slate-900 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500  ${errors.email ? 'border-red-500' : ''}`}
+                        className={`pl-10 bg-gray-50 border-gray-300 text-gray-900 placeholder:text-slate-500 focus:border-purple-500  ${errors.email ? 'border-red-500' : ''}`}
                         disabled={loading}
                       />
                     </div>
@@ -459,7 +459,7 @@ export default function AuthPage() {
                         placeholder="Create a password"
                         value={formData.password}
                         onChange={handleInputChange}
-                        className={`pl-10 bg-slate-900 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500  ${errors.password ? 'border-red-500' : ''}`}
+                        className={`pl-10 bg-gray-50 border-gray-300 text-gray-900 placeholder:text-slate-500 focus:border-purple-500  ${errors.password ? 'border-red-500' : ''}`}
                         disabled={loading}
                       />
                       <Button
@@ -478,7 +478,7 @@ export default function AuthPage() {
 
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium py-2.5 transition-all duration-200"
+                    className="w-full bg-gradient-to-r from-yellow-400 to-purple-600 hover:opacity-90 text-white font-medium py-2.5 transition-all duration-200"
                     disabled={loading}
                   >
                     {loading ? (
@@ -497,12 +497,12 @@ export default function AuthPage() {
                     <span className="w-full border-t border-gray-300 dark:border-gray-700" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-slate-900 px-2 text-slate-400">Or continue with</span>
+                    <span className="bg-gray-50 px-2 text-gray-500">Or continue with</span>
                   </div>
 
                 </div>
                 <div className="w-full rounded-lg p-1" >
-                  <div className="bg-slate-900 rounded-lg p-0.5" style={{ backgroundColor: "#9333ea" }}>
+                  <div className="bg-gray-50 rounded-lg p-0.5" style={{ backgroundColor: "#9333ea" }}>
                     <GoogleLogin
                       onSuccess={handleGoogleSuccess}
                       onError={handleGoogleError}
