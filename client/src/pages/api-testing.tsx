@@ -372,9 +372,9 @@ export default function ApiTesting() {
   const selectedEndpointData = apiEndpoints.find(e => e.id === selectedEndpoint);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-gray-900">
+    <div className="min-h-screen bg-slate-950 text-slate-100">
       {/* Header */}
-      <header className="border-b border-slate-800 bg-gray-50/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -382,25 +382,25 @@ export default function ApiTesting() {
                 variant="ghost"
                 size="sm"
                 onClick={() => window.location.href = '/docs/api-reference'}
-                className="text-gray-500 hover:text-gray-800"
+                className="text-slate-400 hover:text-slate-200"
                 data-testid="back-to-docs"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Docs
               </Button>
-              <div className="w-px h-6 bg-gray-100" />
+              <div className="w-px h-6 bg-slate-700" />
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-purple-600 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-sm">⚡</span>
                 </div>
                 <div>
                   <h1 className="text-xl font-bold">Nexus AI Hub API Explorer</h1>
-                  <p className="text-gray-500 text-sm">Interactive API Testing</p>
+                  <p className="text-slate-400 text-sm">Interactive API Testing</p>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm" className="border-gray-200 text-gray-600" data-testid="view-docs">
+              <Button variant="outline" size="sm" className="border-slate-700 text-slate-300" data-testid="view-docs">
                 <BookOpen className="w-4 h-4 mr-2" />
                 View in API Reference
               </Button>
@@ -411,14 +411,14 @@ export default function ApiTesting() {
 
       <div className="mx-auto flex h-[calc(100vh-73px)]">
         {/* Left Sidebar - API List */}
-        <aside className="w-64 border-r border-slate-800 bg-gray-50/30 overflow-y-auto">
+        <aside className="w-64 border-r border-slate-800 bg-slate-900/30 overflow-y-auto">
           <div className="p-4">
             <div className="mb-4">
               <div className="flex items-center gap-2 mb-2">
                 <input
                   type="text"
                   placeholder="Search for endpoints..."
-                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-800 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-200 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   data-testid="search-endpoints"
                 />
               </div>
@@ -426,12 +426,12 @@ export default function ApiTesting() {
 
             {/* Authentication Section */}
             <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-600 mb-3">Authentication</h3>
+              <h3 className="text-sm font-medium text-slate-300 mb-3">Authentication</h3>
               <div className="space-y-3">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <Key className="w-3 h-3 text-purple-600" />
-                    <span className="text-xs text-gray-500">Enter your bearer token</span>
+                    <Key className="w-3 h-3 text-indigo-400" />
+                    <span className="text-xs text-slate-400">Enter your bearer token</span>
                   </div>
                   <div className="flex items-center gap-1 mb-2">
                     {isAuthenticated ? (
@@ -451,7 +451,7 @@ export default function ApiTesting() {
                     placeholder="nxs-your-api-key-here"
                     value={apiToken}
                     onChange={(e) => handleTokenChange(e.target.value)}
-                    className="bg-white border-gray-300 text-gray-800 text-xs"
+                    className="bg-slate-800 border-slate-600 text-slate-200 text-xs"
                     data-testid="input-api-token"
                   />
                 </div>
@@ -460,15 +460,15 @@ export default function ApiTesting() {
 
             {/* API Endpoints */}
             <div>
-              <h3 className="text-sm font-medium text-gray-600 mb-3">API Keys</h3>
+              <h3 className="text-sm font-medium text-slate-300 mb-3">API Keys</h3>
               <div className="space-y-1">
                 {apiEndpoints.map((endpoint) => (
                   <button
                     key={endpoint.id}
                     onClick={() => setSelectedEndpoint(endpoint.id)}
                     className={`w-full flex items-start gap-3 p-3 rounded-lg text-left transition-colors ${selectedEndpoint === endpoint.id
-                      ? 'bg-yellow-400/20 text-indigo-300 border border-purple-500/30'
-                      : 'text-gray-500 hover:text-gray-800 hover:bg-white/50'
+                      ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                       }`}
                     data-testid={`endpoint-${endpoint.id}`}
                   >
@@ -500,12 +500,12 @@ export default function ApiTesting() {
                   }`}>
                   {selectedEndpointData?.method}
                 </Badge>
-                <code className="text-gray-600 bg-white px-3 py-1 rounded font-mono text-sm">
+                <code className="text-slate-300 bg-slate-800 px-3 py-1 rounded font-mono text-sm">
                   {selectedEndpointData?.path}
                 </code>
               </div>
               <h1 className="text-2xl font-bold mb-2">{selectedEndpointData?.name}</h1>
-              <p className="text-gray-500">{selectedEndpointData?.description}</p>
+              <p className="text-slate-400">{selectedEndpointData?.description}</p>
             </div>
 
             {/* Body Parameters Form */}
@@ -520,10 +520,10 @@ export default function ApiTesting() {
                       value={requestBody.model}
                       onValueChange={(value) => setRequestBody(prev => ({ ...prev, model: value }))}
                     >
-                      <SelectTrigger className="bg-white border-gray-300">
+                      <SelectTrigger className="bg-slate-800 border-slate-600">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-300">
+                      <SelectContent className="bg-slate-800 border-slate-600">
                         {/* call shared llm_details.json apply map for more models and show 300+ models */}
                         {llmDetails?.data?.map((model: any) => (
                           <SelectItem key={model.id} value={model.id}>
@@ -539,7 +539,7 @@ export default function ApiTesting() {
                     <Textarea
                       value={requestBody.prompt}
                       onChange={(e) => setRequestBody(prev => ({ ...prev, prompt: e.target.value }))}
-                      className="bg-white border-gray-300 text-gray-800 min-h-[100px]"
+                      className="bg-slate-800 border-slate-600 text-slate-200 min-h-[100px]"
                       placeholder="Enter your prompt here..."
                       data-testid="input-prompt"
                     />
@@ -552,7 +552,7 @@ export default function ApiTesting() {
                         type="number"
                         value={requestBody.max_tokens}
                         onChange={(e) => setRequestBody(prev => ({ ...prev, max_tokens: parseInt(e.target.value) || 150 }))}
-                        className="bg-white border-gray-300 text-gray-800"
+                        className="bg-slate-800 border-slate-600 text-slate-200"
                         data-testid="input-max-tokens"
                       />
                     </div>
@@ -565,7 +565,7 @@ export default function ApiTesting() {
                         max="2"
                         value={requestBody.temperature}
                         onChange={(e) => setRequestBody(prev => ({ ...prev, temperature: parseFloat(e.target.value) || 0.7 }))}
-                        className="bg-white border-gray-300 text-gray-800"
+                        className="bg-slate-800 border-slate-600 text-slate-200"
                         data-testid="input-temperature"
                       />
                     </div>
@@ -581,10 +581,10 @@ export default function ApiTesting() {
                       value={chatRequestBody.model}
                       onValueChange={(value) => setChatRequestBody(prev => ({ ...prev, model: value }))}
                     >
-                      <SelectTrigger className="bg-white border-gray-300">
+                      <SelectTrigger className="bg-slate-800 border-slate-600">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-300">
+                      <SelectContent className="bg-slate-800 border-slate-600">
                         {/* call shared llm_details.json apply map for more models and show 300+ models */}
                         {llmDetails?.data?.map((model: any) => (
                           <SelectItem key={model.id} value={model.id}>
@@ -602,7 +602,7 @@ export default function ApiTesting() {
                         size="sm"
                         variant="outline"
                         onClick={addMessage}
-                        className="border-gray-300 text-gray-600"
+                        className="border-slate-600 text-slate-300"
                         data-testid="button-add-message"
                       >
                         <Plus className="w-3 h-3 mr-1" />
@@ -611,10 +611,10 @@ export default function ApiTesting() {
                     </div>
                     <div className="space-y-3">
                       {chatRequestBody.messages.map((message, index) => (
-                        <div key={index} className="bg-white rounded-lg p-4 space-y-3">
+                        <div key={index} className="bg-slate-800 rounded-lg p-4 space-y-3">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <span className="text-xs text-gray-500 font-medium">{index + 1}</span>
+                              <span className="text-xs text-slate-400 font-medium">{index + 1}</span>
                               <Label className="text-sm font-medium">role <Badge variant="destructive" className="ml-1 text-xs">Required</Badge></Label>
                             </div>
                             {chatRequestBody.messages.length > 1 && (
@@ -633,10 +633,10 @@ export default function ApiTesting() {
                             value={message.role}
                             onValueChange={(value: 'system' | 'user' | 'assistant') => updateMessage(index, 'role', value)}
                           >
-                            <SelectTrigger className="w-full bg-gray-100 border-gray-300">
+                            <SelectTrigger className="w-full bg-slate-700 border-slate-600">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="bg-gray-100 border-gray-300">
+                            <SelectContent className="bg-slate-700 border-slate-600">
                               <SelectItem value="system">system</SelectItem>
                               <SelectItem value="user">user</SelectItem>
                               <SelectItem value="assistant">assistant</SelectItem>
@@ -647,7 +647,7 @@ export default function ApiTesting() {
                             <Textarea
                               value={message.content}
                               onChange={(e) => updateMessage(index, 'content', e.target.value)}
-                              className="bg-gray-100 border-gray-300 text-gray-800 text-sm"
+                              className="bg-slate-700 border-slate-600 text-slate-200 text-sm"
                               placeholder="What is the meaning of life?"
                               rows={3}
                               data-testid={`input-message-content-${index}`}
@@ -665,7 +665,7 @@ export default function ApiTesting() {
                         type="number"
                         value={chatRequestBody.max_tokens}
                         onChange={(e) => setChatRequestBody(prev => ({ ...prev, max_tokens: parseInt(e.target.value) || 150 }))}
-                        className="bg-white border-gray-300 text-gray-800"
+                        className="bg-slate-800 border-slate-600 text-slate-200"
                         data-testid="input-chat-max-tokens"
                       />
                     </div>
@@ -678,7 +678,7 @@ export default function ApiTesting() {
                         max="2"
                         value={chatRequestBody.temperature}
                         onChange={(e) => setChatRequestBody(prev => ({ ...prev, temperature: parseFloat(e.target.value) || 0.7 }))}
-                        className="bg-white border-gray-300 text-gray-800"
+                        className="bg-slate-800 border-slate-600 text-slate-200"
                         data-testid="input-chat-temperature"
                       />
                     </div>
@@ -687,8 +687,8 @@ export default function ApiTesting() {
               )}
 
               {(selectedEndpoint === 'list-models' || selectedEndpoint === 'get-model') && (
-                <div className="bg-white/50 border border-gray-200 rounded-lg p-4">
-                  <p className="text-gray-500 text-sm">
+                <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+                  <p className="text-slate-400 text-sm">
                     This endpoint does not require body parameters. It only requires authentication.
                   </p>
                 </div>
@@ -698,22 +698,22 @@ export default function ApiTesting() {
         </div>
 
         {/* Right Section - Send Request */}
-        <div className="w-96 border-l border-slate-800 bg-gray-50/30 overflow-y-auto">
+        <div className="w-96 border-l border-slate-800 bg-slate-900/30 overflow-y-auto">
           <div className="p-6 space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-4">REQUEST</h3>
 
               <div className="space-y-4">
                 {/* Tabs */}
-                <div className="border-b border-gray-200">
+                <div className="border-b border-slate-700">
                   <div className="flex space-x-2">
                     {(['cURL', 'TypeScript', 'Python'] as const).map((tab) => (
                       <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
                         className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === tab
-                          ? 'text-purple-600 border-b-2 border-purple-400'
-                          : 'text-gray-500 hover:text-gray-600'
+                          ? 'text-indigo-400 border-b-2 border-indigo-400'
+                          : 'text-slate-400 hover:text-slate-300'
                           }`}
                       >
                         {tab}
@@ -728,7 +728,7 @@ export default function ApiTesting() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-gray-500 hover:text-gray-600"
+                      className="text-slate-400 hover:text-slate-300"
                       onClick={() => {
                         const codeExamples = {
                           'cURL': `curl -X ${selectedEndpointData?.method} \\
@@ -804,8 +804,8 @@ except requests.exceptions.RequestException as e:
                       Copy Code
                     </Button>
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-4 font-mono text-xs overflow-x-auto">
-                    <pre className="text-gray-600 whitespace-pre-wrap">
+                  <div className="bg-slate-900 rounded-lg p-4 font-mono text-xs overflow-x-auto">
+                    <pre className="text-slate-300 whitespace-pre-wrap">
                       {activeTab === 'cURL' ?
                         `curl -X ${selectedEndpointData?.method} \\
   'http://localhost:5173${selectedEndpointData?.path}' \\
@@ -881,7 +881,7 @@ except requests.exceptions.RequestException as e:
 
             <div>
               <Button
-                className="w-full bg-gradient-to-r from-yellow-400 to-purple-600 hover:opacity-90 disabled:opacity-50"
+                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50"
                 data-testid="send-request-button"
                 onClick={handleSendRequest}
               // disabled={isTestingApi || !isAuthenticated}
@@ -904,23 +904,23 @@ except requests.exceptions.RequestException as e:
             {apiResponse && (
               <div>
                 <h3 className="text-lg font-semibold mb-4">RESPONSE</h3>
-                <div className="bg-gray-50 rounded-lg p-4 font-mono text-xs">
+                <div className="bg-slate-900 rounded-lg p-4 font-mono text-xs">
                   <div className="flex items-center gap-2 mb-3">
                     <Badge className={`${apiResponse.error ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-green-500/20 text-green-400 border-green-500/30'}`}>
                       {apiResponse.error ? apiResponse.error.code : '200'}
                     </Badge>
-                    <span className="text-gray-500">
+                    <span className="text-slate-400">
                       {apiResponse.error ? 'Error' : 'Successful'}
                     </span>
                   </div>
                   <div className="relative">
-                    <pre className="text-gray-600 whitespace-pre-wrap overflow-x-auto">
+                    <pre className="text-slate-300 whitespace-pre-wrap overflow-x-auto">
                       {JSON.stringify(apiResponse, null, 2)}
                     </pre>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="absolute top-2 right-2 border-gray-300 hover:bg-gray-100"
+                      className="absolute top-2 right-2 border-slate-600 hover:bg-slate-700"
                       onClick={() => copyToClipboard(JSON.stringify(apiResponse, null, 2))}
                       data-testid="copy-response"
                     >

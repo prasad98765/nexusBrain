@@ -9,12 +9,12 @@ import { Link } from 'wouter';
 
 const NexusLogo = () => (
   <div className="flex items-center justify-center gap-3 mb-8">
-    <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
       <span className="text-white font-bold text-xl">N</span>
     </div>
     <div className="text-center">
-      <h1 className="text-2xl font-bold text-gray-900">Nexus AI Hub</h1>
-      <p className="text-sm text-gray-500">Your AI-Powered Workspace</p>
+      <h1 className="text-2xl font-bold text-slate-100">Nexus AI Hub</h1>
+      <p className="text-sm text-slate-400">Your AI-Powered Workspace</p>
     </div>
   </div>
 );
@@ -62,17 +62,17 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-md">
           <NexusLogo />
 
-          <Card className="shadow-xl bg-white/90 border-gray-200 backdrop-blur-sm">
+          <Card className="shadow-xl bg-slate-800/90 border-slate-700 backdrop-blur-sm">
             <CardHeader className="space-y-2 text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <CheckCircle className="h-6 w-6 text-green-500" />
-                <CardTitle className="text-xl text-gray-900">Check Your Email</CardTitle>
+                <CardTitle className="text-xl text-slate-100">Check Your Email</CardTitle>
               </div>
-              <CardDescription className="text-gray-500">
+              <CardDescription className="text-slate-400">
                 We've sent password reset instructions to your email address
               </CardDescription>
             </CardHeader>
@@ -88,12 +88,12 @@ export default function ForgotPasswordPage() {
               )}
 
               <div className="text-center space-y-4">
-                <p className="text-sm text-gray-500" style={{marginBottom: "18px"}}>
+                <p className="text-sm text-slate-400" style={{marginBottom: "18px"}}>
                   Didn't receive the email? Check your spam folder or try again in a few minutes.
                 </p>
                 
                 <Link href="/auth">
-                  <Button variant="outline" className="w-full border-gray-300 text-gray-600 hover:bg-gray-100">
+                  <Button variant="outline" className="w-full border-slate-600 text-slate-300 hover:bg-slate-700">
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back to Login
                   </Button>
@@ -107,17 +107,17 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         <NexusLogo />
 
-        <Card className="shadow-xl bg-white/90 border-gray-200 backdrop-blur-sm">
+        <Card className="shadow-xl bg-slate-800/90 border-slate-700 backdrop-blur-sm">
           <CardHeader className="space-y-2 text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <Mail className="h-6 w-6 text-purple-600" />
-              <CardTitle className="text-xl text-gray-900">Reset Your Password</CardTitle>
+              <Mail className="h-6 w-6 text-indigo-500" />
+              <CardTitle className="text-xl text-slate-100">Reset Your Password</CardTitle>
             </div>
-            <CardDescription className="text-gray-500">
+            <CardDescription className="text-slate-400">
               Enter your email address and we'll send you a reset link
             </CardDescription>
           </CardHeader>
@@ -133,21 +133,21 @@ export default function ForgotPasswordPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-600">Email Address</Label>
+                <Label htmlFor="email" className="text-slate-300">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email address"
-                  className="bg-gray-50 border-gray-300 text-gray-900 placeholder:text-slate-500 focus:border-purple-500"
+                  className="bg-slate-900 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500"
                   disabled={loading}
                 />
               </div>
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-yellow-400 to-purple-600 hover:opacity-90 text-white font-medium py-2.5 transition-all duration-200"
+                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium py-2.5 transition-all duration-200"
                 disabled={loading}
               >
                 {loading ? (
@@ -163,7 +163,7 @@ export default function ForgotPasswordPage() {
 
             <div className="mt-6 text-center">
               <Link href="/auth">
-                <Button variant="ghost" className="text-gray-500 hover:text-gray-600">
+                <Button variant="ghost" className="text-slate-400 hover:text-slate-300">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to Login
                 </Button>

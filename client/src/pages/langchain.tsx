@@ -41,27 +41,27 @@ export default function LangChain() {
     return () => clearInterval(interval);
   }, []);
   return (
-    <div className="min-h-screen bg-gray-50" style={{ color: "#1A1A1A" }}>
-      <header className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
+    <div className="min-h-screen bg-background" style={{ color: "white" }}>
+      <header className="w-full bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3" onClick={() => handleNav('/landing-page')} style={{ cursor: 'pointer' }}>
-              <div className="w-8 h-8 gradient-yellow-purple rounded-lg flex items-center justify-center animate-pulse">
+              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center animate-pulse">
                 <span className="text-white font-bold text-sm">⚡</span>
               </div>
-              <span className="text-lg sm:text-xl font-bold text-gray-900">Nexus AI Hub</span>
+              <span className="text-lg sm:text-xl font-bold text-slate-100">Nexus AI Hub</span>
             </div>
 
             <div className="flex items-center gap-4">
               <Button
                 onClick={handleGetStarted}
-                className="btn-gradient hover:opacity-90 text-white text-sm sm:text-base px-4 sm:px-6 transform hover:scale-105 transition-all duration-300"
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-sm sm:text-base px-4 sm:px-6 transform hover:scale-105 transition-all duration-300"
               >
                 Get Started
               </Button>
 
               <button
-                className="md:hidden text-gray-600 hover:text-gray-900"
+                className="md:hidden text-slate-300 hover:text-slate-100"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
                 {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -72,12 +72,12 @@ export default function LangChain() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-white border-t border-gray-200 px-4 py-4 space-y-3">
-            <a href="#agent-bots" className="block text-gray-600 hover:text-gray-900 transition-colors">Agent Bots</a>
-            <a href="#ai-search" className="block text-gray-600 hover:text-gray-900 transition-colors">AI Search</a>
-            <a href="#ai-technology" className="block text-gray-600 hover:text-gray-900 transition-colors">Technology</a>
-            <a href="#how-it-works" className="block text-gray-600 hover:text-gray-900 transition-colors">How It Works</a>
-            <a href="#how-it-works" className="block text-gray-600 hover:text-gray-900 transition-colors">About Ai</a>
+          <div className="md:hidden bg-slate-800 border-t border-slate-700 px-4 py-4 space-y-3">
+            <a href="#agent-bots" className="block text-slate-300 hover:text-slate-100 transition-colors">Agent Bots</a>
+            <a href="#ai-search" className="block text-slate-300 hover:text-slate-100 transition-colors">AI Search</a>
+            <a href="#ai-technology" className="block text-slate-300 hover:text-slate-100 transition-colors">Technology</a>
+            <a href="#how-it-works" className="block text-slate-300 hover:text-slate-100 transition-colors">How It Works</a>
+            <a href="#how-it-works" className="block text-slate-300 hover:text-slate-100 transition-colors">About Ai</a>
           </div>
         )}
       </header>
@@ -86,30 +86,30 @@ export default function LangChain() {
         {/* Immersive Hero Section */}
         <section className="relative min-h-screen flex items-center justify-center px-6 py-20 overflow-hidden">
           {/* Animated Background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-yellow-50/30 to-purple-50/30">
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-yellow-300/20 rounded-full blur-3xl animate-pulse"></div>
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-300/20 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-yellow-200/15 rounded-full blur-2xl animate-pulse animation-delay-2000"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-emerald-900/20 to-teal-900/20">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-green-500/5 rounded-full blur-2xl animate-pulse animation-delay-2000"></div>
           </div>
 
           <div className="max-w-6xl mx-auto text-center relative z-10">
             <div className="mb-8">
-              <Badge variant="outline" className="bg-gradient-to-r from-yellow-400 to-purple-600 text-white border-0 px-4 py-2 text-lg animate-pulse mb-6">
+              <Badge variant="outline" className="text-emerald-400 border-emerald-400 px-4 py-2 text-lg animate-pulse mb-6">
                 <Sparkles className="h-4 w-4 mr-2" />
                 AI Framework Revolution
               </Badge>
             </div>
 
             <h1 className="text-4xl lg:text-7xl font-bold mb-8 leading-tight">
-              <span className="bg-gradient-to-r gradient-text bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-white via-emerald-200 to-teal-200 bg-clip-text text-transparent">
                 LangChain
               </span><br />
-              <span className="bg-gradient-to-r gradient-text bg-clip-text text-transparent animate-pulse">
+              <span className="bg-gradient-to-r from-emerald-400 via-teal-400 to-green-400 bg-clip-text text-transparent animate-pulse">
                 Framework for AI
               </span>
             </h1>
 
-            <p className="text-xl text-gray-600 mb-12 max-w-4xl mx-auto leading-relaxed">
+            <p className="text-xl text-slate-300 mb-12 max-w-4xl mx-auto leading-relaxed">
               Build sophisticated LLM applications with the most popular open-source framework for creating 
               AI workflows, agents, and integrations. From simple chatbots to complex reasoning systems - 
               LangChain empowers developers to harness the full potential of large language models.
@@ -118,7 +118,7 @@ export default function LangChain() {
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
               <Button
                 onClick={handleGetStarted}
-                className="btn-gradient hover:from-emerald-600 hover:to-teal-700 text-white px-8 py-4 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
+                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-8 py-4 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
               >
                 <Link2 className="h-5 w-5 mr-2" />
                 Explore LangChain
@@ -135,21 +135,21 @@ export default function LangChain() {
 
             {/* Interactive Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
-              <div className="text-center space-y-2 p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-gray-200 hover:border-emerald-500 transition-colors">
+              <div className="text-center space-y-2 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-emerald-500 transition-colors">
                 <div className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Open</div>
-                <div className="text-gray-500">Source Framework</div>
+                <div className="text-slate-400">Source Framework</div>
               </div>
-              <div className="text-center space-y-2 p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-gray-200 hover:border-teal-500 transition-colors">
+              <div className="text-center space-y-2 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-teal-500 transition-colors">
                 <div className="text-3xl font-bold bg-gradient-to-r from-teal-400 to-green-400 bg-clip-text text-transparent">RAG</div>
-                <div className="text-gray-500">Integration</div>
+                <div className="text-slate-400">Integration</div>
               </div>
-              <div className="text-center space-y-2 p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-gray-200 hover:border-green-500 transition-colors">
+              <div className="text-center space-y-2 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-green-500 transition-colors">
                 <div className="text-3xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Agents</div>
-                <div className="text-gray-500">& Workflows</div>
+                <div className="text-slate-400">& Workflows</div>
               </div>
-              <div className="text-center space-y-2 p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-gray-200 hover:border-blue-500 transition-colors">
+              <div className="text-center space-y-2 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-blue-500 transition-colors">
                 <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">Prod</div>
-                <div className="text-gray-500">Ready Apps</div>
+                <div className="text-slate-400">Ready Apps</div>
               </div>
             </div>
           </div>
@@ -167,7 +167,7 @@ export default function LangChain() {
           <div className="max-w-6xl mx-auto">
             {/* Quick Navigation */}
             <div className="mb-16">
-              <Card className="bg-white/50 border-gray-200 p-6">
+              <Card className="bg-slate-800/50 border-slate-700 p-6">
                 <h3 className="text-xl font-bold text-white mb-4 text-center">Explore LangChain Features</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   <Button
@@ -194,7 +194,7 @@ export default function LangChain() {
                   <Button
                     variant="outline"
                     onClick={() => document.getElementById('rag-section')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="text-sm border-blue-500/50 text-yellow-500 hover:bg-yellow-500/20"
+                    className="text-sm border-blue-500/50 text-blue-400 hover:bg-blue-500/20"
                   >
                     RAG
                   </Button>
@@ -273,7 +273,7 @@ export default function LangChain() {
                   <h2 className="text-4xl font-bold bg-gradient-to-r from-teal-400 to-blue-400 bg-clip-text text-transparent">
                     Why is LangChain Important?
                   </h2>
-                  <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                  <p className="text-xl text-slate-300 max-w-3xl mx-auto">
                     Bridging the gap between AI models and real-world applications
                   </p>
                 </div>
@@ -338,13 +338,13 @@ export default function LangChain() {
             <Card id="chains-section" data-testid="card-langchain-how-works" className="mb-12 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border-2 border-blue-500/50 hover:shadow-2xl transition-all duration-300">
               <CardHeader>
                 <div className="text-center space-y-4 mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-purple-600 rounded-2xl flex items-center justify-center mx-auto">
+                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto">
                     <Cog className="h-8 w-8 text-white" />
                   </div>
                   <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
                     How does LangChain Work?
                   </h2>
-                  <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                  <p className="text-xl text-slate-300 max-w-3xl mx-auto">
                     Building intelligent workflows with chains and components
                   </p>
                 </div>
@@ -394,7 +394,7 @@ export default function LangChain() {
                     <p className=" text-sm mb-4">
                       To use LangChain, developers install the framework in Python and use chain building blocks or LangChain Expression Language (LCEL) to compose chains with simple programming commands.
                     </p>
-                    <div className="bg-gray-50 rounded-lg p-4 border">
+                    <div className="bg-background rounded-lg p-4 border">
                       <code className="text-sm text-accent">pip install langchain</code>
                     </div>
                   </Card>
@@ -403,16 +403,16 @@ export default function LangChain() {
             </Card>
 
             {/* Core Components */}
-            <Card id="components-section" data-testid="card-langchain-components" className="mb-12 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-2 border-purple-500/50 hover:shadow-2xl transition-all duration-300">
+            <Card id="components-section" data-testid="card-langchain-components" className="mb-12 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-2 border-indigo-500/50 hover:shadow-2xl transition-all duration-300">
               <CardHeader>
                 <div className="text-center space-y-4 mb-6">
-                  <div className="w-16 h-16 btn-gradient rounded-2xl flex items-center justify-center mx-auto">
+                  <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto">
                     <Database className="h-8 w-8 text-white" />
                   </div>
-                  <h2 className="text-4xl font-bold bg-gradient-to-r gradient-text bg-clip-text text-transparent">
+                  <h2 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
                     Core Components of LangChain
                   </h2>
-                  <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                  <p className="text-xl text-slate-300 max-w-3xl mx-auto">
                     Building blocks for intelligent AI applications
                   </p>
                 </div>
@@ -493,10 +493,10 @@ export default function LangChain() {
                   <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto">
                     <Network className="h-8 w-8 text-white" />
                   </div>
-                  <h2 className="text-4xl font-bold bg-gradient-to-r gradient-text bg-clip-text text-transparent">
+                  <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                     What is RAG (Retrieval-Augmented Generation)?
                   </h2>
-                  <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                  <p className="text-xl text-slate-300 max-w-3xl mx-auto">
                     Enhancing AI with external knowledge and real-time data
                   </p>
                 </div>
@@ -545,7 +545,7 @@ export default function LangChain() {
                   <h2 className="text-4xl font-bold bg-gradient-to-r from-pink-400 to-orange-400 bg-clip-text text-transparent">
                     LangChain + RAG Integration
                   </h2>
-                  <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                  <p className="text-xl text-slate-300 max-w-3xl mx-auto">
                     The perfect synergy for production-ready AI applications
                   </p>
                 </div>
@@ -585,7 +585,7 @@ export default function LangChain() {
                   <h2 className="text-4xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
                     Popular Use Cases
                   </h2>
-                  <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                  <p className="text-xl text-slate-300 max-w-3xl mx-auto">
                     Real-world applications powered by LangChain
                   </p>
                 </div>

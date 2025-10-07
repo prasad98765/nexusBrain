@@ -158,7 +158,7 @@ export default function QASection() {
     );
 
     return (
-        <div className="container mx-auto py-8" style={{ color: "#1A1A1A" }}>
+        <div className="container mx-auto py-8" style={{ color: "white" }}>
             <h1 className="text-3xl font-bold mb-8">Questions & Answers</h1>
 
             {/* Filters */}

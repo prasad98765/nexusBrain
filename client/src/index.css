@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import './styles/animations.css';
 
 @tailwind base;
@@ -6,39 +6,40 @@
 @tailwind utilities;
 
 :root {
-  /* Yellow.ai inspired light theme */
-  --background: hsl(0 0% 98%);
-  --foreground: hsl(0 0% 10%);
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(0 0% 10%);
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(0 0% 10%);
-  
-  /* Primary Yellow (#FFD600) */
-  --primary: hsl(48 100% 50%);
-  --primary-foreground: hsl(0 0% 10%);
-  
-  /* Secondary Purple */
-  --secondary: hsl(257 83% 58%);
-  --secondary-foreground: hsl(0 0% 100%);
-  
-  --muted: hsl(0 0% 96%);
-  --muted-foreground: hsl(0 0% 45%);
-  --accent: hsl(257 83% 58%);
+  /* Dark theme matching Nexus AI Hub design */
+  --background: hsl(222 47% 8%);
+  --foreground: hsl(215 25% 88%);
+  --card: hsl(224 47% 10%);
+  --card-foreground: hsl(215 25% 88%);
+  --popover: hsl(224 47% 10%);
+  --popover-foreground: hsl(215 25% 88%);
+  --primary: hsl(238 75% 65%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(215 25% 16%);
+  --secondary-foreground: hsl(215 25% 70%);
+  --muted: hsl(215 25% 16%);
+  --muted-foreground: hsl(215 16% 47%);
+  --accent: hsl(262 70% 60%);
   --accent-foreground: hsl(0 0% 100%);
   --destructive: hsl(0 75% 60%);
   --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(0 0% 90%);
-  --input: hsl(0 0% 100%);
-  --ring: hsl(48 100% 50%);
-  
-  --chart-1: hsl(48 100% 50%);
-  --chart-2: hsl(257 83% 58%);
-  --chart-3: hsl(190 90% 50%);
+  --border: hsl(215 25% 20%);
+  --input: hsl(215 25% 16%);
+  --ring: hsl(238 75% 65%);
+  --chart-1: hsl(238 75% 65%);
+  --chart-2: hsl(262 70% 60%);
+  --chart-3: hsl(42 93% 56%);
   --chart-4: hsl(147 79% 42%);
   --chart-5: hsl(341 75% 51%);
-  
-  --font-sans: 'Inter', 'Poppins', sans-serif;
+  --sidebar: hsl(224 47% 10%);
+  --sidebar-foreground: hsl(215 25% 88%);
+  --sidebar-primary: hsl(238 75% 65%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(215 25% 16%);
+  --sidebar-accent-foreground: hsl(238 75% 65%);
+  --sidebar-border: hsl(215 25% 20%);
+  --sidebar-ring: hsl(238 75% 65%);
+  --font-sans: 'Inter', sans-serif;
   --font-serif: 'Georgia', serif;
   --font-mono: 'Menlo', monospace;
   --radius: 0.75rem;
@@ -96,50 +97,6 @@ body {
   }
 }
 
-@layer utilities {
-  /* Yellow.ai gradient utilities */
-  .gradient-yellow-purple {
-    background: linear-gradient(135deg, #FFD600 0%, #5A31F4 100%);
-  }
-  
-  .gradient-yellow-white {
-    background: linear-gradient(135deg, #FFD600 0%, #FFFFFF 100%);
-  }
-  
-  .gradient-purple-yellow {
-    background: linear-gradient(135deg, #5A31F4 0%, #FFD600 100%);
-  }
-  
-  .gradient-text {
-    background: linear-gradient(135deg, #FFD600 0%, #5A31F4 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  .btn-gradient {
-    background: linear-gradient(135deg, #FFD600 0%, #FFA800 100%);
-    transition: all 0.3s ease;
-  }
-  
-  .btn-gradient:hover {
-    background: linear-gradient(135deg, #FFA800 0%, #FFD600 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(255, 214, 0, 0.3);
-  }
-  
-  .btn-purple-gradient {
-    background: linear-gradient(135deg, #5A31F4 0%, #7C3AED 100%);
-    transition: all 0.3s ease;
-  }
-  
-  .btn-purple-gradient:hover {
-    background: linear-gradient(135deg, #7C3AED 0%, #5A31F4 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(90, 49, 244, 0.3);
-  }
-}
-
 /* Custom scrollbar styles */
 .scroll-smooth {
   scroll-behavior: smooth;
@@ -167,64 +124,4 @@ body {
 
 .animate-pulse-slow {
   animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-20px);
-  }
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes gradient-move {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient-move 5s ease infinite;
-}
-
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in-up {
-  animation: fade-in-up 0.6s ease-out forwards;
-}
-
-@keyframes scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.animate-scale-in {
-  animation: scale-in 0.5s ease-out forwards;
 }

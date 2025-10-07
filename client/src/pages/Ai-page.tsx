@@ -39,27 +39,27 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
   return (
-    <div className="min-h-screen bg-gray-50" style={{ color: "#1A1A1A" }}>
-      <header className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
+    <div className="min-h-screen bg-background" style={{ color: "white" }}>
+      <header className="w-full bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3" onClick={() => handleNav('/landing-page')} style={{ cursor: 'pointer' }}>
-              <div className="w-8 h-8 gradient-yellow-purple rounded-lg flex items-center justify-center animate-pulse">
+              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center animate-pulse">
                 <span className="text-white font-bold text-sm">⚡</span>
               </div>
-              <span className="text-lg sm:text-xl font-bold text-gray-900">Nexus AI Hub</span>
+              <span className="text-lg sm:text-xl font-bold text-slate-100">Nexus AI Hub</span>
             </div>
 
             <div className="flex items-center gap-4">
               <Button
                 onClick={handleGetStarted}
-                className="btn-gradient hover:opacity-90 text-white text-sm sm:text-base px-4 sm:px-6 transform hover:scale-105 transition-all duration-300"
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-sm sm:text-base px-4 sm:px-6 transform hover:scale-105 transition-all duration-300"
               >
                 Get Started
               </Button>
 
               <button
-                className="md:hidden text-gray-600 hover:text-gray-900"
+                className="md:hidden text-slate-300 hover:text-slate-100"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
                 {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -70,12 +70,12 @@ export default function Home() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-white border-t border-gray-200 px-4 py-4 space-y-3">
-            <a onClick={() => { navigate('/customize-agent'); setMobileMenuOpen(false); }} className="block text-gray-600 hover:text-gray-900 transition-colors cursor-pointer">Agent Bots</a>
-            <a onClick={() => { navigate('/ai-search'); setMobileMenuOpen(false); }} className="block text-gray-600 hover:text-gray-900 transition-colors cursor-pointer">AI Search</a>
-            <a onClick={() => { navigate('/flow-builder'); setMobileMenuOpen(false); }} className="block text-gray-600 hover:text-gray-900 transition-colors cursor-pointer">Technology</a>
-            <a onClick={() => { navigate('/chatbot'); setMobileMenuOpen(false); }} className="block text-gray-600 hover:text-gray-900 transition-colors cursor-pointer">How It Works</a>
-            <a onClick={() => { navigate('/ai'); setMobileMenuOpen(false); }} className="block text-gray-600 hover:text-gray-900 transition-colors cursor-pointer">About AI</a>
+          <div className="md:hidden bg-slate-800 border-t border-slate-700 px-4 py-4 space-y-3">
+            <a onClick={() => { navigate('/customize-agent'); setMobileMenuOpen(false); }} className="block text-slate-300 hover:text-slate-100 transition-colors cursor-pointer">Agent Bots</a>
+            <a onClick={() => { navigate('/ai-search'); setMobileMenuOpen(false); }} className="block text-slate-300 hover:text-slate-100 transition-colors cursor-pointer">AI Search</a>
+            <a onClick={() => { navigate('/flow-builder'); setMobileMenuOpen(false); }} className="block text-slate-300 hover:text-slate-100 transition-colors cursor-pointer">Technology</a>
+            <a onClick={() => { navigate('/chatbot'); setMobileMenuOpen(false); }} className="block text-slate-300 hover:text-slate-100 transition-colors cursor-pointer">How It Works</a>
+            <a onClick={() => { navigate('/ai'); setMobileMenuOpen(false); }} className="block text-slate-300 hover:text-slate-100 transition-colors cursor-pointer">About AI</a>
           </div>
         )}
       </header>
@@ -85,30 +85,30 @@ export default function Home() {
         {/* Immersive Hero Section */}
         <section className="relative min-h-screen flex items-center justify-center px-6 py-20 overflow-hidden">
           {/* Animated Background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-yellow-50/30 to-purple-50/30">
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-yellow-300/20 rounded-full blur-3xl animate-pulse"></div>
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-300/20 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-purple-200/15 rounded-full blur-2xl animate-pulse animation-delay-2000"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900/20 to-cyan-900/20">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-purple-500/5 rounded-full blur-2xl animate-pulse animation-delay-2000"></div>
           </div>
 
           <div className="max-w-6xl mx-auto text-center relative z-10">
             <div className="mb-8">
-              <Badge variant="outline" className="bg-gradient-to-r from-yellow-400 to-purple-600 text-white border-0 px-4 py-2 text-lg animate-pulse mb-6">
+              <Badge variant="outline" className="text-blue-400 border-blue-400 px-4 py-2 text-lg animate-pulse mb-6">
                 <Sparkles className="h-4 w-4 mr-2" />
                 Artificial Intelligence Revolution
               </Badge>
             </div>
 
             <h1 className="text-4xl lg:text-7xl font-bold mb-8 leading-tight">
-              <span className="bg-gradient-to-r gradient-text bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-white via-blue-200 to-cyan-200 bg-clip-text text-transparent">
                 Artificial Intelligence
               </span><br />
-              <span className="bg-gradient-to-r gradient-text bg-clip-text text-transparent animate-pulse">
+              <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent animate-pulse">
                 Unleashed
               </span>
             </h1>
 
-            <p className="text-xl text-gray-600 mb-12 max-w-4xl mx-auto leading-relaxed">
+            <p className="text-xl text-slate-300 mb-12 max-w-4xl mx-auto leading-relaxed">
               Discover the transformative power of AI technologies that understand, learn, and adapt. 
               From intelligent agents to advanced search engines - explore how AI is reshaping our digital landscape 
               with cutting-edge capabilities and unlimited potential.
@@ -117,7 +117,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
               <Button
                 onClick={handleGetStarted}
-                className="btn-gradient hover:from-blue-600 hover:to-cyan-700 text-white px-8 py-4 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
+                className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white px-8 py-4 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
               >
                 <Brain className="h-5 w-5 mr-2" />
                 Explore AI Technologies
@@ -125,7 +125,7 @@ export default function Home() {
               <Button
                 variant="outline"
                 onClick={() => document.getElementById('ai-types-section')?.scrollIntoView({ behavior: 'smooth' })}
-                className="border-2 border-blue-400 text-yellow-500 hover:bg-yellow-500 hover:text-white px-8 py-4 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
+                className="border-2 border-blue-400 text-blue-400 hover:bg-blue-500 hover:text-white px-8 py-4 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
               >
                 <Target className="h-5 w-5 mr-2" />
                 Learn AI Types
@@ -134,21 +134,21 @@ export default function Home() {
 
             {/* Interactive Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
-              <div className="text-center space-y-2 p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-gray-200 hover:border-blue-500 transition-colors">
+              <div className="text-center space-y-2 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-blue-500 transition-colors">
                 <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">AI</div>
-                <div className="text-gray-500">Powered Future</div>
+                <div className="text-slate-400">Powered Future</div>
               </div>
-              <div className="text-center space-y-2 p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-gray-200 hover:border-cyan-500 transition-colors">
+              <div className="text-center space-y-2 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-cyan-500 transition-colors">
                 <div className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Smart</div>
-                <div className="text-gray-500">Automation</div>
+                <div className="text-slate-400">Automation</div>
               </div>
-              <div className="text-center space-y-2 p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-gray-200 hover:border-purple-500 transition-colors">
-                <div className="text-3xl font-bold bg-gradient-to-r gradient-text bg-clip-text text-transparent">24/7</div>
-                <div className="text-gray-500">Availability</div>
+              <div className="text-center space-y-2 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-purple-500 transition-colors">
+                <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">24/7</div>
+                <div className="text-slate-400">Availability</div>
               </div>
-              <div className="text-center space-y-2 p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-gray-200 hover:border-green-500 transition-colors">
+              <div className="text-center space-y-2 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-green-500 transition-colors">
                 <div className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">∞</div>
-                <div className="text-gray-500">Learning</div>
+                <div className="text-slate-400">Learning</div>
               </div>
             </div>
           </div>
@@ -166,13 +166,13 @@ export default function Home() {
           <div className="max-w-6xl mx-auto">
             {/* Quick Navigation */}
             <div className="mb-16">
-              <Card className="bg-white/50 border-gray-200 p-6">
+              <Card className="bg-slate-800/50 border-slate-700 p-6">
                 <h3 className="text-xl font-bold text-white mb-4 text-center">Explore AI Concepts</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   <Button
                     variant="outline"
                     onClick={() => document.getElementById('what-is-ai')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="text-sm border-blue-500/50 text-yellow-500 hover:bg-yellow-500/20"
+                    className="text-sm border-blue-500/50 text-blue-400 hover:bg-blue-500/20"
                   >
                     What is AI
                   </Button>
@@ -221,7 +221,7 @@ export default function Home() {
             <Card id="what-is-ai" className="mb-12 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border-2 border-blue-500/50 hover:shadow-2xl transition-all duration-300">
               <CardHeader>
                 <div className="text-center space-y-4 mb-6">
-                  <div className="w-16 h-16 btn-gradient rounded-2xl flex items-center justify-center mx-auto">
+                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center mx-auto">
                     <Brain className="h-8 w-8 text-white" />
                   </div>
                   <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
@@ -232,42 +232,42 @@ export default function Home() {
               <CardContent className="p-8">
                 <div className="grid lg:grid-cols-2 gap-8 items-center">
                   <div>
-                    <p className="text-gray-600 mb-6 leading-relaxed">
+                    <p className="text-slate-300 mb-6 leading-relaxed">
                       Artificial intelligence (AI) is a set of technologies that enable computers to perform a variety of advanced functions, including the ability to see, understand and translate spoken and written language, analyze data, make recommendations, and more.
                     </p>
-                    <p className="text-gray-600 mb-6 leading-relaxed">
+                    <p className="text-slate-300 mb-6 leading-relaxed">
                       AI is a field of science concerned with building computers and machines that can reason, learn, and act in such a way that would normally require human intelligence or that involves data whose scale exceeds what humans can analyze.
                     </p>
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-                          <CheckCircle className="w-4 h-4 text-yellow-500" />
+                        <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                          <CheckCircle className="w-4 h-4 text-blue-400" />
                         </div>
-                        <span className="text-gray-600">Machine Learning & Deep Learning</span>
+                        <span className="text-slate-300">Machine Learning & Deep Learning</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center">
                           <CheckCircle className="w-4 h-4 text-cyan-400" />
                         </div>
-                        <span className="text-gray-600">Natural Language Processing</span>
+                        <span className="text-slate-300">Natural Language Processing</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
                           <CheckCircle className="w-4 h-4 text-purple-400" />
                         </div>
-                        <span className="text-gray-600">Computer Vision & Object Recognition</span>
+                        <span className="text-slate-300">Computer Vision & Object Recognition</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
                           <CheckCircle className="w-4 h-4 text-green-400" />
                         </div>
-                        <span className="text-gray-600">Predictive Analytics & Forecasting</span>
+                        <span className="text-slate-300">Predictive Analytics & Forecasting</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-pink-500/20 rounded-lg flex items-center justify-center">
                           <CheckCircle className="w-4 h-4 text-pink-400" />
                         </div>
-                        <span className="text-gray-600">Intelligent Data Retrieval</span>
+                        <span className="text-slate-300">Intelligent Data Retrieval</span>
                       </div>
                     </div>
                   </div>
@@ -297,20 +297,20 @@ export default function Home() {
               <CardContent className="p-8">
                 <div className="grid lg:grid-cols-2 gap-8">
                   <div>
-                    <p className="text-gray-600 mb-6 leading-relaxed">
+                    <p className="text-slate-300 mb-6 leading-relaxed">
                       AI Agents are LLM-powered autonomous tools that can perceive their environment, make decisions, and take actions to achieve specific goals. They bridge the gap between human intent and automated execution.
                     </p>
-                    <Card className="bg-white/50 border-gray-200 p-6 mb-6">
+                    <Card className="bg-slate-800/50 border-slate-700 p-6 mb-6">
                       <h4 className="font-semibold text-green-400 mb-2 flex items-center gap-2">
                         <CheckCircle className="h-4 w-4" />
                         Available Now:
                       </h4>
-                      <p className="text-gray-600 mb-4">Web Agent - Ready for deployment</p>
+                      <p className="text-slate-300 mb-4">Web Agent - Ready for deployment</p>
                       <h4 className="font-semibold text-orange-400 mb-2 flex items-center gap-2">
                         <Settings className="h-4 w-4" />
                         Coming Soon:
                       </h4>
-                      <p className="text-gray-600">WhatsApp Agent & Voice Agent</p>
+                      <p className="text-slate-300">WhatsApp Agent & Voice Agent</p>
                     </Card>
                   </div>
                   <div>
@@ -327,7 +327,7 @@ export default function Home() {
                   <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto">
                     <Globe className="h-8 w-8 text-white" />
                   </div>
-                  <h3 className="text-3xl font-bold bg-gradient-to-r gradient-text bg-clip-text text-transparent">
+                  <h3 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                     What is an AI Search Engine?
                   </h3>
                 </div>
@@ -335,7 +335,7 @@ export default function Home() {
               <CardContent className="p-8">
                 <div className="grid lg:grid-cols-2 gap-8">
                   <div>
-                    <p className="text-gray-600 mb-6 leading-relaxed">
+                    <p className="text-slate-300 mb-6 leading-relaxed">
                       Unlike traditional keyword-based search, AI Search Engines leverage LLM context to understand intent and deliver semantic, personalized results.
                     </p>
                     <div className="space-y-4 mb-6">
@@ -343,24 +343,24 @@ export default function Home() {
                         <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
                           <Target className="w-4 h-4 text-purple-400" />
                         </div>
-                        <span className="text-gray-600">Semantic search understanding</span>
+                        <span className="text-slate-300">Semantic search understanding</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-pink-500/20 rounded-lg flex items-center justify-center">
                           <Code className="w-4 h-4 text-pink-400" />
                         </div>
-                        <span className="text-gray-600">Custom UI with CSS styling</span>
+                        <span className="text-slate-300">Custom UI with CSS styling</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-                          <TrendingUp className="w-4 h-4 text-yellow-500" />
+                        <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                          <TrendingUp className="w-4 h-4 text-blue-400" />
                         </div>
-                        <span className="text-gray-600">Personalized result ranking</span>
+                        <span className="text-slate-300">Personalized result ranking</span>
                       </div>
                     </div>
-                    <Card className="bg-white/50 border-gray-200 p-4">
+                    <Card className="bg-slate-800/50 border-slate-700 p-4">
                       <h4 className="text-purple-400 mb-2 font-semibold">Sample CSS Customization:</h4>
-                      <pre className="text-sm text-gray-600 overflow-x-auto bg-gray-50/50 p-3 rounded"><code>{`.search-results {
+                      <pre className="text-sm text-slate-300 overflow-x-auto bg-slate-900/50 p-3 rounded"><code>{`.search-results {
   background: linear-gradient(135deg, #1a1b23, #2a2d34);
   border-radius: 12px;
   padding: 24px;
@@ -476,39 +476,39 @@ export default function Home() {
               </CardHeader>
               <CardContent className="p-8">
                 <div className="grid md:grid-cols-2 gap-6">
-                  <Card className="bg-white/50 border-gray-200 p-6 hover:border-green-500 transition-colors">
+                  <Card className="bg-slate-800/50 border-slate-700 p-6 hover:border-green-500 transition-colors">
                     <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center mb-4">
                       <span className="text-green-400 font-bold text-lg">1</span>
                     </div>
                     <h4 className="font-semibold text-white mb-3">Reactive Machines</h4>
-                    <p className="text-gray-600 text-sm leading-relaxed">
+                    <p className="text-slate-300 text-sm leading-relaxed">
                       Limited AI that only reacts to different kinds of stimuli based on preprogrammed rules. Does not use memory and thus cannot learn with new data. IBM's Deep Blue that beat chess champion Garry Kasparov in 1997 was an example.
                     </p>
                   </Card>
-                  <Card className="bg-white/50 border-gray-200 p-6 hover:border-blue-500 transition-colors">
-                    <div className="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center mb-4">
-                      <span className="text-yellow-500 font-bold text-lg">2</span>
+                  <Card className="bg-slate-800/50 border-slate-700 p-6 hover:border-blue-500 transition-colors">
+                    <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-4">
+                      <span className="text-blue-400 font-bold text-lg">2</span>
                     </div>
                     <h4 className="font-semibold text-white mb-3">Limited Memory</h4>
-                    <p className="text-gray-600 text-sm leading-relaxed">
+                    <p className="text-slate-300 text-sm leading-relaxed">
                       Most modern AI is considered limited memory. It can use memory to improve over time by being trained with new data, typically through artificial neural networks. Deep learning is considered limited memory artificial intelligence.
                     </p>
                   </Card>
-                  <Card className="bg-white/50 border-gray-200 p-6 hover:border-purple-500 transition-colors">
+                  <Card className="bg-slate-800/50 border-slate-700 p-6 hover:border-purple-500 transition-colors">
                     <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
                       <span className="text-purple-400 font-bold text-lg">3</span>
                     </div>
                     <h4 className="font-semibold text-white mb-3">Theory of Mind</h4>
-                    <p className="text-gray-600 text-sm leading-relaxed">
+                    <p className="text-slate-300 text-sm leading-relaxed">
                       Theory of mind AI does not currently exist, but research is ongoing. It describes AI that can emulate the human mind and has decision-making capabilities equal to humans, including recognizing and remembering emotions.
                     </p>
                   </Card>
-                  <Card className="bg-white/50 border-gray-200 p-6 hover:border-cyan-500 transition-colors">
+                  <Card className="bg-slate-800/50 border-slate-700 p-6 hover:border-cyan-500 transition-colors">
                     <div className="w-12 h-12 bg-cyan-500/20 rounded-lg flex items-center justify-center mb-4">
                       <span className="text-cyan-400 font-bold text-lg">4</span>
                     </div>
                     <h4 className="font-semibold text-white mb-3">Self-Aware</h4>
-                    <p className="text-gray-600 text-sm leading-relaxed">
+                    <p className="text-slate-300 text-sm leading-relaxed">
                       A step above theory of mind AI, self-aware AI describes a mythical machine that is aware of its own existence and has the intellectual and emotional capabilities of a human. Self-aware AI does not currently exist.
                     </p>
                   </Card>
