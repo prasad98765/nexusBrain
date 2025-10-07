@@ -1,8 +1,10 @@
 import { Sidebar } from "@/components/ui/sidebar";
 import { FlowDiagram } from "@/components/flow-diagram";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle, Zap, Users, ArrowRight, Play, Brain, Cpu, Globe, X, Menu, Link2, Cog, Database } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckCircle, Zap, Users, ArrowRight, Play, Brain, Cpu, Globe, X, Menu, Link2, Cog, Database, Layers, Network, Bot, Settings, Code, Sparkles, Target, TrendingUp, Activity } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 
@@ -81,28 +83,143 @@ export default function LangChain() {
       </header>
       <Sidebar />
       <main className="lg:ml-64">
-        {/* Hero Section */}
-        <section className="relative hero-gradient-bg px-6 py-20 lg:py-32">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl lg:text-6xl font-bold mb-6">
-              <span className="gradient-text">LangChain</span><br />
-              Framework for AI
+        {/* Immersive Hero Section */}
+        <section className="relative min-h-screen flex items-center justify-center px-6 py-20 overflow-hidden">
+          {/* Animated Background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-emerald-900/20 to-teal-900/20">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-green-500/5 rounded-full blur-2xl animate-pulse animation-delay-2000"></div>
+          </div>
+
+          <div className="max-w-6xl mx-auto text-center relative z-10">
+            <div className="mb-8">
+              <Badge variant="outline" className="text-emerald-400 border-emerald-400 px-4 py-2 text-lg animate-pulse mb-6">
+                <Sparkles className="h-4 w-4 mr-2" />
+                AI Framework Revolution
+              </Badge>
+            </div>
+
+            <h1 className="text-4xl lg:text-7xl font-bold mb-8 leading-tight">
+              <span className="bg-gradient-to-r from-white via-emerald-200 to-teal-200 bg-clip-text text-transparent">
+                LangChain
+              </span><br />
+              <span className="bg-gradient-to-r from-emerald-400 via-teal-400 to-green-400 bg-clip-text text-transparent animate-pulse">
+                Framework for AI
+              </span>
             </h1>
-            <p className="text-xl  mb-8 max-w-2xl mx-auto">
-              Build sophisticated LLM applications with the most popular framework for creating AI workflows, agents, and integrations.
+
+            <p className="text-xl text-slate-300 mb-12 max-w-4xl mx-auto leading-relaxed">
+              Build sophisticated LLM applications with the most popular open-source framework for creating 
+              AI workflows, agents, and integrations. From simple chatbots to complex reasoning systems - 
+              LangChain empowers developers to harness the full potential of large language models.
             </p>
+
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
+              <Button
+                onClick={handleGetStarted}
+                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-8 py-4 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
+              >
+                <Link2 className="h-5 w-5 mr-2" />
+                Explore LangChain
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => document.getElementById('chains-section')?.scrollIntoView({ behavior: 'smooth' })}
+                className="border-2 border-emerald-400 text-emerald-400 hover:bg-emerald-500 hover:text-white px-8 py-4 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
+              >
+                <Cog className="h-5 w-5 mr-2" />
+                Learn About Chains
+              </Button>
+            </div>
+
+            {/* Interactive Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+              <div className="text-center space-y-2 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-emerald-500 transition-colors">
+                <div className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Open</div>
+                <div className="text-slate-400">Source Framework</div>
+              </div>
+              <div className="text-center space-y-2 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-teal-500 transition-colors">
+                <div className="text-3xl font-bold bg-gradient-to-r from-teal-400 to-green-400 bg-clip-text text-transparent">RAG</div>
+                <div className="text-slate-400">Integration</div>
+              </div>
+              <div className="text-center space-y-2 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-green-500 transition-colors">
+                <div className="text-3xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Agents</div>
+                <div className="text-slate-400">& Workflows</div>
+              </div>
+              <div className="text-center space-y-2 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-blue-500 transition-colors">
+                <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">Prod</div>
+                <div className="text-slate-400">Ready Apps</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Scroll Indicator */}
+          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+            <div className="w-6 h-10 border-2 border-slate-400 rounded-full flex justify-center">
+              <div className="w-1 h-3 bg-slate-400 rounded-full mt-2 animate-pulse"></div>
+            </div>
           </div>
         </section>
 
         {/* Content Sections */}
         <section className="px-6 py-16">
           <div className="max-w-6xl mx-auto">
+            {/* Quick Navigation */}
+            <div className="mb-16">
+              <Card className="bg-slate-800/50 border-slate-700 p-6">
+                <h3 className="text-xl font-bold text-white mb-4 text-center">Explore LangChain Features</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => document.getElementById('langchain-intro')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="text-sm border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/20"
+                  >
+                    What is LangChain
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => document.getElementById('chains-section')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="text-sm border-teal-500/50 text-teal-400 hover:bg-teal-500/20"
+                  >
+                    How It Works
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => document.getElementById('components-section')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="text-sm border-green-500/50 text-green-400 hover:bg-green-500/20"
+                  >
+                    Components
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => document.getElementById('rag-section')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="text-sm border-blue-500/50 text-blue-400 hover:bg-blue-500/20"
+                  >
+                    RAG
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => document.getElementById('integration-section')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="text-sm border-purple-500/50 text-purple-400 hover:bg-purple-500/20"
+                  >
+                    Integration
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => document.getElementById('usecases-section')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="text-sm border-orange-500/50 text-orange-400 hover:bg-orange-500/20"
+                  >
+                    Use Cases
+                  </Button>
+                </div>
+              </Card>
+            </div>
             {/* What is LangChain */}
-            <Card data-testid="card-langchain-intro" className="mb-12 hover-glow transition-all">
+            <Card id="langchain-intro" data-testid="card-langchain-intro" className="mb-12 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-2 border-emerald-500/50 hover:shadow-2xl transition-all duration-300">
               <CardContent className="p-8">
                 <div className="grid lg:grid-cols-2 gap-8 items-center">
                   <div>
-                    <h3 className="text-2xl font-bold mb-4">What is LangChain?</h3>
                     <p className=" mb-6">
                       LangChain is an open source framework for building applications based on large language models (LLMs). It provides tools and abstractions to improve the customization, accuracy, and relevancy of the information the models generate.
                     </p>
@@ -147,9 +264,21 @@ export default function LangChain() {
             </Card>
 
             {/* Why is LangChain Important */}
-            <Card data-testid="card-langchain-importance" className="mb-12 hover-glow transition-all">
+            <Card data-testid="card-langchain-importance" className="mb-12 bg-gradient-to-r from-teal-500/10 to-blue-500/10 border-2 border-teal-500/50 hover:shadow-2xl transition-all duration-300">
+              <CardHeader>
+                <div className="text-center space-y-4 mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-r from-teal-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto">
+                    <Sparkles className="h-8 w-8 text-white" />
+                  </div>
+                  <h2 className="text-4xl font-bold bg-gradient-to-r from-teal-400 to-blue-400 bg-clip-text text-transparent">
+                    Why is LangChain Important?
+                  </h2>
+                  <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+                    Bridging the gap between AI models and real-world applications
+                  </p>
+                </div>
+              </CardHeader>
               <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-6">Why is LangChain Important?</h3>
                 <div className="grid lg:grid-cols-2 gap-8">
                   <div>
                     <p className=" mb-6">
@@ -206,9 +335,21 @@ export default function LangChain() {
             </Card>
 
             {/* How LangChain Works */}
-            <Card data-testid="card-langchain-how-works" className="mb-12 hover-glow transition-all">
+            <Card id="chains-section" data-testid="card-langchain-how-works" className="mb-12 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border-2 border-blue-500/50 hover:shadow-2xl transition-all duration-300">
+              <CardHeader>
+                <div className="text-center space-y-4 mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto">
+                    <Cog className="h-8 w-8 text-white" />
+                  </div>
+                  <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                    How does LangChain Work?
+                  </h2>
+                  <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+                    Building intelligent workflows with chains and components
+                  </p>
+                </div>
+              </CardHeader>
               <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-6">How does LangChain Work?</h3>
                 <div className="space-y-6">
                   <p className="">
                     With LangChain, developers can adapt a language model flexibly to specific business contexts by designating steps required to produce the desired outcome.
@@ -262,9 +403,21 @@ export default function LangChain() {
             </Card>
 
             {/* Core Components */}
-            <Card data-testid="card-langchain-components" className="mb-12 hover-glow transition-all">
+            <Card id="components-section" data-testid="card-langchain-components" className="mb-12 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-2 border-indigo-500/50 hover:shadow-2xl transition-all duration-300">
+              <CardHeader>
+                <div className="text-center space-y-4 mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto">
+                    <Database className="h-8 w-8 text-white" />
+                  </div>
+                  <h2 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                    Core Components of LangChain
+                  </h2>
+                  <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+                    Building blocks for intelligent AI applications
+                  </p>
+                </div>
+              </CardHeader>
               <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-6">Core Components of LangChain</h3>
                 <div className="grid md:grid-cols-2 gap-8">
                   <div className="space-y-6">
                     <div className="bg-card/50 rounded-lg p-6">
@@ -334,9 +487,21 @@ export default function LangChain() {
             </Card>
 
             {/* What is RAG */}
-            <Card data-testid="card-rag" className="mb-12 hover-glow transition-all">
+            <Card id="rag-section" data-testid="card-rag" className="mb-12 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-2 border-purple-500/50 hover:shadow-2xl transition-all duration-300">
+              <CardHeader>
+                <div className="text-center space-y-4 mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto">
+                    <Network className="h-8 w-8 text-white" />
+                  </div>
+                  <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    What is RAG (Retrieval-Augmented Generation)?
+                  </h2>
+                  <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+                    Enhancing AI with external knowledge and real-time data
+                  </p>
+                </div>
+              </CardHeader>
               <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-6">What is RAG (Retrieval-Augmented Generation)?</h3>
                 <div className="grid lg:grid-cols-2 gap-8">
                   <div>
                     <p className=" mb-6">
@@ -371,9 +536,21 @@ export default function LangChain() {
             </Card>
 
             {/* LangChain + RAG Integration */}
-            <Card data-testid="card-langchain-rag" className="mb-12 hover-glow transition-all">
+            <Card id="integration-section" data-testid="card-langchain-rag" className="mb-12 bg-gradient-to-r from-pink-500/10 to-orange-500/10 border-2 border-pink-500/50 hover:shadow-2xl transition-all duration-300">
+              <CardHeader>
+                <div className="text-center space-y-4 mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-r from-pink-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto">
+                    <Activity className="h-8 w-8 text-white" />
+                  </div>
+                  <h2 className="text-4xl font-bold bg-gradient-to-r from-pink-400 to-orange-400 bg-clip-text text-transparent">
+                    LangChain + RAG Integration
+                  </h2>
+                  <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+                    The perfect synergy for production-ready AI applications
+                  </p>
+                </div>
+              </CardHeader>
               <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-6">LangChain + RAG Integration</h3>
                 <div className="grid lg:grid-cols-2 gap-8 items-center">
                   <div>
                     <p className=" mb-4">
@@ -399,9 +576,21 @@ export default function LangChain() {
             </Card>
 
             {/* Use Cases */}
-            <Card data-testid="card-langchain-usecases" className="mb-12 hover-glow transition-all">
+            <Card id="usecases-section" data-testid="card-langchain-usecases" className="mb-12 bg-gradient-to-r from-orange-500/10 to-red-500/10 border-2 border-orange-500/50 hover:shadow-2xl transition-all duration-300">
+              <CardHeader>
+                <div className="text-center space-y-4 mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto">
+                    <Target className="h-8 w-8 text-white" />
+                  </div>
+                  <h2 className="text-4xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
+                    Popular Use Cases
+                  </h2>
+                  <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+                    Real-world applications powered by LangChain
+                  </p>
+                </div>
+              </CardHeader>
               <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-6">Popular Use Cases</h3>
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div className="bg-card/50 rounded-lg p-4">

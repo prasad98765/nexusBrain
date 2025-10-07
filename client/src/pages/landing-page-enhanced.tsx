@@ -41,7 +41,8 @@ import {
   MessageSquare,
   Eye,
   Play,
-  Quote
+  Quote,
+  ExternalLink
 } from 'lucide-react';
 import '../styles/landing-animations.css';
 import UniversalTranslator from '@/components/UniversalTranslator';
@@ -60,7 +61,7 @@ export default function LandingPageEnhanced() {
   const [translatorOpen, setTranslatorOpen] = useState(false);
   const [htmlGeneratorOpen, setHtmlGeneratorOpen] = useState(false);
 
-  const heroText = "Welcome to Nexus AI Hub – Your All-in-One AI Superpower";
+  const heroText = "Connect 400+ LLM Models with One Key";
   const navigate = useNavigate();
 
   // Typing animation effect
@@ -107,7 +108,8 @@ export default function LandingPageEnhanced() {
     { icon: Lightbulb, name: 'Idea Generator', description: 'Get fresh ideas for blogs, posts, or projects', color: 'from-teal-500 to-cyan-600' },
     { icon: FileDown, name: 'Summarizer', description: 'Turn long text into concise summaries', color: 'from-cyan-500 to-blue-600' },
     { icon: FileText, name: 'Note & Document Assistant', description: 'Organize, rewrite, and refine your documents', color: 'from-blue-500 to-purple-600' },
-    { icon: Bot, name: 'Custom AI Agents', description: 'Personalized assistants for your workflow', color: 'from-purple-500 to-indigo-600' }
+    { icon: Settings, name: 'AI Response Casting', description: 'Edit and refine AI responses to match your exact needs', color: 'from-purple-500 to-pink-600' },
+    { icon: Bot, name: 'Custom AI Agents', description: 'Personalized assistants for your workflow', color: 'from-pink-500 to-indigo-600' }
   ];
 
   const testimonials = [
@@ -167,9 +169,8 @@ export default function LandingPageEnhanced() {
             <nav className="hidden md:flex items-center gap-6">
               <a href="#features" className="text-slate-300 hover:text-slate-100 transition-colors">Features</a>
               <a href="#why-choose" className="text-slate-300 hover:text-slate-100 transition-colors">Why Choose</a>
-              <a href="#demo" className="text-slate-300 hover:text-slate-100 transition-colors">Demo</a>
-              <a href="#testimonials" className="text-slate-300 hover:text-slate-100 transition-colors">Reviews</a>
-              <a href="#pricing" className="text-slate-300 hover:text-slate-100 transition-colors">Pricing</a>
+              {/* <a href="#demo" className="text-slate-300 hover:text-slate-100 transition-colors">Demo</a>
+              <a href="#testimonials" className="text-slate-300 hover:text-slate-100 transition-colors">Reviews</a> */}
               {/* redirect to About AI */}
               <a onClick={() => { window.location.href = '/About/AI'; }} style={{ cursor: 'pointer' }} className="text-slate-300 hover:text-slate-100 transition-colors">About AI</a>
             </nav>
@@ -199,7 +200,6 @@ export default function LandingPageEnhanced() {
             <a href="#why-choose" className="block text-slate-300 hover:text-slate-100 transition-colors">Why Choose</a>
             <a href="#demo" className="block text-slate-300 hover:text-slate-100 transition-colors">Demo</a>
             <a href="#testimonials" className="block text-slate-300 hover:text-slate-100 transition-colors">Reviews</a>
-            <a href="#pricing" className="block text-slate-300 hover:text-slate-100 transition-colors">Pricing</a>
           </div>
         )}
       </header>
@@ -228,7 +228,7 @@ export default function LandingPageEnhanced() {
 
           <p className="text-lg sm:text-xl text-slate-400 max-w-4xl mx-auto leading-relaxed animate-fade-in-up animation-delay-300">
             <Zap className="inline h-5 w-5 mr-2 text-yellow-400" />
-            Powered by LangChain, Nexus AI Hub brings all AI tools into one place to make your life easier, faster, and smarter.
+            Access over 400+ advanced AI models through LLM integration. When you're stuck choosing the right model, our intelligent system automatically selects the best one for your specific task. Edit and refine AI responses with our advanced casting functionality.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up animation-delay-600">
@@ -251,16 +251,16 @@ export default function LandingPageEnhanced() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 max-w-4xl mx-auto animate-fade-in-up animation-delay-800">
             <div className="text-center space-y-2">
-              <div className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">12+</div>
-              <div className="text-slate-400">AI Tools Available</div>
+              <div className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">400+</div>
+              <div className="text-slate-400">LLM Models Connected</div>
             </div>
             <div className="text-center space-y-2">
-              <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">∞</div>
-              <div className="text-slate-400">Unlimited Usage</div>
+              <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">1</div>
+              <div className="text-slate-400">Universal API Key</div>
             </div>
             <div className="text-center space-y-2">
-              <div className="text-3xl font-bold bg-gradient-to-r from-pink-400 to-red-400 bg-clip-text text-transparent">24/7</div>
-              <div className="text-slate-400">Always Available</div>
+              <div className="text-3xl font-bold bg-gradient-to-r from-pink-400 to-red-400 bg-clip-text text-transparent">AI</div>
+              <div className="text-slate-400">Smart Model Selection</div>
             </div>
           </div>
         </div>
@@ -278,10 +278,10 @@ export default function LandingPageEnhanced() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center space-y-6 mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-white animate-fade-in-up">
-              All Your <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">AI Tools</span> in One Place
+              <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">AI Tools</span>
             </h2>
             <p className="text-xl text-slate-400 max-w-3xl mx-auto animate-fade-in-up animation-delay-200">
-              From text formatting to image generation – everything you need is right here
+              Connect to 400+ LLM models, edit AI responses with casting, and access powerful tools – all in one platform
             </p>
           </div>
 
@@ -328,7 +328,7 @@ export default function LandingPageEnhanced() {
           <div className="text-center mt-12">
             <Badge variant="outline" className="text-indigo-400 border-indigo-400 px-4 py-2 text-lg animate-pulse">
               <Settings className="h-4 w-4 mr-2" />
-              + More Features Coming Soon...
+              Coming Soon: RAG Tools, Function Calling, MCP Server, and More...
             </Badge>
           </div>
         </div>
@@ -361,9 +361,9 @@ export default function LandingPageEnhanced() {
               <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto hover-glow">
                 <Network className="h-8 w-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-white">Powered by LangChain</h3>
+              <h3 className="text-xl font-semibold text-white">LLM Integration</h3>
               <p className="text-slate-400">
-                Built on cutting-edge AI architecture for reliable, powerful performance.
+                Direct access to 400+ LLM models from top providers like OpenAI, Anthropic, Google, and more through a single unified API.
               </p>
             </div>
 
@@ -410,8 +410,61 @@ export default function LandingPageEnhanced() {
         </div>
       </section>
 
-      {/* Demo / Interactive Section */}
-      <section id="demo" className="py-20 px-4 sm:px-6 bg-slate-800/50">
+      {/* LLM Benefits Section */}
+      <section className="py-20 px-4 sm:px-6 bg-slate-800/20">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center space-y-6 mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-white animate-fade-in-up">
+              <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">LLM</span> Integration
+            </h2>
+            <p className="text-xl text-slate-400 max-w-3xl mx-auto animate-fade-in-up animation-delay-200">
+              Experience the power of unified AI model access through our LLM integration
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+            <Card className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 p-8">
+              <CardContent>
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                    <Zap className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-semibold text-white">One Key, All Models</h3>
+                </div>
+                <p className="text-slate-300 text-lg leading-relaxed">
+                  Connect to GPT-4, Claude, Gemini, Llama, and 400+ other models using just one API key. No need to manage multiple accounts or subscriptions.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 p-8">
+              <CardContent>
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
+                    <Target className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-semibold text-white">Smart Model Selection</h3>
+                </div>
+                <p className="text-slate-300 text-lg leading-relaxed">
+                  Can't decide which model to use? Our intelligent system analyzes your request and automatically routes it to the best-performing model for your specific task.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center">
+            <Button
+              onClick={() => window.open('https://LLM.ai', '_blank')}
+              variant="outline"
+              className="border-2 border-indigo-400 text-indigo-400 hover:bg-indigo-500 hover:text-white px-8 py-4 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
+            >
+              <ExternalLink className="h-5 w-5 mr-2" />
+              Learn More About LLM
+            </Button>
+          </div>
+        </div>
+      </section>
+      {/* <section id="demo" className="py-20 px-4 sm:px-6 bg-slate-800/50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center space-y-6 mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-white animate-fade-in-up">
@@ -423,7 +476,6 @@ export default function LandingPageEnhanced() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Interactive Demo */}
             <Card className="bg-slate-800/80 border-slate-700 p-6">
               <CardHeader>
                 <CardTitle className="text-xl text-white flex items-center gap-2">
@@ -480,7 +532,6 @@ export default function LandingPageEnhanced() {
               </CardContent>
             </Card>
 
-            {/* Feature Highlights */}
             <div className="space-y-6">
               <Card className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 p-6">
                 <CardContent>
@@ -518,10 +569,10 @@ export default function LandingPageEnhanced() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Testimonials / Social Proof */}
-      <section id="testimonials" className="py-20 px-4 sm:px-6">
+      {/* <section id="testimonials" className="py-20 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center space-y-6 mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-white animate-fade-in-up">
@@ -556,124 +607,103 @@ export default function LandingPageEnhanced() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-4 sm:px-6 bg-slate-800/30">
-        <div className="max-w-6xl mx-auto">
+      {/* Upcoming Features Section */}
+      <section className="py-20 px-4 sm:px-6 bg-slate-800/40">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center space-y-6 mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-white animate-fade-in-up">
-              Simple <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Pricing</span>
+              What's <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Coming Next</span>
             </h2>
             <p className="text-xl text-slate-400 max-w-3xl mx-auto animate-fade-in-up animation-delay-200">
-              Choose the plan that fits your needs – start free, upgrade anytime
+              Exciting new features in development to make your AI experience even more powerful
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Free Plan */}
-            <Card className="bg-slate-800/80 border-slate-700 p-8 hover:shadow-xl transition-shadow duration-300">
-              <CardHeader>
-                <CardTitle className="text-2xl text-white">Free Plan</CardTitle>
-                <CardDescription className="text-slate-400">Perfect for getting started</CardDescription>
-                <div className="text-4xl font-bold text-white">$0<span className="text-lg text-slate-400">/month</span></div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                    <span className="text-slate-300">All AI tools with usage limits</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                    <span className="text-slate-300">100 requests per day</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                    <span className="text-slate-300">Community support</span>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 p-6 hover:shadow-xl transition-shadow duration-300">
+              <CardContent>
+                <div className="flex items-center gap-3 mb-4">
+                  <Database className="h-8 w-8 text-indigo-400" />
+                  <h3 className="text-xl font-semibold text-white">RAG Tools</h3>
                 </div>
-                <Button
-                  onClick={handleGetStarted}
-                  className="w-full bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 text-white"
-                >
-                  Start Free
-                </Button>
+                <p className="text-slate-300 leading-relaxed">
+                  Upload your documents and let AI answer questions based on your own data. Perfect for research, documentation, and knowledge management.
+                </p>
               </CardContent>
             </Card>
 
-            {/* Pro Plan */}
-            <Card className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-2 border-indigo-500/50 p-8 hover:shadow-2xl transition-shadow duration-300 relative">
-              <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
-                Most Popular
-              </Badge>
-              <CardHeader>
-                <CardTitle className="text-2xl text-white">Pro Plan</CardTitle>
-                <CardDescription className="text-slate-400">For professionals and creators</CardDescription>
-                <div className="text-4xl font-bold text-white">$19<span className="text-lg text-slate-400">/month</span></div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                    <span className="text-slate-300">Unlimited access to all tools</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                    <span className="text-slate-300">Priority processing</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                    <span className="text-slate-300">Advanced AI models</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                    <span className="text-slate-300">Email support</span>
-                  </div>
+            <Card className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 p-6 hover:shadow-xl transition-shadow duration-300">
+              <CardContent>
+                <div className="flex items-center gap-3 mb-4">
+                  <Code className="h-8 w-8 text-purple-400" />
+                  <h3 className="text-xl font-semibold text-white">Function Calling</h3>
                 </div>
-                <Button
-                  onClick={handleGetStarted}
-                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white"
-                >
-                  Start Pro Trial
-                </Button>
+                <p className="text-slate-300 leading-relaxed">
+                  Allow AI to execute real actions - from sending emails to managing calendars, making API calls, and integrating with your favorite tools.
+                </p>
               </CardContent>
             </Card>
 
-            {/* Enterprise Plan */}
-            <Card className="bg-slate-800/80 border-slate-700 p-8 hover:shadow-xl transition-shadow duration-300">
-              <CardHeader>
-                <CardTitle className="text-2xl text-white">Enterprise</CardTitle>
-                <CardDescription className="text-slate-400">For teams and businesses</CardDescription>
-                <div className="text-4xl font-bold text-white">Custom<span className="text-lg text-slate-400"> pricing</span></div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                    <span className="text-slate-300">Custom AI solutions</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                    <span className="text-slate-300">Team management</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                    <span className="text-slate-300">API access</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                    <span className="text-slate-300">24/7 dedicated support</span>
-                  </div>
+            <Card className="bg-gradient-to-r from-pink-500/10 to-red-500/10 border border-pink-500/30 p-6 hover:shadow-xl transition-shadow duration-300">
+              <CardContent>
+                <div className="flex items-center gap-3 mb-4">
+                  <Network className="h-8 w-8 text-pink-400" />
+                  <h3 className="text-xl font-semibold text-white">MCP Server</h3>
                 </div>
-                <Button
-                  variant="outline"
-                  className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
-                >
-                  Contact Sales
-                </Button>
+                <p className="text-slate-300 leading-relaxed">
+                  Connect to Model Context Protocol servers for enhanced AI capabilities including real-time data access and advanced integrations.
+                </p>
               </CardContent>
             </Card>
+
+            <Card className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/30 p-6 hover:shadow-xl transition-shadow duration-300">
+              <CardContent>
+                <div className="flex items-center gap-3 mb-4">
+                  <Users className="h-8 w-8 text-red-400" />
+                  <h3 className="text-xl font-semibold text-white">Team Collaboration</h3>
+                </div>
+                <p className="text-slate-300 leading-relaxed">
+                  Share AI agents, collaborate on projects, and manage team access with advanced workspace management and permission controls.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-r from-orange-500/10 to-yellow-500/10 border border-orange-500/30 p-6 hover:shadow-xl transition-shadow duration-300">
+              <CardContent>
+                <div className="flex items-center gap-3 mb-4">
+                  <Bot className="h-8 w-8 text-orange-400" />
+                  <h3 className="text-xl font-semibold text-white">Advanced Agents</h3>
+                </div>
+                <p className="text-slate-300 leading-relaxed">
+                  Multi-step AI agents that can plan, execute complex workflows, and learn from your preferences to become more efficient over time.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-r from-yellow-500/10 to-green-500/10 border border-yellow-500/30 p-6 hover:shadow-xl transition-shadow duration-300">
+              <CardContent>
+                <div className="flex items-center gap-3 mb-4">
+                  <Globe className="h-8 w-8 text-yellow-400" />
+                  <h3 className="text-xl font-semibold text-white">API Ecosystem</h3>
+                </div>
+                <p className="text-slate-300 leading-relaxed">
+                  Full REST API access, webhooks, and SDK support to integrate Nexus AI Hub into your existing applications and workflows.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center mt-12">
+            <p className="text-lg text-slate-400 mb-6">Want to be notified when these features launch?</p>
+            <Button
+              onClick={handleGetStarted}
+              variant="outline"
+              className="border-2 border-indigo-400 text-indigo-400 hover:bg-indigo-500 hover:text-white px-8 py-3 text-lg font-semibold rounded-xl transform hover:scale-105 transition-all duration-300"
+            >
+              Join Early Access
+            </Button>
           </div>
         </div>
       </section>
