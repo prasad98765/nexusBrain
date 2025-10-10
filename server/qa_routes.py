@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
 from typing import Dict, Any
 import logging
-from server.qa_redis_service import qa_redis_service
-from .auth_utils import (
+from qa_redis_service import qa_redis_service
+from auth_utils import (
     require_auth
 )
 logger = logging.getLogger(__name__)

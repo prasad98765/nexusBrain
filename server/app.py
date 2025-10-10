@@ -69,14 +69,14 @@ def create_app():
     logging.basicConfig(level=logging.INFO)
     
     # Register blueprints
-    from server.routes import auth_bp, workspace_bp, conversation_bp, message_bp, static_bp
-    from server.contacts_routes import contacts_bp
-    from server.agents_routes import agents_bp
-    from server.conversation_routes import conversations_bp
-    from server.api_tokens_routes import api_tokens_bp
-    from server.llm_routes import api_llm_routes
-    from server.qa_routes import qa_bp
-    from server.webbot_routes import webbot_bp
+    from routes import auth_bp, workspace_bp, conversation_bp, message_bp, static_bp
+    from contacts_routes import contacts_bp
+    from agents_routes import agents_bp
+    from conversation_routes import conversations_bp
+    from api_tokens_routes import api_tokens_bp
+    from llm_routes import api_llm_routes
+    from qa_routes import qa_bp
+    from webbot_routes import webbot_bp
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(workspace_bp, url_prefix='/api')
     app.register_blueprint(conversation_bp, url_prefix='/api')
@@ -100,7 +100,7 @@ def create_app():
         return send_file(script_path, mimetype='application/javascript')
     
     # Initialize MongoDB connection
-    from server.mongo_service import mongo_service
+    from mongo_service import mongo_service
     mongo_service.connect()
     
     # Create tables

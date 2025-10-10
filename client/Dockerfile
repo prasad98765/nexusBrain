@@ -1,22 +1,38 @@
-# Frontend Dockerfile
+# ==========================
+# 1️⃣ Builder Stage
+# ==========================
+FROM node:20-alpine AS builder
 
-# Use Node.js LTS image
-FROM node:20-alpine
-
-# Set working directory
 WORKDIR /app
 
-# Copy package files first (for caching)
+# Copy dependency files
 COPY package*.json ./
 
-# Install frontend dependencies
-RUN npm install
+# Install dependencies
+RUN npm ci --legacy-peer-deps
 
-# Copy rest of the frontend code
+# Copy source code
 COPY . .
 
-# Expose frontend port (usually 5173 for Vite or 3000 for React)
+# Build (for production)
+RUN npm run build
+
+# ==========================
+# 2️⃣ Production Stage
+# ==========================
+FROM node:20-alpine AS production
+
+WORKDIR /app
+
+# Copy package files
+COPY --from=builder /app/package*.json ./
+
+# Install dependencies (including dev dependencies for Vite)
+RUN npm ci --legacy-peer-deps
+
+# Copy built files AND source code
+COPY --from=builder /app .
+
 EXPOSE 5173
 
-# Start development server
 CMD ["npm", "run", "dev"]

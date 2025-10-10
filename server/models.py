@@ -1,6 +1,6 @@
 from datetime import datetime
 from uuid import uuid4
-from .app import db
+from app import db
 
 class User(db.Model):
     __tablename__ = 'users'

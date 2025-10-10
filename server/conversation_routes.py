@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from server.models import db, Conversation, Message, Agent, Contact
+from models import db, Conversation, Message, Agent, Contact
 from datetime import datetime
 from uuid import uuid4
 from typing import Dict, Any
