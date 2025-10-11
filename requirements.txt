@@ -28,3 +28,6 @@ sentence-transformers==3.0.1
 # SSL/CA cert support
 
 certifi==2024.7.4
+aiohttp ==3.9.4
+fastapi==0.101.1
+httpx==0.24.1
