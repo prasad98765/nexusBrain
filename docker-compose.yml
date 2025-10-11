@@ -43,25 +43,91 @@
 
 # # to run docker compose up --build
 
+# services:
+#   web:
+#     build: .
+#     command: python run.py
+#     volumes:
+#       - .:/app
+#     ports:
+#       - "5001:5000"
+
+#   pgadmin:
+#     image: dpage/pgadmin4
+#     restart: always
+#     environment:
+#       PGADMIN_DEFAULT_EMAIL: admin@admin.com
+#       PGADMIN_DEFAULT_PASSWORD: admin
+#     ports:
+#       - "5050:80"
+#     volumes:
+#       - pgadmin_data:/var/lib/pgadmin
+
+# volumes:
+#   pgadmin_data:
+
+
+
+version: "3.9"
+
 services:
+  # ------------------------------
+  # 🐍 Flask Backend
+  # ------------------------------
   web:
-    build: .
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
     command: python run.py
     volumes:
-      - .:/app
+      - ./backend:/app
     ports:
       - "5001:5000"
-
-  pgadmin:
-    image: dpage/pgadmin4
-    restart: always
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "5050:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - FLASK_ENV=development
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - pgadmin
+    # Uncomment below if backend needs PostgreSQL
+    # - db
 
-volumes:
-  pgadmin_data:
+  # ------------------------------
+  # 🌐 Frontend (Node + NPM)
+  # ------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    command: npm run dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - web
+
+  # # ------------------------------
+  # # 🐘 pgAdmin (Database GUI)
+  # # ------------------------------
+  # pgadmin:
+  #   image: dpage/pgadmin4
+  #   container_name: pgadmin
+  #   restart: always
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: admin@admin.com
+  #     PGADMIN_DEFAULT_PASSWORD: admin
+  #   ports:
+  #     - "5050:80"
+  #   volumes:
+  #     - pgadmin_data:/var/lib/pgadmin
+
+# ------------------------------
+# Volumes
+# ------------------------------
+# volumes:
+#   pgadmin_data:
