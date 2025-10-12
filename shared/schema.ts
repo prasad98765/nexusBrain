@@ -177,7 +177,39 @@ export interface ApiUsageLog {
   userAgent?: string;
   cached?: boolean;  // Whether response was served from cache
   cacheType?: string;  // "exact" or "semantic"
+  documentContexts?: boolean;  // Whether RAG contexts were used
   createdAt: string;
+}
+
+// System Prompts
+export interface SystemPrompt {
+  id: string;
+  workspaceId: string;
+  title: string;
+  prompt: string;
+  is_active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SystemPromptsResponse {
+  prompts: SystemPrompt[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
+export interface EnhancePromptRequest {
+  prompt: string;
+}
+
+export interface EnhancePromptResponse {
+  original_prompt: string;
+  enhanced_prompt: string;
+  message: string;
 }
 
 export interface InsertApiToken {

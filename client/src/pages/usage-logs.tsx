@@ -86,6 +86,7 @@ interface UsageLog {
   userAgent: string;
   cached: boolean;
   cacheType: string;
+  documentContexts: boolean;
   createdAt: string;
 }
 
@@ -277,7 +278,7 @@ function LogDetailsModal({ log, open, onOpenChange }: LogDetailsModalProps) {
             <div className="bg-muted/50 p-4 rounded-lg">
               <h3 className="font-semibold mb-3 flex items-center gap-2">
                 <Database className="w-4 h-4" />
-                Caching Information
+                Caching & RAG Information
               </h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
@@ -294,6 +295,12 @@ function LogDetailsModal({ log, open, onOpenChange }: LogDetailsModalProps) {
                     </Badge>
                   </div>
                 )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">RAG Context:</span>
+                  <Badge variant={log.documentContexts ? 'default' : 'secondary'}>
+                    {log.documentContexts ? 'Used' : 'Not Used'}
+                  </Badge>
+                </div>
               </div>
             </div>
 
@@ -430,6 +437,19 @@ export default function UsageLogsPage() {
       <Badge variant={variant} className="gap-1">
         <span>{icon}</span>
         {cacheType === 'exact' ? 'Exact' : 'Semantic'}
+      </Badge>
+    );
+  };
+
+  const getRAGBadge = (documentContexts: boolean) => {
+    if (!documentContexts) {
+      return <Badge variant="outline" className="text-xs">-</Badge>;
+    }
+
+    return (
+      <Badge variant="default" className="gap-1 bg-purple-600">
+        <span>📚</span>
+        RAG
       </Badge>
     );
   };
@@ -654,6 +674,7 @@ export default function UsageLogsPage() {
               <TableHead>Tokens</TableHead>
               {/* <TableHead>Duration</TableHead> */}
               <TableHead>Cache</TableHead>
+              <TableHead>RAG</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -709,6 +730,9 @@ export default function UsageLogsPage() {
                   </TableCell> */}
                   <TableCell>
                     {getCacheBadge(log.cached, log.cacheType)}
+                  </TableCell>
+                  <TableCell>
+                    {getRAGBadge(log.documentContexts)}
                   </TableCell>
                   <TableCell>
                     <Button
