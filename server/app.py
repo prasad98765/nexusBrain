@@ -3,20 +3,12 @@ import logging
 import redis
 from flask import Flask
 from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
 from flask_session import Session
 from dotenv import load_dotenv
+from .database import db
 
 # Load environment variables
 load_dotenv()
-
-# Initialize extensions
-db = SQLAlchemy(engine_options={
-    "pool_pre_ping": True,
-    "pool_recycle": 1800,   # recycle every 30 min
-    "pool_size": 10,
-    "max_overflow": 20,
-})
 
 def create_app():
     app = Flask(__name__)
@@ -45,10 +37,8 @@ def create_app():
     os.environ['GOOGLE_CLIENT_ID'] = '721339353722-aqnl6orqhu784lo1csncj24rbh28b9n6.apps.googleusercontent.com'
     os.environ['GOOGLE_CLIENT_SECRET'] = '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'
     
-    # Session configuration for PostgreSQL
-    app.config['SESSION_TYPE'] = 'sqlalchemy'
-    app.config['SESSION_SQLALCHEMY'] = db
-    app.config['SESSION_SQLALCHEMY_TABLE'] = 'flask_sessions'
+    # Session configuration - using Redis for sessions
+    app.config['SESSION_TYPE'] = 'redis'
     app.config['SESSION_PERMANENT'] = False
     app.config['SESSION_USE_SIGNER'] = True
     app.config['SESSION_KEY_PREFIX'] = 'nexus:'
@@ -69,14 +59,11 @@ def create_app():
     logging.basicConfig(level=logging.INFO)
     
     # Register blueprints
-    from server.routes import auth_bp, workspace_bp, conversation_bp, message_bp, static_bp
-    from server.contacts_routes import contacts_bp
-    from server.agents_routes import agents_bp
-    from server.conversation_routes import conversations_bp
-    from server.api_tokens_routes import api_tokens_bp
-    from server.llm_routes import api_llm_routes
-    from server.qa_routes import qa_bp
-    from server.webbot_routes import webbot_bp
+    from server import (
+        auth_bp, workspace_bp, conversation_bp, message_bp, static_bp,
+        contacts_bp, agents_bp, conversations_bp, api_tokens_bp,
+        api_llm_routes, qa_bp, webbot_bp
+    )
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(workspace_bp, url_prefix='/api')
     app.register_blueprint(conversation_bp, url_prefix='/api')

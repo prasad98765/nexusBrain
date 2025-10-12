@@ -1,6 +1,6 @@
 from datetime import datetime
 from uuid import uuid4
-from .app import db
+from .database import db
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -125,15 +125,8 @@ class Agent(db.Model):
     # Relationships
     workspace = db.relationship('Workspace', backref='agents', lazy=True)
 
-# Session table for Flask-Session
-class FlaskSession(db.Model):
-    __tablename__ = 'flask_sessions'
-    __table_args__ = {'extend_existing': True}
-    
-    id = db.Column(db.Integer, primary_key=True)
-    session_id = db.Column(db.String(255), unique=True, nullable=False)
-    data = db.Column(db.LargeBinary)
-    expiry = db.Column(db.DateTime)
+# Session management is handled by Flask-Session with Redis
+# No need for a separate FlaskSession model
 
 class BusinessInfo(db.Model):
     __tablename__ = 'business_info'
