@@ -254,9 +254,6 @@
 version: "3.9"
 
 services:
-  # ----------------------------------
-  # 🐍 Flask Backend
-  # ----------------------------------
   backend:
     build:
       context: ./server
@@ -274,12 +271,9 @@ services:
       - FLASK_ENV=development
       - PYTHONUNBUFFERED=1
       - DATABASE_URL=postgresql+psycopg2://sonar:sonar123@43.204.3.223:5432/postgres
-    command: python run.py
+    command: python -m server.app
     restart: unless-stopped
 
-  # ----------------------------------
-  # 🌐 Frontend (Vite + Node)
-  # ----------------------------------
   frontend:
     build:
       context: ./client
@@ -290,11 +284,10 @@ services:
       - ./client:/app
       - /app/node_modules
     ports:
-      - "5173:5173"
+      - "80:80"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - VITE_API_URL=http://localhost:5001
-    command: npm run dev -- --host 0.0.0.0
     restart: unless-stopped
     depends_on:
       - backend
