@@ -87,42 +87,18 @@
 # CMD ["python", "-m", "server.app"]
 
 
-
-# ===== STAGE 1: Builder =====
+# Stage 1: Builder
 FROM python:3.11-slim AS builder
-
-# Set working directory
 WORKDIR /app
-
-# System dependencies for building Python packages
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential gcc && \
-    rm -rf /var/lib/apt/lists/*
-
-# Copy dependency list first (for caching)
+RUN apt-get update && apt-get install -y gcc libpq-dev
 COPY requirements.txt .
-
-# Create a virtual environment and install dependencies there
-RUN python -m venv /opt/venv && \
-    /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
-
-# ===== STAGE 2: Runtime =====
-FROM python:3.11-slim
-
-# Set working directory
-WORKDIR /app
-
-# Copy virtual environment from builder
-COPY --from=builder /opt/venv /opt/venv
-
-# Ensure venv is used by default
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Copy only application source (not cache or build files)
+RUN pip install --prefix=/install --no-cache-dir -r requirements.txt
 COPY . .
 
-# Expose Flask port
+# Stage 2: Runtime
+FROM python:3.11-slim
+WORKDIR /app
+COPY --from=builder /install /usr/local
+COPY --from=builder /app /app
 EXPOSE 5000
-
-# Run Flask app
-CMD ["python", "app.py"]
+CMD ["python", "-m", "server.app"]

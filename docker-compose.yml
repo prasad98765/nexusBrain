@@ -272,7 +272,7 @@ services:
       - PYTHONUNBUFFERED=1
       - DATABASE_URL=postgresql+psycopg2://sonar:sonar123@43.204.3.223:5432/postgres
     # Run directly app.py (not module path)
-    command: ["python", "app.py"]
+    command: python -m server.app
     restart: unless-stopped
 
   frontend:
