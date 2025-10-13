@@ -29,6 +29,8 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    host: '0.0.0.0',  // ✅ Bind to all interfaces
+    port: 5173,
     fs: {
       strict: true,
       deny: ["**/.*"],

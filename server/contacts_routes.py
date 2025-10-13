@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from sqlalchemy import or_, func
-from server.models import Contact, CustomField, Workspace, db
-from server.auth_utils import require_auth
+from models import Contact, CustomField, Workspace, db
+from auth_utils import require_auth
 import math
 
 contacts_bp = Blueprint('contacts', __name__)

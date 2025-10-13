@@ -2,8 +2,8 @@ from flask import Blueprint, request, jsonify, Response
 import json
 import logging
 import requests
-from server.auth_utils import require_auth
-from server.models import ApiToken, db
+from auth_utils import require_auth
+from models import ApiToken, db
 
 logger = logging.getLogger(__name__)
 

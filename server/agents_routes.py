@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, send_file, send_from_directory
-from server.models import db, Agent
-from server.auth_utils import require_auth
+from models import db, Agent
+from auth_utils import require_auth
 from typing import Dict, Any
 import os
 

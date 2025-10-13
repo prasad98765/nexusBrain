@@ -1,12 +1,12 @@
 from flask import Blueprint, request, jsonify, session, redirect, url_for, send_from_directory, current_app
-from .models import User, Workspace, WorkspaceMember, Conversation, Message, db
-from .auth_utils import (
+from models import User, Workspace, WorkspaceMember, Conversation, Message, db
+from auth_utils import (
     generate_password_hash, check_password_hash, generate_jwt_token, 
     decode_jwt_token, generate_verification_token, generate_reset_token, verify_google_token,
     require_auth, require_verified_user
 )
-from .email_service import send_verification_email, send_welcome_email, send_password_reset_email
-from .mongo_service import mongo_service, BUSINESS_TYPES
+from email_service import send_verification_email, send_welcome_email, send_password_reset_email
+from mongo_service import mongo_service, BUSINESS_TYPES
 from datetime import datetime, timedelta
 import os
 import re
