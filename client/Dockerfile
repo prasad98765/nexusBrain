@@ -1,19 +1,19 @@
-# Frontend Dockerfile
-FROM node:20-alpine
-
+# Stage 1: Build React app
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy package files and install deps
+# Copy package.json and install deps
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
-# Copy source code
+# Copy source code and build
 COPY . .
+RUN npm run build
 
-EXPOSE 5173
+# Stage 2: Serve with Nginx
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-ENV NODE_ENV=development
-ENV VITE_API_URL=http://localhost:5001
+EXPOSE 80
 
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
-
+CMD ["nginx", "-g", "daemon off;"]
