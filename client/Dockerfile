@@ -9,12 +9,12 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
 
-# Build (for production)
+# Build the app
 RUN npm run build
 
 # ==========================
@@ -25,14 +25,16 @@ FROM node:20-alpine AS production
 WORKDIR /app
 
 # Copy package files
-COPY --from=builder /app/package*.json ./
+COPY package*.json ./
 
-# Install dependencies (including dev dependencies for Vite)
-RUN npm ci --legacy-peer-deps
+# Install dependencies (including dev for Vite)
+RUN npm install --legacy-peer-deps
 
-# Copy built files AND source code
+# Copy built files and source code from builder
 COPY --from=builder /app .
 
+# Expose Vite preview port
 EXPOSE 5173
 
-CMD ["npm", "run", "dev"]
+# Start Vite in preview mode (production-like)
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0"]
