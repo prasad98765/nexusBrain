@@ -383,7 +383,8 @@ def get_usage_logs():
                 'userAgent': log.user_agent,
                 'cached': log.cached,
                 'cacheType': log.cache_type,
-                'createdAt': log.created_at.isoformat()
+                'createdAt': log.created_at.isoformat(),
+                "documentContexts": log.document_contexts
             })
         
         # Calculate total pages

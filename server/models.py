@@ -186,7 +186,23 @@ class ApiUsageLog(db.Model):
     user_agent = db.Column(db.String(500), nullable=True)  # Client user agent
     cached = db.Column(db.Boolean, default=False)  # Whether response was served from cache
     cache_type = db.Column(db.String(20), nullable=True)  # "exact" or "semantic"
+    document_contexts = db.Column(db.Boolean, default=False)  # Whether RAG contexts were used
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
     workspace = db.relationship('Workspace', backref='api_usage_logs', lazy=True)
+
+
+class SystemPrompt(db.Model):
+    __tablename__ = 'system_prompts'
+    
+    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid4()))
+    workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    prompt = db.Column(db.Text, nullable=False)
+    is_active = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    workspace = db.relationship('Workspace', backref='system_prompts', lazy=True)

@@ -12,10 +12,11 @@ import httpx
 from .auth_utils import require_auth, require_auth_for_expose_api
 from .redis_cache_service import get_cache_service
 from .models import db, ApiToken, ApiUsageLog, Workspace
+from .rag_service import rag_service
 
 # Async logging to prevent blocking
 def async_log_api_usage(api_token_id, workspace_id, endpoint, method, payload, response_data, status_code,
-                        response_time_ms, cached=False, cache_type=None, error_message=None):
+                        response_time_ms, cached=False, cache_type=None, error_message=None, document_contexts=False):
     """Log API usage in a background thread to avoid blocking the main request."""
     app = current_app._get_current_object()
 
@@ -36,12 +37,12 @@ def async_log_api_usage(api_token_id, workspace_id, endpoint, method, payload, r
             workspace = Workspace.query.get(workspace_id) if workspace_id else None
 
             log_api_usage_background(api_token, workspace, endpoint, method, payload, response_data,
-                                   status_code, response_time_ms, cached, cache_type, error_message, req_meta)
+                                   status_code, response_time_ms, cached, cache_type, error_message, req_meta, document_contexts)
 
     threading.Thread(target=_log_with_context, daemon=True).start()
 
 def log_api_usage_background(api_token, workspace, endpoint, method, payload, response_data, status_code,
-                           response_time_ms, cached=False, cache_type=None, error_message=None, request_meta=None):
+                           response_time_ms, cached=False, cache_type=None, error_message=None, request_meta=None, document_contexts=False):
     """Background version of log_api_usage that handles its own DB operations."""
     try:
         # Extract model information
@@ -129,9 +130,10 @@ def log_api_usage_background(api_token, workspace, endpoint, method, payload, re
             ip_address=ip_address,
             user_agent=user_agent,
             cached=cached,
-            cache_type=cache_type
+            cache_type=cache_type,
+            document_contexts=document_contexts
         )
-
+        logger.info(f"Prepared log entry for API usage: {log_entry}")
         if not cached and usage_data.get('usage'):
             deduct_workspace_balance(api_token.workspace_id, usage_data.get('usage'))
         # Batch DB operations
@@ -369,12 +371,34 @@ def get_openrouter_headers():
     }
 
 def forward_to_openrouter(endpoint: str, payload: dict):
-    """Forward POST request and return response in Flask form."""
+    """Forward POST request to OpenRouter, injecting RAG context if document_contexts is True."""
+
     url = f"{OPENROUTER_BASE_URL}{endpoint}"
+    # messages = payload.get("messages", [])
+    original_prompt = payload.get("rag_question", "")
+    # --- 1. Inject RAG context if document_contexts is True ---
+    if payload.get("document_contexts") and payload.get("rag_contexts"):
+        rag_context = payload["rag_contexts"]
+        combined_rag = "\n".join([r.get("content", "") for r in rag_context])
+
+        if endpoint == "/chat/completions":
+            # Inject as system message
+            # messages = payload.get("messages", [])
+            system_msg = {
+                "role": "system",
+                "content": f"You are a helpful assistant. Use this context:\n{combined_rag}"
+            }
+            payload["messages"] = [system_msg] + original_prompt
+        else:
+            # For regular completions, prepend to prompt
+            # original_prompt = payload.get("prompt", "")
+            payload["prompt"] = f"{combined_rag}\n\n{original_prompt}"
+
+    # --- 2. Forward request ---
     try:
+        # logger.info(f"Forwarding request to OpenRouter endpoint: {endpoint} with model: {payload}")
         resp = httpx_client.post(url, headers=get_openrouter_headers(), json=payload)
 
-        # Handle different error cases
         if resp.status_code != 200:
             error_msg = ""
             if resp.status_code == 429:
@@ -391,12 +415,16 @@ def forward_to_openrouter(endpoint: str, payload: dict):
                 logger.error(f"API error: {resp.status_code}")
             return jsonify({"error": error_msg}), resp.status_code
 
-        # Handle successful response
         try:
             body = resp.json()
+            if endpoint == "/chat/completions":
+                payload["messages"] = payload.get("rag_question")
+            else:
+                payload["prompt"] = payload.get("rag_question")
         except ValueError:
             logger.error("Failed to parse JSON response")
             return jsonify({"error": "Invalid response format"}), 500
+
         return jsonify(body), resp.status_code
 
     except httpx.ConnectError:
@@ -410,6 +438,7 @@ def forward_to_openrouter(endpoint: str, payload: dict):
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         return jsonify({"error": "An unexpected error occurred. Please try again later."}), 500
+
 
 def forward_to_openrouter_for_model_and_provider(endpoint: str):
     """Forward GET to OpenRouter with proper headers and return response in Flask form."""
@@ -520,7 +549,135 @@ def forward_to_openrouter_stream(endpoint: str, payload: dict):
         }
     )
 
-# Routes
+def augment_with_rag_context(messages, workspace_id, use_rag=False, top_k=5, threshold=0.5, mode="system"):
+    """
+    Augment messages with RAG context if enabled
+    
+    Args:
+        messages: List of message objects for chat
+        workspace_id: Workspace ID for filtering documents
+        use_rag: Whether to use RAG
+        top_k: Number of contexts to retrieve
+        threshold: Similarity threshold
+        mode: "system" (for chat - adds as system prompt) or "assistant" (for completions - adds as assistant message)
+    
+    Returns: (augmented_messages, rag_contexts_used, original_messages)
+    """
+    if not use_rag or not messages:
+        return messages, [], messages
+    
+    # Get the last user message as query
+    last_user_msg = None
+    for msg in reversed(messages):
+        if msg.get('role') == 'user':
+            last_user_msg = msg.get('content', '')
+            break
+    
+    logger.info(f"RAG augmentation enabled (mode={mode}). Last user message: {last_user_msg}")
+    if not last_user_msg:
+        return messages, [], messages
+    
+    # Retrieve relevant contexts from RAG
+    try:
+        contexts = rag_service.retrieve_context(
+            query=last_user_msg,
+            workspace_id=workspace_id,
+            top_k=top_k,
+            similarity_threshold=threshold
+        )
+        
+        if not contexts:
+            logger.info("No RAG contexts found for query")
+            return messages, [], messages
+        
+        # Build context string
+        logger.info(f"Found {len(contexts)} RAG contexts")
+        context_text = "Context from your documents:\n\n"
+        for idx, ctx in enumerate(contexts, 1):
+            context_text += f"[Source {idx}: {ctx['filename']}]\n{ctx['text']}\n\n"
+        
+        # Store original messages for caching
+        original_messages = messages.copy()
+        
+        # Create augmented messages based on mode
+        augmented_messages = messages.copy()
+        
+        if mode == "system":
+            # For chat completions - add as system message at the beginning
+            system_message = {
+                "role": "system",
+                "content": context_text
+            }
+            # Check if there's already a system message
+            has_system = any(msg.get('role') == 'system' for msg in augmented_messages)
+            if has_system:
+                # Prepend to existing system message
+                for msg in augmented_messages:
+                    if msg.get('role') == 'system':
+                        msg['content'] = context_text + "\n\n" + msg['content']
+                        break
+            else:
+                # Add new system message at the beginning
+                augmented_messages.insert(0, system_message)
+        else:
+            # For completions - add as assistant message before the last user message
+            assistant_message = {
+                "role": "assistant",
+                "content": context_text
+            }
+            # Find the last user message index and insert before it
+            for i in range(len(augmented_messages) - 1, -1, -1):
+                if augmented_messages[i].get('role') == 'user':
+                    augmented_messages.insert(i, assistant_message)
+                    break
+        
+        logger.info(f"Augmented messages with {len(contexts)} RAG contexts (mode={mode})")
+        return augmented_messages, contexts, original_messages
+        
+    except Exception as e:
+        logger.error(f"Failed to augment with RAG context: {e}")
+        return messages, [], messages
+
+
+def augment_prompt_with_rag_context(prompt, workspace_id, use_rag=False, top_k=5, threshold=0.5):
+    """
+    Augment a prompt string with RAG context (for completions endpoint)
+    
+    Returns: (augmented_prompt, rag_contexts_used, original_prompt)
+    """
+    if not use_rag or not prompt:
+        return prompt, [], prompt
+    
+    # Retrieve relevant contexts from RAG
+    try:
+        contexts = rag_service.retrieve_context(
+            query=prompt,
+            workspace_id=workspace_id,
+            top_k=top_k,
+            similarity_threshold=threshold
+        )
+        
+        if not contexts:
+            logger.info("No RAG contexts found for prompt")
+            return prompt, [], prompt
+        
+        # Build context string
+        logger.info(f"Found {len(contexts)} RAG contexts for prompt")
+        context_text = "Context from your documents:\n\n"
+        for idx, ctx in enumerate(contexts, 1):
+            context_text += f"[Source {idx}: {ctx['filename']}]\n{ctx['text']}\n\n"
+        
+        # Augment prompt with context
+        augmented_prompt = f"{context_text}\nPrompt:\n{prompt}"
+        
+        logger.info(f"Augmented prompt with {len(contexts)} RAG contexts")
+        return augmented_prompt, contexts, prompt
+        
+    except Exception as e:
+        logger.error(f"Failed to augment prompt with RAG context: {e}")
+        return prompt, [], prompt
+
+
 @api_llm_routes.route("/v1/models", methods=["GET"])
 # @require_auth_for_expose_api
 def get_models():
@@ -573,7 +730,13 @@ def create_completion():
     if "metadata" in data:
         payload["metadata"] = data["metadata"]
 
-    # Check cache if caching is enabled
+    # RAG Integration - augment prompt with retrieved context
+    rag_contexts = []
+    original_payload = payload.copy()  # Store original for caching
+    document_contexts = False
+    
+
+    # Check cache if caching is enabled (use original payload, not augmented)
     cached_response = None
     cache_type = None
 
@@ -581,13 +744,13 @@ def create_completion():
         cache_service = get_cache_service(data.get("cache_threshold", 0.50))
         # Pass the semantic cache threshold from the API token
         cached_response, cache_type = cache_service.get_cached_response(
-            payload, "completion", threshold=api_token.semantic_cache_threshold
+            original_payload, "completion", threshold=api_token.semantic_cache_threshold
         )
 
     response_time_ms = int((time.time() - start_time) * 1000)
 
     if cached_response:
-        logger.info(f"Cache HIT ({cache_type}) for completion model: {payload['model']}")
+        logger.info(f"Cache HIT ({cache_type}) for completion model: {original_payload['model']}")
 
         # Log cache hit
         async_log_api_usage(
@@ -595,15 +758,38 @@ def create_completion():
             workspace_id=api_token.workspace_id,
             endpoint="/v1/create",
             method="POST",
-            payload=payload,
+            payload=original_payload,
             response_data=cached_response,
             status_code=200,
             response_time_ms=response_time_ms,
             cached=True,
-            cache_type=cache_type
+            cache_type=cache_type,
+            document_contexts=document_contexts
         )
 
         return jsonify(cached_response), 200
+    else:
+        if data.get("use_rag", False):
+        # Get workspace_id from API token
+            workspace_id = str(api_token.workspace_id)
+            rag_top_k = data.get("rag_top_k", 3)
+            rag_threshold = data.get("rag_threshold", 0.50)
+            
+            augmented_prompt, rag_contexts, original_prompt = augment_prompt_with_rag_context(
+                prompt=payload["prompt"],
+                workspace_id=workspace_id,
+                use_rag=True,
+                top_k=rag_top_k,
+                threshold=rag_threshold
+            )
+            
+            if rag_contexts:
+                # Update payload with augmented prompt for OpenRouter
+                payload["prompt"] = augmented_prompt
+                # Keep original prompt for caching
+                original_payload["prompt"] = original_prompt
+                document_contexts = True
+                logger.info(f"Augmented prompt with {len(rag_contexts)} RAG contexts")
 
     # Cache miss - forward to OpenRouter
     if payload.get("stream"):
@@ -670,12 +856,12 @@ def create_completion():
                 if "model_info" in chunk_data:
                     combined_response["model_info"] = chunk_data["model_info"]
 
-                # Store in cache if enabled
+                # Store in cache if enabled (use original payload, not augmented)
                 if data.get("is_cached") and combined_response:
                     try:
                         cache_service = get_cache_service()
-                        cache_service.store_response(payload, combined_response, "completion")
-                        logger.info(f"Stored combined streaming response in cache for model: {payload['model']}")
+                        cache_service.store_response(original_payload, combined_response, "completion")
+                        logger.info(f"Stored combined streaming response in cache for model: {original_payload['model']}")
                     except Exception as e:
                         logger.error(f"Failed to store streaming response in cache: {e}")
 
@@ -686,12 +872,13 @@ def create_completion():
                     workspace_id=api_token.workspace_id,
                     endpoint="/v1/create",
                     method="POST",
-                    payload=payload,
+                    payload=original_payload,
                     response_data=combined_response,
                     status_code=200,
                     response_time_ms=response_time_ms,
                     cached=False,
-                    cache_type=None
+                    cache_type=None,
+                    document_contexts=document_contexts
                 )
 
             # Return a new Response with our wrapped generator
@@ -720,8 +907,8 @@ def create_completion():
             response_data = response.get_json() if hasattr(response, 'get_json') else response.json
 
             if data.get("is_cached") and response_data:
-                cache_service.store_response(payload, response_data, "completion")
-                logger.info(f"Stored completion response in cache for model: {payload['model']}")
+                cache_service.store_response(original_payload, response_data, "completion")
+                logger.info(f"Stored completion response in cache for model: {original_payload['model']}")
 
         except Exception as e:
             logger.error(f"Failed to store completion response in cache: {e}")
@@ -739,12 +926,13 @@ def create_completion():
         workspace_id=api_token.workspace_id,
         endpoint="/v1/create",
         method="POST",
-        payload=payload,
+        payload=original_payload,
         response_data=response_data,
         status_code=status_code,
         response_time_ms=response_time_ms,
         cached=False,
-        error_message=error_message
+        error_message=error_message,
+        document_contexts=document_contexts
     )
 
     return response, status_code
@@ -804,13 +992,13 @@ def create_chat_completion():
     if "metadata" in data:
         payload["metadata"] = data["metadata"]
 
-    # Check workspace balance before processing (skip for cached responses)
-    # We'll do a proper check after cache miss
-    has_balance, current_balance, balance_error = check_workspace_balance(api_token.workspace_id, 0.0001)
-    if not has_balance:
-        return jsonify({"error": balance_error}), 402  # 402 Payment Required
+    # RAG Integration - augment messages with retrieved context
+    rag_contexts = []
+    original_payload = payload.copy()  # Store original for caching
+    document_contexts = False
+    
 
-    # Check cache if caching is enabled
+    # Check cache if caching is enabled (use original payload, not augmented)
     cached_response = None
     cache_type = None
 
@@ -818,13 +1006,13 @@ def create_chat_completion():
         cache_service = get_cache_service()
         # Pass the semantic cache threshold from the API token
         cached_response, cache_type = cache_service.get_cached_response(
-            payload, "chat", threshold=api_token.semantic_cache_threshold
+            original_payload, "chat", threshold=api_token.semantic_cache_threshold
         )
 
     response_time_ms = int((time.time() - start_time) * 1000)
 
     if cached_response:
-        logger.info(f"Cache HIT ({cache_type}) for chat model: {payload['model']}")
+        logger.info(f"Cache HIT ({cache_type}) for chat model: {original_payload['model']} : document_contexts={document_contexts}")
 
         # Log cache hit
         async_log_api_usage(
@@ -832,15 +1020,45 @@ def create_chat_completion():
             workspace_id=api_token.workspace_id,
             endpoint="/v1/chat/create",
             method="POST",
-            payload=payload,
+            payload=original_payload,
             response_data=cached_response,
             status_code=200,
             response_time_ms=response_time_ms,
             cached=True,
-            cache_type=cache_type
+            cache_type=cache_type,
+            document_contexts=document_contexts
         )
 
         return jsonify(cached_response), 200
+    else:
+        if data.get("use_rag", False):
+            # Get workspace_id from API token
+            workspace_id = str(api_token.workspace_id)
+            rag_top_k = data.get("rag_top_k", 3)
+            rag_threshold = data.get("rag_threshold", 0.50)
+            
+            augmented_messages, rag_contexts, original_messages = augment_with_rag_context(
+                messages=payload["messages"],
+                workspace_id=workspace_id,
+                use_rag=True,
+                top_k=rag_top_k,
+                threshold=rag_threshold,
+                mode="system"  # Use system prompt for chat completions
+            )
+            
+            if rag_contexts:
+                # Update payload with augmented messages for OpenRouter
+                payload["messages"] = augmented_messages
+                # Keep original messages for caching
+                original_payload["messages"] = original_messages
+                document_contexts = True
+                logger.info(f"Augmented chat with {len(rag_contexts)} RAG contexts as system prompt")
+
+    # Check workspace balance before processing (skip for cached responses)
+    has_balance, current_balance, balance_error = check_workspace_balance(api_token.workspace_id, 0.0001)
+    if not has_balance:
+        return jsonify({"error": balance_error}), 402  # 402 Payment Required
+
 
     # Cache miss - forward to OpenRouter
     if payload.get("stream"):
@@ -918,12 +1136,12 @@ def create_chat_completion():
                     "finish_reason": finish_reason
                 }]
 
-                # Store in cache if enabled
+                # Store in cache if enabled (use original payload, not augmented)
                 if data.get("is_cached") and combined_response["choices"]:
                     try:
                         cache_service = get_cache_service()
-                        cache_service.store_response(payload, combined_response, "chat")
-                        logger.info(f"Stored combined streaming chat response in cache for model: {payload['model']}")
+                        cache_service.store_response(original_payload, combined_response, "chat")
+                        logger.info(f"Stored combined streaming chat response in cache for model: {original_payload['model']}")
                     except Exception as e:
                         logger.error(f"Failed to store streaming chat response in cache: {e}")
 
@@ -934,12 +1152,13 @@ def create_chat_completion():
                     workspace_id=api_token.workspace_id,
                     endpoint="/v1/chat/create",
                     method="POST",
-                    payload=payload,
+                    payload=original_payload,
                     response_data=combined_response,
                     status_code=200,
                     response_time_ms=response_time_ms,
                     cached=False,
-                    cache_type=None
+                    cache_type=None,
+                    document_contexts=document_contexts
                 )
 
             # Return a new Response with our wrapped generator
@@ -955,9 +1174,9 @@ def create_chat_completion():
 
         return stream_and_cache()
     else:
-        logger.info(f"Cache MISS for chat model: {payload['model']} - forwarding to OpenRouter")
+        logger.info(f"Cache MISS for chat model: {payload} - forwarding to OpenRouter")
         response, status_code = forward_to_openrouter("/chat/completions", payload)
-
+        
     response_time_ms = int((time.time() - start_time) * 1000)
     response_data = None
     error_message = None
@@ -968,8 +1187,9 @@ def create_chat_completion():
             response_data = response.get_json() if hasattr(response, 'get_json') else response.json
 
             if data.get("is_cached") and response_data:
-                cache_service.store_response(payload, response_data, "chat")
-                logger.info(f"Stored chat response in cache for model: {data['model']}")
+                logger.info(f"Caching chat response for model: {original_payload['model']}")
+                cache_service.store_response(original_payload, response_data, "chat")
+                logger.info(f"Stored chat response in cache for model: {original_payload['model']}")
 
         except Exception as e:
             logger.error(f"Failed to store chat response in cache: {e}")
@@ -987,12 +1207,13 @@ def create_chat_completion():
         workspace_id=api_token.workspace_id,
         endpoint="/v1/chat/create",
         method="POST",
-        payload=payload,
+        payload=original_payload,
         response_data=response_data,
         status_code=status_code,
         response_time_ms=response_time_ms,
         cached=False,
-        error_message=error_message
+        error_message=error_message,
+        document_contexts=document_contexts
     )
 
     return response, status_code

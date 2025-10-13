@@ -143,9 +143,19 @@ function EditAnswerPopover({ entry, open, onOpenChange, onSave, isSaving, setEdi
               <MessageSquare className="w-4 h-4 text-muted-foreground" />
               Question
             </Label>
-            <div className="p-3 bg-muted/50 rounded-lg text-sm border">
+            <Textarea
+              id="answer-edit"
+              disabled={true}
+              value={entry.question}
+              // onChange={(e) => setEditedAnswer(e.target.value)}
+              placeholder="Enter your revised answer..."
+              className="min-h-[10px] text-sm resize-none border-2 focus-visible:ring-2"
+              maxLength={10}
+              data-testid="textarea-edit-answer"
+            />
+            {/* <div className="p-3 bg-muted/50 rounded-lg text-sm border">
               {entry.question}
-            </div>
+            </div> */}
           </div>
 
           <div className="space-y-2">

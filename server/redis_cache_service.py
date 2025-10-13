@@ -267,6 +267,10 @@ class RedisCacheService:
         
         try:
             # Generate cache key
+            # logger.info(f"Storing response in cache for request: {request_data}")
+            # logger.info(f"Endpoint type: {endpoint_type}")
+            # logger.info(f"Response data: {response_data}")
+
             cache_key = self._generate_cache_key(request_data, endpoint_type)
             
             # Generate embedding for semantic search
@@ -280,7 +284,7 @@ class RedisCacheService:
                 "timestamp": time.time(),
                 "embedding": embedding
             }
-
+            # logger.info(f"Storing response in cache with key: {cache_entry}")
             # Store in Redis with TTL (30 days = 2592000 seconds)
             self.redis_client.setex(
                 cache_key,
