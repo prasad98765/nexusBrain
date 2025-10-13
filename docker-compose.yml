@@ -1,119 +1,235 @@
-# # services:
-# #   db:
-# #     image: postgres:16
-# #     restart: always
-# #     environment:
-# #       POSTGRES_USER: prasad
-# #       POSTGRES_PASSWORD: YourStrongPass123!
-# #       POSTGRES_DB: nexusdb
-# #     ports:
-# #       - "5433:5432"
-# #     volumes:
-# #       - postgres_data:/var/lib/postgresql/data
+# # # services:
+# # #   db:
+# # #     image: postgres:16
+# # #     restart: always
+# # #     environment:
+# # #       POSTGRES_USER: prasad
+# # #       POSTGRES_PASSWORD: YourStrongPass123!
+# # #       POSTGRES_DB: nexusdb
+# # #     ports:
+# # #       - "5433:5432"
+# # #     volumes:
+# # #       - postgres_data:/var/lib/postgresql/data
 
+# # #   web:
+# # #     build: .
+# # #     command: python run.py
+# # #     volumes:
+# # #       - .:/app
+# # #     ports:
+# # #       - "5433:5432"
+# # #     environment:
+# # #       - DATABASE_URL=postgresql+psycopg://sonar:sonar123@43.204.3.223:5432/postgres
+# # #     depends_on:
+# # #       - db
+
+# # #   pgadmin:
+# # #     image: dpage/pgadmin4
+# # #     restart: always
+# # #     environment:
+# # #       PGADMIN_DEFAULT_EMAIL: admin@admin.com
+# # #       PGADMIN_DEFAULT_PASSWORD: admin
+# # #     ports:
+# # #       - "5050:80"
+# # #     depends_on:
+# # #       - db
+# # #     volumes:
+# # #       - pgadmin_data:/var/lib/pgadmin
+
+# # # volumes:
+# # #   postgres_data:
+# # #   pgadmin_data:   # ✅ Add this line
+
+
+# # # # to run docker compose up --build
+
+# # # services:
+# # #   web:
+# # #     build: .
+# # #     command: python run.py
+# # #     volumes:
+# # #       - .:/app
+# # #     ports:
+# # #       - "5001:5000"
+
+# # #   pgadmin:
+# # #     image: dpage/pgadmin4
+# # #     restart: always
+# # #     environment:
+# # #       PGADMIN_DEFAULT_EMAIL: admin@admin.com
+# # #       PGADMIN_DEFAULT_PASSWORD: admin
+# # #     ports:
+# # #       - "5050:80"
+# # #     volumes:
+# # #       - pgadmin_data:/var/lib/pgadmin
+
+# # # volumes:
+# # #   pgadmin_data:
+
+
+
+# # version: "3.9"
+
+# # services:
+# #   # ------------------------------
+# #   # 🐍 Flask Backend
+# #   # ------------------------------
 # #   web:
-# #     build: .
+# #     build:
+# #       context: ./backend
+# #       dockerfile: Dockerfile
+# #     container_name: backend
 # #     command: python run.py
 # #     volumes:
-# #       - .:/app
-# #     ports:
-# #       - "5433:5432"
-# #     environment:
-# #       - DATABASE_URL=postgresql+psycopg://sonar:sonar123@43.204.3.223:5432/postgres
-# #     depends_on:
-# #       - db
-
-# #   pgadmin:
-# #     image: dpage/pgadmin4
-# #     restart: always
-# #     environment:
-# #       PGADMIN_DEFAULT_EMAIL: admin@admin.com
-# #       PGADMIN_DEFAULT_PASSWORD: admin
-# #     ports:
-# #       - "5050:80"
-# #     depends_on:
-# #       - db
-# #     volumes:
-# #       - pgadmin_data:/var/lib/pgadmin
-
-# # volumes:
-# #   postgres_data:
-# #   pgadmin_data:   # ✅ Add this line
-
-
-# # # to run docker compose up --build
-
-# # services:
-# #   web:
-# #     build: .
-# #     command: python run.py
-# #     volumes:
-# #       - .:/app
+# #       - ./backend:/app
 # #     ports:
 # #       - "5001:5000"
-
-# #   pgadmin:
-# #     image: dpage/pgadmin4
-# #     restart: always
 # #     environment:
-# #       PGADMIN_DEFAULT_EMAIL: admin@admin.com
-# #       PGADMIN_DEFAULT_PASSWORD: admin
+# #       - FLASK_ENV=development
+# #       - PYTHONUNBUFFERED=1
+# #     # depends_on:
+# #     #   - pgadmin
+# #     # Uncomment below if backend needs PostgreSQL
+# #     # - db
+
+# #   # ------------------------------
+# #   # 🌐 Frontend (Node + NPM)
+# #   # ------------------------------
+# #   frontend:
+# #     build:
+# #       context: ./frontend
+# #       dockerfile: Dockerfile
+# #     container_name: frontend
+# #     command: npm run dev
 # #     ports:
-# #       - "5050:80"
+# #       - "5173:5173"
 # #     volumes:
-# #       - pgadmin_data:/var/lib/pgadmin
+# #       - ./frontend:/app
+# #       - /app/node_modules
+# #     environment:
+# #       - NODE_ENV=development
+# #     # depends_on:
+# #     #   - web
 
-# # volumes:
-# #   pgadmin_data:
+# #   # # ------------------------------
+# #   # # 🐘 pgAdmin (Database GUI)
+# #   # # ------------------------------
+# #   # pgadmin:
+# #   #   image: dpage/pgadmin4
+# #   #   container_name: pgadmin
+# #   #   restart: always
+# #   #   environment:
+# #   #     PGADMIN_DEFAULT_EMAIL: admin@admin.com
+# #   #     PGADMIN_DEFAULT_PASSWORD: admin
+# #   #   ports:
+# #   #     - "5050:80"
+# #   #   volumes:
+# #   #     - pgadmin_data:/var/lib/pgadmin
+
+# # # ------------------------------
+# # # Volumes
+# # # ------------------------------
+# # # volumes:
+# # #   pgadmin_data:
 
 
 
-# version: "3.9"
 
 # services:
-#   # ------------------------------
-#   # 🐍 Flask Backend
-#   # ------------------------------
-#   web:
+#   # backend:
+#   #   build:
+#   #     context: .                    # build entire project
+#   #     dockerfile: ./server/Dockerfile
+#   #   container_name: backend
+#   #   working_dir: /app
+#   #   volumes:
+#   #     - ./server:/app/server
+#   #     - ./shared:/app/shared
+#   #   env_file:
+#   #     - .env
+#   #   ports:
+#   #     - "5001:5000"
+#   #   environment:
+#   #     - FLASK_ENV=development
+#   #     - PYTHONUNBUFFERED=1
+#   #     - DATABASE_URL=postgresql+psycopg2://sonar:sonar123@43.204.3.223:5432/postgres
+#   #   depends_on:
+#   #     - frontend
+
+#   # frontend:
+#   #   build:
+#   #     context: ./client
+#   #     dockerfile: Dockerfile
+#   #   container_name: frontend
+#   #   command: npm run dev -- --host 0.0.0.0
+#   #   working_dir: /app
+#   #   volumes:
+#   #     - ./client:/app
+#   #     - /app/node_modules
+#   #   ports:
+#   #     - "5173:5173"
+#   #   environment:
+#   #     - NODE_ENV=development
+#   #     - VITE_API_URL=http://localhost:5001
+
+
+#     backend:
 #     build:
-#       context: ./backend
+#       context: ./server
 #       dockerfile: Dockerfile
 #     container_name: backend
-#     command: python run.py
+#     working_dir: /app
 #     volumes:
-#       - ./backend:/app
+#       - ./server:/app
+#       - ./shared:/app/shared
+#     env_file:
+#       - .env
 #     ports:
 #       - "5001:5000"
 #     environment:
 #       - FLASK_ENV=development
 #       - PYTHONUNBUFFERED=1
-#     # depends_on:
-#     #   - pgadmin
-#     # Uncomment below if backend needs PostgreSQL
-#     # - db
+#       - DATABASE_URL=postgresql+psycopg2://sonar:sonar123@43.204.3.223:5432/postgres
+#     command: python run.py
+#     restart: unless-stopped
 
-#   # ------------------------------
-#   # 🌐 Frontend (Node + NPM)
-#   # ------------------------------
-#   frontend:
+
+
+#       frontend:
 #     build:
-#       context: ./frontend
+#       context: ./client
 #       dockerfile: Dockerfile
 #     container_name: frontend
-#     command: npm run dev
+#     working_dir: /app
+#     volumes:
+#       - ./client:/app
+#       - /app/node_modules
 #     ports:
 #       - "5173:5173"
-#     volumes:
-#       - ./frontend:/app
-#       - /app/node_modules
 #     environment:
 #       - NODE_ENV=development
-#     # depends_on:
-#     #   - web
+#       - VITE_API_URL=http://localhost:5001
+#     command: npm run dev -- --host 0.0.0.0
+#     restart: unless-stopped
 
-#   # # ------------------------------
-#   # # 🐘 pgAdmin (Database GUI)
-#   # # ------------------------------
+#   # ----------------------------------
+#   # 🐘 PostgreSQL (Optional)
+#   # ----------------------------------
+#   # db:
+#   #   image: postgres:15-alpine
+#   #   container_name: postgres_db
+#   #   environment:
+#   #     POSTGRES_USER: prasad
+#   #     POSTGRES_PASSWORD: YourStrongPass123!
+#   #     POSTGRES_DB: nexusdb
+#   #   ports:
+#   #     - "5432:5432"
+#   #   volumes:
+#   #     - postgres_data:/var/lib/postgresql/data
+
+#   # ----------------------------------
+#   # 🧭 pgAdmin (Optional)
+#   # ----------------------------------
 #   # pgadmin:
 #   #   image: dpage/pgadmin4
 #   #   container_name: pgadmin
@@ -123,27 +239,32 @@
 #   #     PGADMIN_DEFAULT_PASSWORD: admin
 #   #   ports:
 #   #     - "5050:80"
+#   #   depends_on:
+#   #     - db
 #   #   volumes:
 #   #     - pgadmin_data:/var/lib/pgadmin
 
-# # ------------------------------
-# # Volumes
-# # ------------------------------
-# # volumes:
-# #   pgadmin_data:
+# # ----------------------------------
+# # Persistent Volumes (Optional)
+# # ----------------------------------
+# volumes:
+#   postgres_data:
 
 
-
+version: "3.9"
 
 services:
+  # ----------------------------------
+  # 🐍 Flask Backend
+  # ----------------------------------
   backend:
     build:
-      context: .                    # build entire project
-      dockerfile: ./server/Dockerfile
+      context: ./server
+      dockerfile: Dockerfile
     container_name: backend
     working_dir: /app
     volumes:
-      - ./server:/app/server
+      - ./server:/app
       - ./shared:/app/shared
     env_file:
       - .env
@@ -153,15 +274,17 @@ services:
       - FLASK_ENV=development
       - PYTHONUNBUFFERED=1
       - DATABASE_URL=postgresql+psycopg2://sonar:sonar123@43.204.3.223:5432/postgres
-    depends_on:
-      - frontend
+    command: python run.py
+    restart: unless-stopped
 
+  # ----------------------------------
+  # 🌐 Frontend (Vite + Node)
+  # ----------------------------------
   frontend:
     build:
       context: ./client
       dockerfile: Dockerfile
     container_name: frontend
-    command: npm run dev -- --host 0.0.0.0
     working_dir: /app
     volumes:
       - ./client:/app
@@ -171,6 +294,10 @@ services:
     environment:
       - NODE_ENV=development
       - VITE_API_URL=http://localhost:5001
+    command: npm run dev -- --host 0.0.0.0
+    restart: unless-stopped
+    depends_on:
+      - backend
 
   # ----------------------------------
   # 🐘 PostgreSQL (Optional)
@@ -209,3 +336,4 @@ services:
 # ----------------------------------
 volumes:
   postgres_data:
+  # pgadmin_data:
