@@ -90,15 +90,29 @@
 # Stage 1: Builder
 FROM python:3.11-slim AS builder
 WORKDIR /app
-RUN apt-get update && apt-get install -y gcc libpq-dev
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y gcc libpq-dev && rm -rf /var/lib/apt/lists/*
+
+# Copy only requirements and install
 COPY requirements.txt .
 RUN pip install --prefix=/install --no-cache-dir -r requirements.txt
+
+# Copy all backend code
 COPY . .
 
 # Stage 2: Runtime
 FROM python:3.11-slim
 WORKDIR /app
+
+# Copy installed dependencies
 COPY --from=builder /install /usr/local
+
+# Copy backend code, preserve folder structure
 COPY --from=builder /app /app
+
+# Expose Flask port
 EXPOSE 5000
-CMD ["python", "-m", "server.app"]
+
+# Run app directly
+CMD ["python", "app.py"]

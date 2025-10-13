@@ -260,9 +260,9 @@ services:
       dockerfile: Dockerfile
     container_name: backend
     working_dir: /app
-    # Mount only shared data (not entire source in production)
     volumes:
-      - ./shared:/app/shared
+      - ./shared:/app/shared          # optional, only shared data
+      - ./server:/app/server
     env_file:
       - .env
     ports:
@@ -271,8 +271,7 @@ services:
       - FLASK_ENV=development
       - PYTHONUNBUFFERED=1
       - DATABASE_URL=postgresql+psycopg2://sonar:sonar123@43.204.3.223:5432/postgres
-    # Run directly app.py (not module path)
-    command: python -m server.app
+    command: python -m server.app           # <- run directly
     restart: unless-stopped
 
   frontend:
