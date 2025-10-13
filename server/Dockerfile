@@ -105,14 +105,15 @@ COPY . .
 FROM python:3.11-slim
 WORKDIR /app
 
-# Copy installed dependencies
-COPY --from=builder /install /usr/local
+# Install runtime dependencies (libpq needed by psycopg)
+RUN apt-get update && apt-get install -y libpq5 && rm -rf /var/lib/apt/lists/*
 
-# Copy backend code, preserve folder structure
+# Copy installed Python packages and app code
+COPY --from=builder /install /usr/local
 COPY --from=builder /app /app
 
 # Expose Flask port
 EXPOSE 5000
 
-# Run app directly
+# Run app (adjust if using modules)
 CMD ["python", "app.py"]
