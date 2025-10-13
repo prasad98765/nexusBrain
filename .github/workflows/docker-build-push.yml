@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build and Push Docker Images
 
 on:
   push:
@@ -11,22 +11,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout the code
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # Step 2: Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      # Step 3: Login to Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Docker image
+      # Step 4: Build Backend image
+      - name: Build Backend image
         run: |
-          docker build -t sureshnangina/nexusbrain:latest .
+          docker build -t sureshnangina/backend:latest ./server
 
-      - name: Push Docker image
+      # Step 5: Push Backend image
+      - name: Push Backend image
         run: |
-          docker push sureshnangina/nexusbrain:latest
+          docker push sureshnangina/backend:latest
+
+      # Step 6: Build Frontend image
+      - name: Build Frontend image
+        run: |
+          docker build -t sureshnangina/frontend:latest ./client
+
+      # Step 7: Push Frontend image
+      - name: Push Frontend image
+        run: |
+          docker push sureshnangina/frontend:latest
