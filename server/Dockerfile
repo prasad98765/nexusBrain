@@ -51,37 +51,78 @@
 
 #CMD ["python", "-m", "server.app"]
 # Stage 1: Build stage
+# FROM python:3.11-slim AS builder
+
+# WORKDIR /app
+
+# # Install build dependencies
+# RUN apt-get update && apt-get install -y gcc libpq-dev && rm -rf /var/lib/apt/lists/*
+
+# # Upgrade pip
+# RUN pip install --upgrade pip
+
+# # Copy only requirements first
+# COPY requirements.txt .
+
+# # Install dependencies into /install directory
+# RUN pip install --prefix=/install --no-cache-dir -r requirements.txt
+
+# # Copy backend code
+# COPY . .
+
+# # Stage 2: Final runtime image
+# FROM python:3.11-slim
+
+# WORKDIR /app
+
+# # Copy installed dependencies from builder
+# COPY --from=builder /install /usr/local
+
+# # Copy backend code
+# COPY --from=builder /app /app
+
+# EXPOSE 5000
+
+# # Set entrypoint
+# CMD ["python", "-m", "server.app"]
+
+
+
+# ===== STAGE 1: Builder =====
 FROM python:3.11-slim AS builder
 
+# Set working directory
 WORKDIR /app
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y gcc libpq-dev && rm -rf /var/lib/apt/lists/*
+# System dependencies for building Python packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential gcc && \
+    rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip
-RUN pip install --upgrade pip
-
-# Copy only requirements first
+# Copy dependency list first (for caching)
 COPY requirements.txt .
 
-# Install dependencies into /install directory
-RUN pip install --prefix=/install --no-cache-dir -r requirements.txt
+# Create a virtual environment and install dependencies there
+RUN python -m venv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 
-# Copy backend code
-COPY . .
-
-# Stage 2: Final runtime image
+# ===== STAGE 2: Runtime =====
 FROM python:3.11-slim
 
+# Set working directory
 WORKDIR /app
 
-# Copy installed dependencies from builder
-COPY --from=builder /install /usr/local
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
 
-# Copy backend code
-COPY --from=builder /app /app
+# Ensure venv is used by default
+ENV PATH="/opt/venv/bin:$PATH"
 
+# Copy only application source (not cache or build files)
+COPY . .
+
+# Expose Flask port
 EXPOSE 5000
 
-# Set entrypoint
-CMD ["python", "-m", "server.app"]
+# Run Flask app
+CMD ["python", "app.py"]

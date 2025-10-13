@@ -260,8 +260,8 @@ services:
       dockerfile: Dockerfile
     container_name: backend
     working_dir: /app
+    # Mount only shared data (not entire source in production)
     volumes:
-      - ./server:/app
       - ./shared:/app/shared
     env_file:
       - .env
@@ -271,7 +271,8 @@ services:
       - FLASK_ENV=development
       - PYTHONUNBUFFERED=1
       - DATABASE_URL=postgresql+psycopg2://sonar:sonar123@43.204.3.223:5432/postgres
-    command: python -m server.app
+    # Run directly app.py (not module path)
+    command: ["python", "app.py"]
     restart: unless-stopped
 
   frontend:
@@ -280,6 +281,7 @@ services:
       dockerfile: Dockerfile
     container_name: frontend
     working_dir: /app
+    # Mount only client for hot reload (optional)
     volumes:
       - ./client:/app
       - /app/node_modules
@@ -287,10 +289,11 @@ services:
       - "8080:80"
     environment:
       - NODE_ENV=production
-      - VITE_API_URL=http://localhost:5001
-    restart: unless-stopped
+      - VITE_API_URL=http://backend:5000
     depends_on:
       - backend
+    restart: unless-stopped
+
 
   # ----------------------------------
   # 🐘 PostgreSQL (Optional)
