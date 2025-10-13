@@ -26,22 +26,20 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Step 4: Build Backend image
-      - name: Build Backend image
+      # Step 4: Build and push Backend image (multi-arch)
+      - name: Build and Push Backend image
         run: |
-          docker build -t sureshnangina/backend:latest ./server
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -t sureshnangina/backend:latest \
+            --push \
+            ./server
 
-      # Step 5: Push Backend image
-      - name: Push Backend image
+      # Step 5: Build and push Frontend image (multi-arch)
+      - name: Build and Push Frontend image
         run: |
-          docker push sureshnangina/backend:latest
-
-      # Step 6: Build Frontend image
-      - name: Build Frontend image
-        run: |
-          docker build -t sureshnangina/frontend:latest ./client
-
-      # Step 7: Push Frontend image
-      - name: Push Frontend image
-        run: |
-          docker push sureshnangina/frontend:latest
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -t sureshnangina/frontend:latest \
+            --push \
+            ./client
