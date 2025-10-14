@@ -1,10 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-import { fileURLToPath } from "url";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [
@@ -20,19 +17,19 @@ export default defineConfig({
       : []),
   ],
   resolve: {
-    alias: {
+        alias: {
       "@": path.resolve(__dirname, "src"),
       "@shared": path.resolve(__dirname, "../shared"),
       "@assets": path.resolve(__dirname, "../attached_assets"),
     },
   },
-  root: ".",
+  root: path.resolve(import.meta.dirname),
   build: {
-    outDir: "../dist/public",
+    outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
   server: {
-    host: true, // Listen on all addresses
+    host: "0.0.0.0", // Listen on all addresses
     port: 5173,
     strictPort: true, // Fail if port is in use
     fs: {
@@ -41,9 +38,16 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://backend:5000',
-        changeOrigin: true
+        target: 'http://13.204.192.82:5001/',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
       }
-    }
+    },
+  },
+    // ✅ Also allow domain for preview builds
+  preview: {
+    host: "0.0.0.0",
+    port: 5173,
+    allowedHosts: ["nexusaihub.co.in", "www.nexusaihub.co.in", "localhost"],
   },
 });

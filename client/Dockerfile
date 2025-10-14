@@ -1,24 +1,28 @@
-# Stage 1: Build React app
-FROM node:20-alpine AS builder
+# ==========================
+# Frontend Node + Vite Dockerfile
+# ==========================
+FROM node:20-alpine
+
+# Set working directory inside container
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Copy only package files first (for caching npm install)
 COPY package*.json ./
-RUN npm install
 
-# Copy source code and build
+# Install dependencies
+RUN npm install --legacy-peer-deps
+
+# Copy all source files
 COPY . .
+
+# Ensure the correct root for Vite build
+ENV NODE_ENV=production
+
+# Build the Vite app
 RUN npm run build
 
-# Stage 2: Serve with Nginx
-FROM nginx:alpine
+# Expose Vite preview port
+EXPOSE 5173
 
-# Copy build output from builder stage
-# Adjusted to match Vite's outDir: ../dist/public
-COPY --from=builder /dist/public /usr/share/nginx/html
-
-# Expose port 80 for EC2 access
-EXPOSE 80
-
-# Start Nginx in foreground
-CMD ["nginx", "-g", "daemon off;"]
+# Start Vite preview server on 0.0.0.0:5173
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5173"]
