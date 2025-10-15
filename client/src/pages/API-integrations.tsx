@@ -392,10 +392,10 @@ export default function APIIntegrationsPage() {
                                     Active Token
                                 </Badge>
                                 <span className="font-medium">{existingToken.name}</span>
-                                <Badge variant={existingToken.cachingEnabled ? 'default' : 'secondary'} className="text-xs">
+                                {/* <Badge variant={existingToken.cachingEnabled ? 'default' : 'secondary'} className="text-xs">
                                     <Zap className="w-3 h-3 mr-1" />
                                     {existingToken.cachingEnabled ? 'Caching ON' : 'Caching OFF'}
-                                </Badge>
+                                </Badge> */}
                             </div>
                             <p className="text-sm text-slate-500">
                                 Created {new Date(existingToken.createdAt).toLocaleDateString()}

@@ -17,6 +17,7 @@ import LandingPage from "@/pages/landing-page";
 import QASection from "@/pages/qa-section";
 import LandingPageHub from "@/pages/landing-page-hub";
 import LandingPageEnhanced from "@/pages/landing-page-enhanced";
+import LandingNew from "@/pages/landing-new";
 import ChatbotPage from "@/pages/chatbot";
 import ContactPropertiesPage from "@/pages/settings/contact-properties-page";
 import ContactsPage from "@/components/contacts/ContactsTable"
@@ -82,7 +83,8 @@ function Router() {
   return (
     <Routes>
       {/* Static Landing Pages - Always accessible */}
-      <Route path="/landing-page" Component={LandingPageEnhanced} />
+      <Route path="/landing-page" Component={LandingNew} />
+      {/* <Route path="/landing-new" Component={LandingNew} /> */}
       {/* <Route path="/landing-page/hub" Component={LandingPageHub} /> */}
       <Route path="/About/AI" Component={AIPage} />
       <Route path="/About/langchain" Component={LangchainPage} />
@@ -100,7 +102,7 @@ function Router() {
         <Route index element={<Home />} />
       </Route>
       <Route path="/forgot-password" Component={ForgotPasswordPage} />
-      <Route path="/" Component={() => { window.location.href = '/auth'; return null; }} />
+      <Route path="/" Component={LandingPageEnhanced} />
 
       <>
         <Route path="/nexus" element={<Layout />} >
