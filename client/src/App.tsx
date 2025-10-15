@@ -102,7 +102,7 @@ function Router() {
         <Route index element={<Home />} />
       </Route>
       <Route path="/forgot-password" Component={ForgotPasswordPage} />
-      <Route path="/" Component={LandingPageEnhanced} />
+      <Route path="/" Component={LandingNew} />
 
       <>
         <Route path="/nexus" element={<Layout />} >
