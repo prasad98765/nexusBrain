@@ -90,7 +90,7 @@ export default function ChatBot() {
             const apiMessages = [
                 {
                     role: 'system',
-                    content: 'You are Nexus AI Assistant, a helpful AI assistant for the Nexus AI Hub platform. Provide clear, concise, and helpful responses. Use markdown formatting for better readability.'
+                    content: systemPrompt
                 },
                 ...messages
                     .filter(msg => msg.role !== 'system') // Exclude UI system messages
@@ -104,7 +104,7 @@ export default function ChatBot() {
                 }
             ];
 
-            const response = await fetch('http://127.0.0.1:5001/api/v1/chat/create', {
+            const response = await fetch('/api/v1/chat/create', {
                 method: 'POST',
                 headers: {
                     'authorization': 'Bearer nxs-aXkDVM7aAVNVuVcYa6FqoLDD98fHIwOF4VVX-tkcHgs',
