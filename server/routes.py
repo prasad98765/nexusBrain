@@ -81,7 +81,7 @@ def signup():
             password_hash=password_hash,
             verification_token=verification_token,
             auth_provider='local',
-            is_verified=False
+            is_verified=True
         )
         
         db.session.add(user)
@@ -106,10 +106,10 @@ def signup():
         db.session.commit()
         
         # Send verification email
-        send_verification_email(user.email, user.first_name, verification_token)
+        # send_verification_email(user.email, user.first_name, verification_token)
         
         return jsonify({
-            'message': 'Account created successfully! Please check your email to verify your account.',
+            'message': 'Account created successfully! Please log in to continue.',
             'user_id': user.id,
             'verification_required': True
         }), 201
@@ -212,7 +212,7 @@ def google_signup():
         token = generate_jwt_token(user.id, user.email, default_workspace.id)
         
         # Send welcome email
-        send_welcome_email(user.email, user.first_name)
+        # send_welcome_email(user.email, user.first_name)
         
         return jsonify({
             'message': 'Account created successfully!',
@@ -356,7 +356,7 @@ def verify_email(token):
         db.session.commit()
         
         # Send welcome email
-        send_welcome_email(user.email, user.first_name)
+        # send_welcome_email(user.email, user.first_name)
         frontend_host = os.getenv("FRONTEND_HOST", "http://localhost:5174/")
         return render_template('email_verified.html', frontend_host=frontend_host)
         
@@ -387,7 +387,7 @@ def resend_verification():
         db.session.commit()
         
         # Send verification email
-        send_verification_email(user.email, user.first_name, user.verification_token)
+        # send_verification_email(user.email, user.first_name, user.verification_token)
         
         return jsonify({'message': 'Verification email sent successfully'}), 200
         

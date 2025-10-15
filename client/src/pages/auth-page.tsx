@@ -257,7 +257,7 @@ export default function AuthPage() {
                 </AlertDescription>
               </Alert>
             )}
-
+{/* 
             {verificationRequired && (
               <Card className="mb-4 border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950">
                 <CardContent className="pt-4">
@@ -280,7 +280,7 @@ export default function AuthPage() {
                   </div>
                 </CardContent>
               </Card>
-            )}
+            )} */}
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-4" style={{ border: "1px solid #374151" }}>
