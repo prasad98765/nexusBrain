@@ -283,7 +283,7 @@ export default function APIIntegrationsPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="space-y-4">
+                    {/* <div className="space-y-4">
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
                                 <div className="space-y-1">
@@ -350,7 +350,7 @@ export default function APIIntegrationsPage() {
                                 </div>
                             )}
                         </div>
-                    </div>
+                    </div> */}
 
                     <div className="pt-4">
                         <Button
