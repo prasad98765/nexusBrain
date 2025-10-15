@@ -50,7 +50,9 @@ def webbot_chat():
             'messages': messages,
             'stream': data.get('stream', True),  # Enable streaming by default
             'max_tokens': data.get('max_tokens', 1000),
-            'temperature': data.get('temperature', 0.7)
+            'temperature': data.get('temperature', 0.4),
+            'is_cached': data.get('is_cached', False),
+            'cache_threshold': data.get('cache_threshold', 0.5)
         }
         
         # Make internal request to /api/v1/chat/create
