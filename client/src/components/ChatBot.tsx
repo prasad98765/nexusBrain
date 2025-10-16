@@ -236,7 +236,7 @@ export default function ChatBot() {
 
             {/* Chat Window */}
             {isOpen && (
-                <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-2rem)] sm:w-[410px] max-w-[95vw] h-[calc(100vh-2rem)] sm:h-[600px] max-h-[77vh] z-50 animate-fade-in-scale">
+                <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-2rem)] sm:w-[410px] max-w-[95vw] h-[calc(100vh-2rem)] sm:h-[600px] max-h-[82vh] z-50 animate-fade-in-scale">
                     <Card className="h-full flex flex-col bg-slate-900/95 backdrop-blur-xl border-slate-700/50 shadow-2xl">
                         {/* Header */}
                         <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-4 border-b border-slate-700/50 bg-gradient-to-r from-indigo-500/10 to-purple-500/10">
