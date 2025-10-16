@@ -375,43 +375,44 @@ export default function ApiTesting() {
     <div className="min-h-screen bg-slate-950 text-slate-100">
       {/* Header */}
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => window.location.href = '/docs/api-reference'}
-                className="text-slate-400 hover:text-slate-200"
+                className="text-slate-400 hover:text-slate-200 text-xs sm:text-sm flex-shrink-0"
                 data-testid="back-to-docs"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Docs
+                <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Back to Docs</span>
+                <span className="sm:hidden">Back</span>
               </Button>
-              <div className="w-px h-6 bg-slate-700" />
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">⚡</span>
+              <div className="w-px h-4 sm:h-6 bg-slate-700 hidden sm:block" />
+              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-bold text-xs sm:text-sm">⚡</span>
                 </div>
-                <div>
-                  <h1 className="text-xl font-bold">Nexus AI Hub API Explorer</h1>
-                  <p className="text-slate-400 text-sm">Interactive API Testing</p>
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-sm sm:text-xl font-bold truncate">Nexus AI Hub API Explorer</h1>
+                  <p className="text-slate-400 text-[10px] sm:text-sm hidden sm:block truncate">Interactive API Testing</p>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm" className="border-slate-700 text-slate-300" data-testid="view-docs">
-                <BookOpen className="w-4 h-4 mr-2" />
-                View in API Reference
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" className="border-slate-700 text-slate-300 text-xs sm:text-sm px-2 sm:px-3" data-testid="view-docs">
+                <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                <span className="hidden sm:inline">View in API Reference</span>
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto flex h-[calc(100vh-73px)]">
+      <div className="mx-auto flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-73px)]">
         {/* Left Sidebar - API List */}
-        <aside className="w-64 border-r border-slate-800 bg-slate-900/30 overflow-y-auto">
+        <aside className="w-full lg:w-64 border-b lg:border-b-0 lg:border-r border-slate-800 bg-slate-900/30 overflow-y-auto max-h-[400px] lg:max-h-none">
           <div className="p-4">
             <div className="mb-4">
               <div className="flex items-center gap-2 mb-2">
@@ -491,9 +492,9 @@ export default function ApiTesting() {
 
         {/* Middle Section - Body Parameters */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
-            <div className="mb-6">
-              <div className="flex items-center gap-3 mb-2">
+          <div className="p-4 sm:p-6">
+            <div className="mb-4 sm:mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
                 <Badge className={`${selectedEndpointData?.method === 'POST' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
                   selectedEndpointData?.method === 'GET' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
                     'bg-gray-500/20 text-gray-400 border-gray-500/30'
@@ -504,13 +505,13 @@ export default function ApiTesting() {
                   {selectedEndpointData?.path}
                 </code>
               </div>
-              <h1 className="text-2xl font-bold mb-2">{selectedEndpointData?.name}</h1>
-              <p className="text-slate-400">{selectedEndpointData?.description}</p>
+              <h1 className="text-xl sm:text-2xl font-bold mb-2">{selectedEndpointData?.name}</h1>
+              <p className="text-sm sm:text-base text-slate-400">{selectedEndpointData?.description}</p>
             </div>
 
             {/* Body Parameters Form */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Body Parameters</h3>
+              <h3 className="text-base sm:text-lg font-semibold mb-4">Body Parameters</h3>
 
               {selectedEndpoint === 'completion' && (
                 <div className="space-y-4">
@@ -545,7 +546,7 @@ export default function ApiTesting() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-medium mb-2 block">max_tokens</Label>
                       <Input
@@ -658,7 +659,7 @@ export default function ApiTesting() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-medium mb-2 block">max_tokens</Label>
                       <Input
@@ -698,20 +699,20 @@ export default function ApiTesting() {
         </div>
 
         {/* Right Section - Send Request */}
-        <div className="w-96 border-l border-slate-800 bg-slate-900/30 overflow-y-auto">
-          <div className="p-6 space-y-6">
+        <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-slate-800 bg-slate-900/30 overflow-y-auto">
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
             <div>
-              <h3 className="text-lg font-semibold mb-4">REQUEST</h3>
+              <h3 className="text-base sm:text-lg font-semibold mb-4">REQUEST</h3>
 
               <div className="space-y-4">
                 {/* Tabs */}
-                <div className="border-b border-slate-700">
-                  <div className="flex space-x-2">
+                <div className="border-b border-slate-700 overflow-x-auto">
+                  <div className="flex space-x-2 min-w-max">
                     {(['cURL', 'TypeScript', 'Python'] as const).map((tab) => (
                       <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === tab
+                        className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === tab
                           ? 'text-indigo-400 border-b-2 border-indigo-400'
                           : 'text-slate-400 hover:text-slate-300'
                           }`}
@@ -804,7 +805,7 @@ except requests.exceptions.RequestException as e:
                       Copy Code
                     </Button>
                   </div>
-                  <div className="bg-slate-900 rounded-lg p-4 font-mono text-xs overflow-x-auto">
+                  <div className="bg-slate-900 rounded-lg p-3 sm:p-4 font-mono text-[10px] sm:text-xs overflow-x-auto">
                     <pre className="text-slate-300 whitespace-pre-wrap">
                       {activeTab === 'cURL' ?
                         `curl -X ${selectedEndpointData?.method} \\
@@ -903,8 +904,8 @@ except requests.exceptions.RequestException as e:
             {/* Response Section */}
             {apiResponse && (
               <div>
-                <h3 className="text-lg font-semibold mb-4">RESPONSE</h3>
-                <div className="bg-slate-900 rounded-lg p-4 font-mono text-xs">
+                <h3 className="text-base sm:text-lg font-semibold mb-4">RESPONSE</h3>
+                <div className="bg-slate-900 rounded-lg p-3 sm:p-4 font-mono text-[10px] sm:text-xs">
                   <div className="flex items-center gap-2 mb-3">
                     <Badge className={`${apiResponse.error ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-green-500/20 text-green-400 border-green-500/30'}`}>
                       {apiResponse.error ? apiResponse.error.code : '200'}

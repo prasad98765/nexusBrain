@@ -26,6 +26,7 @@ import {
   TrendingUp,
   Database
 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Model {
   id: string;
@@ -64,6 +65,7 @@ export default function ApiDocumentation() {
   const [selectedProvider, setSelectedProvider] = useState('all');
   const [costSort, setCostSort] = useState('none');
   const [showPopular, setShowPopular] = useState(false);
+  const isMobile = useIsMobile()
 
   const handleTryIt = () => {
     // Navigate to the API testing route
@@ -212,41 +214,41 @@ export default function ApiDocumentation() {
     <div className="min-h-screen bg-slate-950 text-slate-100">
       {/* Header */}
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">⚡</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">Nexus AI Hub</h1>
-                <p className="text-slate-400 text-sm">API Reference</p>
+        <div className="mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+              {isMobile ? <></> : <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold text-xs sm:text-sm">⚡</span>
+              </div>}
+              <div className="flex-1 min-w-0">
+                <h1 className="text-base sm:text-xl font-bold truncate">Nexus AI Hub</h1>
+                <p className="text-slate-400 text-xs sm:text-sm truncate">API Reference</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <Popover open={isLlmDetailsOpen} onOpenChange={setIsLlmDetailsOpen}>
                 <PopoverTrigger asChild>
-                  <Button
+                  {!isMobile ? <Button
                     variant="outline"
                     size="sm"
-                    className="border-slate-700 text-slate-300"
+                    className="border-slate-700 text-slate-300 text-xs sm:text-sm px-2 sm:px-3"
                     data-testid="button-llm-details"
                   >
-                    <Layers className="w-4 h-4 mr-2" />
-                    LLM Details
-                  </Button>
+                    <Layers className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">LLM Details</span>
+                  </Button> : <></>}
                 </PopoverTrigger>
-                <PopoverContent className="w-[1200px] h-[700px] bg-slate-900 border-slate-700" align="end">
+                <PopoverContent className="w-[95vw] sm:w-[1200px] h-[80vh] sm:h-[700px] bg-slate-900 border-slate-700" align="end">
                   <div className="space-y-4 h-full">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-slate-100">Available Models & Providers</h3>
-                      <div className="text-sm text-slate-400">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+                      <h3 className="text-base sm:text-lg font-semibold text-slate-100">Available Models & Providers</h3>
+                      <div className="text-xs sm:text-sm text-slate-400">
                         {sortedModels.length} models from {Object.keys(modelsByProvider).length} providers
                       </div>
                     </div>
 
                     {/* Filters */}
-                    <div className="grid grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                       <div className="relative">
                         <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                         <Input
@@ -459,46 +461,47 @@ export default function ApiDocumentation() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-slate-700 text-slate-300"
+                className="border-slate-700 text-slate-300 text-xs sm:text-sm px-2 sm:px-3"
                 data-testid="button-dashboard"
-                onClick={() => window.open('https://nexusaihub.com/nexus/api-integrations', '_blank')}
+                onClick={() => window.open('https://nexusaihub.co.in/nexus/api-integrations', '_blank')}
               >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Dashboard
+                <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Dashboard</span>
               </Button>
               <Button
                 size="sm"
-                className="bg-gradient-to-r from-indigo-500 to-purple-600"
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-xs sm:text-sm px-2 sm:px-3"
                 data-testid="button-get-api-key"
                 onClick={handleTryIt}
 
               >
-                <Play className="w-4 h-4 mr-2" />
-                Try It Live
+                <Play className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Try It Live</span>
+                <span className="sm:hidden">Try</span>
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto flex">
+      <div className="mx-auto flex flex-col lg:flex-row">
         {/* Sidebar */}
-        <aside className="w-64 border-r border-slate-800 bg-slate-900/30 min-h-screen sticky top-16">
-          <div className="p-6">
+        <aside className="w-full lg:w-64 border-b lg:border-b-0 lg:border-r border-slate-800 bg-slate-900/30 lg:min-h-screen lg:sticky lg:top-16 overflow-y-auto">
+          <div className="p-4 sm:p-6">
             <nav className="space-y-2">
               {sidebarItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => setActiveEndpoint(item.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${activeEndpoint === item.id
+                  className={`w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 rounded-lg text-left transition-colors text-sm sm:text-base ${activeEndpoint === item.id
                     ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                     }`}
                   data-testid={`nav-${item.id}`}
                 >
-                  <item.icon className="w-4 h-4" />
-                  {item.label}
-                  {activeEndpoint === item.id && <ChevronRight className="w-4 h-4 ml-auto" />}
+                  <item.icon className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="text-sm sm:text-base">{item.label}</span>
+                  {activeEndpoint === item.id && <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-auto" />}
                 </button>
               ))}
             </nav>
@@ -506,14 +509,14 @@ export default function ApiDocumentation() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 flex">
+        <main className="flex-1 flex flex-col lg:flex-row">
           {/* Documentation Content */}
-          <div className="flex-1 p-8">
+          <div className="flex-1 p-4 sm:p-6 lg:p-8">
             {activeEndpoint === 'overview' && (
               <div className="space-y-8">
                 <div>
-                  <h1 className="text-3xl font-bold mb-4">API Reference</h1>
-                  <p className="text-slate-300 text-lg leading-relaxed">
+                  <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">API Reference</h1>
+                  <p className="text-slate-300 text-base sm:text-lg leading-relaxed">
                     An overview of Nexus AI Hub's API. Nexus AI Hub's request and response schemas are very similar to the OpenAI Chat API, with a few small differences. At a high level, Nexus AI Hub normalizes the schema across models and providers so you only need to learn one.
                   </p>
                 </div>
@@ -560,8 +563,8 @@ export default function ApiDocumentation() {
             {activeEndpoint === 'authentication' && (
               <div className="space-y-8">
                 <div>
-                  <h1 className="text-3xl font-bold mb-4">Authentication</h1>
-                  <p className="text-slate-300 text-lg leading-relaxed">
+                  <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Authentication</h1>
+                  <p className="text-slate-300 text-base sm:text-lg leading-relaxed">
                     Nexus AI Hub API uses Bearer token authentication. Include your API key in the Authorization header.
                   </p>
                 </div>
@@ -582,10 +585,10 @@ export default function ApiDocumentation() {
             {activeEndpoint === 'completions' && (
               <div className="space-y-8">
                 <div>
-                  <h1 className="text-3xl font-bold mb-4">Completions</h1>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">POST</Badge>
-                    <code className="text-slate-300 bg-slate-800 px-3 py-1 rounded font-mono text-sm">
+                  <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Completions</h1>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3 sm:mb-4">
+                    <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30 w-fit">POST</Badge>
+                    <code className="text-slate-300 bg-slate-800 px-2 sm:px-3 py-1 rounded font-mono text-xs sm:text-sm break-all">
                       https://nexusai.hub/api/v1/create
                     </code>
                   </div>
@@ -596,36 +599,38 @@ export default function ApiDocumentation() {
 
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-xl font-semibold mb-4">Parameters</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse border border-slate-700">
-                        <thead>
-                          <tr className="bg-slate-800/50">
-                            <th className="border border-slate-700 px-4 py-3 text-left font-medium">Parameter</th>
-                            <th className="border border-slate-700 px-4 py-3 text-left font-medium">Purpose</th>
-                            <th className="border border-slate-700 px-4 py-3 text-left font-medium">Required</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {completionsParams.map((param, index) => (
-                            <tr key={index} className="hover:bg-slate-800/30">
-                              <td className="border border-slate-700 px-4 py-3">
-                                <code className="text-indigo-400 bg-slate-900 px-2 py-1 rounded font-mono text-sm">
-                                  {param.param}
-                                </code>
-                              </td>
-                              <td className="border border-slate-700 px-4 py-3 text-slate-300">{param.purpose}</td>
-                              <td className="border border-slate-700 px-4 py-3">
-                                {param.required ? (
-                                  <Badge variant="destructive" className="bg-red-500/20 text-red-400 border-red-500/30">Required</Badge>
-                                ) : (
-                                  <Badge variant="secondary" className="bg-slate-500/20 text-slate-400 border-slate-500/30">Optional</Badge>
-                                )}
-                              </td>
+                    <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Parameters</h3>
+                    <div className="overflow-x-auto -mx-4 sm:mx-0">
+                      <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+                        <table className="w-full border-collapse border border-slate-700 text-sm">
+                          <thead>
+                            <tr className="bg-slate-800/50">
+                              <th className="border border-slate-700 px-3 sm:px-4 py-2 sm:py-3 text-left font-medium text-xs sm:text-sm">Parameter</th>
+                              <th className="border border-slate-700 px-3 sm:px-4 py-2 sm:py-3 text-left font-medium text-xs sm:text-sm">Purpose</th>
+                              <th className="border border-slate-700 px-3 sm:px-4 py-2 sm:py-3 text-left font-medium text-xs sm:text-sm">Required</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {completionsParams.map((param, index) => (
+                              <tr key={index} className="hover:bg-slate-800/30">
+                                <td className="border border-slate-700 px-3 sm:px-4 py-2 sm:py-3">
+                                  <code className="text-indigo-400 bg-slate-900 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded font-mono text-xs sm:text-sm break-all">
+                                    {param.param}
+                                  </code>
+                                </td>
+                                <td className="border border-slate-700 px-3 sm:px-4 py-2 sm:py-3 text-slate-300 text-xs sm:text-sm">{param.purpose}</td>
+                                <td className="border border-slate-700 px-3 sm:px-4 py-2 sm:py-3">
+                                  {param.required ? (
+                                    <Badge variant="destructive" className="bg-red-500/20 text-red-400 border-red-500/30">Required</Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="bg-slate-500/20 text-slate-400 border-slate-500/30">Optional</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -635,10 +640,10 @@ export default function ApiDocumentation() {
             {activeEndpoint === 'chat' && (
               <div className="space-y-8">
                 <div>
-                  <h1 className="text-3xl font-bold mb-4">Chat Completions</h1>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">POST</Badge>
-                    <code className="text-slate-300 bg-slate-800 px-3 py-1 rounded font-mono text-sm">
+                  <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Chat Completions</h1>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3 sm:mb-4">
+                    <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30 w-fit">POST</Badge>
+                    <code className="text-slate-300 bg-slate-800 px-2 sm:px-3 py-1 rounded font-mono text-xs sm:text-sm break-all">
                       https://nexusai.hub/api/v1/chat/create
                     </code>
                   </div>
@@ -649,36 +654,38 @@ export default function ApiDocumentation() {
 
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-xl font-semibold mb-4">Parameters</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse border border-slate-700">
-                        <thead>
-                          <tr className="bg-slate-800/50">
-                            <th className="border border-slate-700 px-4 py-3 text-left font-medium">Parameter</th>
-                            <th className="border border-slate-700 px-4 py-3 text-left font-medium">What It Does</th>
-                            <th className="border border-slate-700 px-4 py-3 text-left font-medium">Required</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {chatParams.map((param, index) => (
-                            <tr key={index} className="hover:bg-slate-800/30">
-                              <td className="border border-slate-700 px-4 py-3">
-                                <code className="text-indigo-400 bg-slate-900 px-2 py-1 rounded font-mono text-sm">
-                                  {param.param}
-                                </code>
-                              </td>
-                              <td className="border border-slate-700 px-4 py-3 text-slate-300">{param.purpose}</td>
-                              <td className="border border-slate-700 px-4 py-3">
-                                {param.required ? (
-                                  <Badge variant="destructive" className="bg-red-500/20 text-red-400 border-red-500/30">Required</Badge>
-                                ) : (
-                                  <Badge variant="secondary" className="bg-slate-500/20 text-slate-400 border-slate-500/30">Optional</Badge>
-                                )}
-                              </td>
+                    <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Parameters</h3>
+                    <div className="overflow-x-auto -mx-4 sm:mx-0">
+                      <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+                        <table className="w-full border-collapse border border-slate-700 text-sm">
+                          <thead>
+                            <tr className="bg-slate-800/50">
+                              <th className="border border-slate-700 px-4 py-3 text-left font-medium">Parameter</th>
+                              <th className="border border-slate-700 px-4 py-3 text-left font-medium">What It Does</th>
+                              <th className="border border-slate-700 px-4 py-3 text-left font-medium">Required</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {chatParams.map((param, index) => (
+                              <tr key={index} className="hover:bg-slate-800/30">
+                                <td className="border border-slate-700 px-3 sm:px-4 py-2 sm:py-3">
+                                  <code className="text-indigo-400 bg-slate-900 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded font-mono text-xs sm:text-sm break-all">
+                                    {param.param}
+                                  </code>
+                                </td>
+                                <td className="border border-slate-700 px-3 sm:px-4 py-2 sm:py-3 text-slate-300 text-xs sm:text-sm">{param.purpose}</td>
+                                <td className="border border-slate-700 px-3 sm:px-4 py-2 sm:py-3">
+                                  {param.required ? (
+                                    <Badge variant="destructive" className="bg-red-500/20 text-red-400 border-red-500/30">Required</Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="bg-slate-500/20 text-slate-400 border-slate-500/30">Optional</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -688,8 +695,8 @@ export default function ApiDocumentation() {
             {activeEndpoint === 'streaming' && (
               <div className="space-y-8">
                 <div>
-                  <h1 className="text-3xl font-bold mb-4">Streaming</h1>
-                  <p className="text-slate-300 text-lg leading-relaxed">
+                  <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Streaming</h1>
+                  <p className="text-slate-300 text-sm sm:text-lg leading-relaxed">
                     Enable real-time streaming responses by setting the "stream" parameter to true. Perfect for chat interfaces and live applications.
                   </p>
                 </div>
@@ -715,8 +722,8 @@ export default function ApiDocumentation() {
             {activeEndpoint === 'caching' && (
               <div className="space-y-8">
                 <div>
-                  <h1 className="text-3xl font-bold mb-4">Response Caching</h1>
-                  <p className="text-slate-300 text-lg leading-relaxed">
+                  <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Response Caching</h1>
+                  <p className="text-slate-300 text-sm sm:text-lg leading-relaxed">
                     Nexus AI Hub provides two types of response caching to optimize performance and reduce costs: Exact Caching and Semantic Caching.
                   </p>
                 </div>
@@ -786,8 +793,8 @@ export default function ApiDocumentation() {
             {activeEndpoint === 'errors' && (
               <div className="space-y-8">
                 <div>
-                  <h1 className="text-3xl font-bold mb-4">Error Responses</h1>
-                  <p className="text-slate-300 text-lg leading-relaxed">
+                  <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Error Responses</h1>
+                  <p className="text-slate-300 text-sm sm:text-lg leading-relaxed">
                     For errors, Nexus AI Hub returns a JSON response with the following shape:
                   </p>
                 </div>
@@ -1011,11 +1018,11 @@ console.error(response.error?.message);`}
           </div>
 
           {/* Right Panel - Simple Code Examples */}
-          <div className="w-96 border-l border-slate-800 bg-slate-900/30 p-6 sticky top-16 h-screen overflow-y-auto">
-            <div className="space-y-6">
+          <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-slate-800 bg-slate-900/30 p-4 sm:p-6 lg:sticky lg:top-16 h-auto lg:h-screen overflow-y-auto">
+            <div className="space-y-4 sm:space-y-6">
               <div>
-                <h3 className="text-lg font-semibold mb-4">Example Request</h3>
-                <div className="bg-slate-900 rounded-lg p-4 font-mono text-xs overflow-x-auto">
+                <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Example Request</h3>
+                <div className="bg-slate-900 rounded-lg p-3 sm:p-4 font-mono text-[10px] sm:text-xs overflow-x-auto">
                   <pre className="text-slate-300 whitespace-pre-wrap">
                     {activeEndpoint === 'chat' ?
                       `{
@@ -1050,8 +1057,8 @@ console.error(response.error?.message);`}
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold mb-4">Example Response</h3>
-                <div className="bg-slate-900 rounded-lg p-4 font-mono text-xs">
+                <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Example Response</h3>
+                <div className="bg-slate-900 rounded-lg p-3 sm:p-4 font-mono text-[10px] sm:text-xs">
                   <div className="flex items-center gap-2 mb-3">
                     <Badge className="bg-green-500/20 text-green-400 border-green-500/30">200</Badge>
                     <span className="text-slate-400">Successful</span>
