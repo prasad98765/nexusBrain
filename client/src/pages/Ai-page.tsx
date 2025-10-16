@@ -46,11 +46,11 @@ export default function Home() {
       <header className="w-full bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3" onClick={() => handleNav('/')} style={{ cursor: 'pointer' }}>
+            <div className="flex items-center gap-3" >
               <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center animate-pulse">
                 <span className="text-white font-bold text-sm">⚡</span>
               </div>
-              <span style={{margin:!isMobile ? "" :  "18px 14px 13px"}} className="text-lg sm:text-xl font-bold text-slate-100">Nexus AI Hub</span>
+              <span onClick={() => handleNav('/')} style={{margin:!isMobile ? "" :  "18px 14px 13px",cursor: 'pointer'}} className="text-lg sm:text-xl font-bold text-slate-100">Nexus AI Hub</span>
             </div>
 
             <div className="flex items-center gap-4">
@@ -327,52 +327,113 @@ export default function Home() {
             <Card id="ai-search" className="mb-12 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-2 border-purple-500/50 hover:shadow-2xl transition-all duration-300">
               <CardHeader>
                 <div className="text-center space-y-4 mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto">
-                    <Globe className="h-8 w-8 text-white" />
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto">
+                    <Globe className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                   </div>
-                  <h3 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  <h3 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent px-4">
                     What is an AI Search Engine?
                   </h3>
                 </div>
               </CardHeader>
-              <CardContent className="p-8">
-                <div className="grid lg:grid-cols-2 gap-8">
-                  <div>
-                    <p className="text-slate-300 mb-6 leading-relaxed">
+              <CardContent className="p-4 sm:p-6 lg:p-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+                  <div className="order-2 lg:order-1">
+                    <p className="text-slate-300 mb-4 sm:mb-6 leading-relaxed text-sm sm:text-base">
                       Unlike traditional keyword-based search, AI Search Engines leverage LLM context to understand intent and deliver semantic, personalized results.
                     </p>
-                    <div className="space-y-4 mb-6">
+                    
+                    {/* Features List */}
+                    <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                          <Target className="w-4 h-4 text-purple-400" />
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Target className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
                         </div>
-                        <span className="text-slate-300">Semantic search understanding</span>
+                        <span className="text-slate-300 text-sm sm:text-base">Semantic search understanding</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-pink-500/20 rounded-lg flex items-center justify-center">
-                          <Code className="w-4 h-4 text-pink-400" />
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-pink-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Code className="w-3 h-3 sm:w-4 sm:h-4 text-pink-400" />
                         </div>
-                        <span className="text-slate-300">Custom UI with CSS styling</span>
+                        <span className="text-slate-300 text-sm sm:text-base">Custom UI with CSS styling</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                          <TrendingUp className="w-4 h-4 text-blue-400" />
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400" />
                         </div>
-                        <span className="text-slate-300">Personalized result ranking</span>
+                        <span className="text-slate-300 text-sm sm:text-base">Personalized result ranking</span>
                       </div>
                     </div>
-                    <Card className="bg-slate-800/50 border-slate-700 p-4">
-                      <h4 className="text-purple-400 mb-2 font-semibold">Sample CSS Customization:</h4>
-                      <pre className="text-sm text-slate-300 overflow-x-auto bg-slate-900/50 p-3 rounded"><code>{`.search-results {
+                    
+                    {/* CSS Code Sample */}
+                    <Card className="bg-slate-800/50 border-slate-700 p-3 sm:p-4">
+                      <h4 className="text-purple-400 mb-2 font-semibold text-sm sm:text-base">Sample CSS Customization:</h4>
+                      <div className="relative">
+                        <pre className="text-xs sm:text-sm text-slate-300 overflow-x-auto bg-slate-900/50 p-2 sm:p-3 rounded">
+                          <code>{`.search-results {
   background: linear-gradient(135deg, #1a1b23, #2a2d34);
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
-}`}</code></pre>
+}`}</code>
+                        </pre>
+                        {/* Mobile scroll indicator */}
+                        <div className="sm:hidden absolute right-2 top-2 text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded">
+                          Scroll →
+                        </div>
+                      </div>
                     </Card>
                   </div>
-                  <div>
-                    <FlowDiagram steps={["Search Box", "LLM", "Results"]} />
+                  
+                  {/* Flow Diagram */}
+                  <div className="order-1 lg:order-2 flex items-center justify-center">
+                    <div className="w-full max-w-md lg:max-w-none">
+                      <FlowDiagram steps={["Search Box", "LLM", "Results"]} />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Mobile-specific additional info */}
+                <div className="mt-6 sm:hidden">
+                  <Card className="bg-gradient-to-r from-purple-500/5 to-pink-500/5 border-purple-500/20 p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="h-4 w-4 text-purple-400" />
+                      <span className="text-purple-400 font-semibold text-sm">Key Benefits</span>
+                    </div>
+                    <div className="space-y-2 text-xs text-slate-300">
+                      <div>• Understands natural language queries</div>
+                      <div>• Provides contextual, relevant results</div>
+                      <div>• Learns from user interactions</div>
+                      <div>• Customizable interface and styling</div>
+                    </div>
+                  </Card>
+                </div>
+                
+                {/* Desktop-specific expanded content */}
+                <div className="hidden lg:block mt-8">
+                  <div className="grid grid-cols-3 gap-6">
+                    <Card className="bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/20 p-4">
+                      <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center mb-3">
+                        <Database className="h-5 w-5 text-purple-400" />
+                      </div>
+                      <h5 className="font-semibold text-white mb-2">Vector Search</h5>
+                      <p className="text-slate-400 text-sm">Semantic similarity matching using embeddings</p>
+                    </Card>
+                    
+                    <Card className="bg-gradient-to-br from-pink-500/10 to-transparent border-pink-500/20 p-4">
+                      <div className="w-10 h-10 bg-pink-500/20 rounded-lg flex items-center justify-center mb-3">
+                        <Activity className="h-5 w-5 text-pink-400" />
+                      </div>
+                      <h5 className="font-semibold text-white mb-2">Real-time Processing</h5>
+                      <p className="text-slate-400 text-sm">Instant query understanding and response generation</p>
+                    </Card>
+                    
+                    <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/20 p-4">
+                      <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center mb-3">
+                        <Settings className="h-5 w-5 text-blue-400" />
+                      </div>
+                      <h5 className="font-semibold text-white mb-2">Customizable</h5>
+                      <p className="text-slate-400 text-sm">Tailor search behavior and UI to your needs</p>
+                    </Card>
                   </div>
                 </div>
               </CardContent>

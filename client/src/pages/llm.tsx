@@ -51,11 +51,11 @@ export default function LLM() {
             <header className="w-full bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6">
                     <div className="flex justify-between items-center h-16">
-                        <div className="flex items-center gap-3" onClick={() => handleNav('/')} style={{ cursor: 'pointer' }}>
+                        <div className="flex items-center gap-3" >
                             <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center animate-pulse">
                                 <span className="text-white font-bold text-sm">⚡</span>
                             </div>
-                            <span style={{margin:!isMobile ? "" :  "18px 14px 13px"}} className="text-lg sm:text-xl font-bold text-slate-100">Nexus AI Hub</span>
+                            <span onClick={() => handleNav('/')} style={{margin:!isMobile ? "" :  "18px 14px 13px",cursor: 'pointer'}}className="text-lg sm:text-xl font-bold text-slate-100">Nexus AI Hub</span>
                         </div>
 
                         <div className="flex items-center gap-4">
