@@ -50,7 +50,7 @@ const HeroSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
             </div>
 
             <div className="max-w-6xl mx-auto text-center space-y-8 z-10">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/30 rounded-full mb-6">
+                <div style={{ marginTop: isMobile ? '1rem' : '' }} className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/30 rounded-full mb-6">
                     <Sparkles className="h-4 w-4 text-yellow-400" />
                     <span className="text-sm text-indigo-300">AI-Powered Developer Platform</span>
                 </div>
