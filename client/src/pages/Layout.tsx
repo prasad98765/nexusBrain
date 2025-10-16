@@ -48,7 +48,7 @@ export default function Layout() {
       {/* Top Bar */}
       <header className="w-full bg-slate-800/90 backdrop-blur-sm border-b border-slate-700">
         <div className="w-full px-6 flex justify-between items-center h-16">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3" onClick={() => navigate("/")} style={{ cursor: 'pointer' }}>
             <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">⚡</span>
             </div>
@@ -83,12 +83,12 @@ export default function Layout() {
             </Button>
           </div>
         </div>
-      </header>
+      </header >
 
       {/* Layout body */}
-      <div className="flex h-[calc(100vh-4rem)]">
+      < div className="flex h-[calc(100vh-4rem)]" >
         {/* Sidebar */}
-        <aside className="w-16 bg-slate-800/50 border-r border-slate-700 h-full flex flex-col items-center py-6 gap-6">
+        < aside className="w-16 bg-slate-800/50 border-r border-slate-700 h-full flex flex-col items-center py-6 gap-6" >
           <button
             className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${active === "dashboard" ? "bg-slate-700" : ""
               }`}
@@ -187,16 +187,17 @@ export default function Layout() {
               <User className="h-5 w-5 text-slate-400 group-hover:text-slate-200" />
             </button> */}
           </div>
-        </aside>
+        </aside >
 
         {/* Main Content */}
-        <main className="flex-1 px-8 py-6 overflow-y-auto h-full">
+        < main className="flex-1 px-8 py-6 overflow-y-auto h-full" >
           <Outlet />
-        </main>
-      </div>
+        </main >
+      </div >
 
       {/* Web Bot Chat Window */}
-      <WebBotChat isOpen={isBotOpen} onClose={() => setIsBotOpen(false)} />
+      < WebBotChat isOpen={isBotOpen} onClose={() => setIsBotOpen(false)
+      } />
 
       {/* Add Balance Modal */}
       <Dialog open={isBalanceModalOpen} onOpenChange={setIsBalanceModalOpen}>
@@ -228,6 +229,6 @@ export default function Layout() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 }

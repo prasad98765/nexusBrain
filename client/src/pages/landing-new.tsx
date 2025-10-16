@@ -12,7 +12,8 @@ import {
     ChevronLeft, ChevronRight, Settings, BarChart3, Code2, Layers, MessageCircle, Contact,
     Shield,
     Target,
-    TrendingUp
+    TrendingUp,
+    ExternalLink
 } from 'lucide-react';
 import '../styles/landing-animations.css';
 import ChatBot from '@/components/ChatBot';
@@ -345,6 +346,25 @@ export default function LandingNew() {
                         </nav>
 
                         <div className="flex items-center gap-4">
+                            {!isMobile ? <Button
+                                variant="outline"
+                                onClick={() => window.open('/docs/api-reference', '_blank')}
+                                data-testid="view-docs"
+                                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 px-6"
+
+                            >
+                                <ExternalLink className="w-4 h-4 mr-2" />
+                                View Docs
+                            </Button> : <Button
+                                variant="outline"
+                                onClick={() => window.open('/docs/api-reference', '_blank')}
+                                data-testid="view-docs"
+                                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 px-6"
+                                style={{ width: '51px', background: 'transparent' }}
+
+                            >
+                                <ExternalLink className="w-4 h-4 mr-2" />
+                            </Button>}
                             {!isMobile && <Button
                                 onClick={handleGetStarted}
                                 className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 px-6"
