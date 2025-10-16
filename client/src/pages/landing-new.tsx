@@ -16,13 +16,14 @@ import {
 } from 'lucide-react';
 import '../styles/landing-animations.css';
 import ChatBot from '@/components/ChatBot';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Modular Components
 const HeroSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
     const [typedText, setTypedText] = useState('');
     const [typeIndex, setTypeIndex] = useState(0);
     const heroText = "Connect. Build. Scale. With AI.";
-
+    const isMobile = useIsMobile()
     useEffect(() => {
         if (typeIndex < heroText.length) {
             const timeout = setTimeout(() => {
@@ -34,7 +35,7 @@ const HeroSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
     }, [typeIndex]);
 
     return (
-        <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 py-20 overflow-hidden">
+        <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 py-15 overflow-hidden">
             {/* Animated Neural Network Background */}
             <div className="absolute inset-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950" />
@@ -186,6 +187,7 @@ export default function LandingNew() {
     const navigate = useNavigate();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+    const isMobile = useIsMobile()
 
     const handleGetStarted = () => navigate('/auth');
 
@@ -328,7 +330,7 @@ export default function LandingNew() {
             <header className="w-full bg-slate-800/90 backdrop-blur-md border-b border-slate-700/50 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6">
                     <div className="flex justify-between items-center h-16">
-                        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/landing-new')}>
+                        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
                             <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
                                 <Sparkles className="h-5 w-5 text-white" />
                             </div>
@@ -338,17 +340,17 @@ export default function LandingNew() {
                         <nav className="hidden md:flex items-center gap-6">
                             <a href="#features" className="text-slate-300 hover:text-white transition-colors">Features</a>
                             <a href="#coming-soon" className="text-slate-300 hover:text-white transition-colors">Coming Soon</a>
-                            <a href="#connect" className="text-slate-300 hover:text-white transition-colors">Connect</a>
+                            {/* <a href="#connect" className="text-slate-300 hover:text-white transition-colors">Connect</a> */}
                             <a onClick={() => { window.location.href = '/About/AI'; }} style={{ cursor: 'pointer' }} className="text-slate-300 hover:text-slate-100 transition-colors">About AI</a>
                         </nav>
 
                         <div className="flex items-center gap-4">
-                            <Button
+                            {!isMobile && <Button
                                 onClick={handleGetStarted}
                                 className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 px-6"
                             >
                                 Get Started
-                            </Button>
+                            </Button>}
                             <button
                                 className="md:hidden text-slate-300"
                                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -363,7 +365,7 @@ export default function LandingNew() {
                     <div className="md:hidden bg-slate-800 border-t border-slate-700 px-4 py-4 space-y-3">
                         <a href="#features" className="block text-slate-300 hover:text-white">Features</a>
                         <a href="#coming-soon" className="block text-slate-300 hover:text-white">Coming Soon</a>
-                        <a href="#connect" className="block text-slate-300 hover:text-white">Connect</a>
+                        {/* <a href="#connect" className="block text-slate-300 hover:text-white">Connect</a> */}
                         <a onClick={() => { window.location.href = '/About/AI'; }} style={{ cursor: 'pointer' }} className="block text-slate-300 hover:text-white">About AI</a>
 
                     </div>
@@ -715,8 +717,8 @@ export default function LandingNew() {
                         <div>
                             <h3 className="font-semibold text-white mb-4">Connect</h3>
                             <ul className="space-y-2 text-slate-400">
-                                <li><a href="#connect" className="hover:text-white transition-colors">Contact</a></li>
-                                <li><a href="#" className="hover:text-white transition-colors">GitHub</a></li>
+                                <li><a href="#connect" className="hover:text-white transition-colors">Instagram</a></li>
+                                <li><a href="#" className="hover:text-white transition-colors">LinkedIn</a></li>
                                 <li><a href="#" className="hover:text-white transition-colors">Twitter</a></li>
                             </ul>
                         </div>

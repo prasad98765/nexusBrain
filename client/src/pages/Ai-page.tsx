@@ -6,11 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Zap, Users, ArrowRight, Play, Brain, Cpu, Globe, X, Menu, Sparkles, Target, TrendingUp, Activity, Settings, Network, Code, Database, Layers } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ChatBot from "@/components/ChatBot";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Home() {
   const navigate = useNavigate();
   const [activeFeature, setActiveFeature] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     if (window.location.hash) {
@@ -43,33 +46,33 @@ export default function Home() {
       <header className="w-full bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3" onClick={() => handleNav('/landing-page')} style={{ cursor: 'pointer' }}>
+            <div className="flex items-center gap-3" onClick={() => handleNav('/')} style={{ cursor: 'pointer' }}>
               <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center animate-pulse">
                 <span className="text-white font-bold text-sm">⚡</span>
               </div>
-              <span className="text-lg sm:text-xl font-bold text-slate-100">Nexus AI Hub</span>
+              <span style={{margin:!isMobile ? "" :  "18px 14px 13px"}} className="text-lg sm:text-xl font-bold text-slate-100">Nexus AI Hub</span>
             </div>
 
             <div className="flex items-center gap-4">
-              <Button
+              {/* <Button
                 onClick={handleGetStarted}
                 className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-sm sm:text-base px-4 sm:px-6 transform hover:scale-105 transition-all duration-300"
               >
                 Get Started
-              </Button>
+              </Button> */}
 
-              <button
+              {/* <button
                 className="md:hidden text-slate-300 hover:text-slate-100"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
                 {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
 
         {/* Mobile Menu */}
-        {mobileMenuOpen && (
+        {/* {mobileMenuOpen && (
           <div className="md:hidden bg-slate-800 border-t border-slate-700 px-4 py-4 space-y-3">
             <a onClick={() => { navigate('/customize-agent'); setMobileMenuOpen(false); }} className="block text-slate-300 hover:text-slate-100 transition-colors cursor-pointer">Agent Bots</a>
             <a onClick={() => { navigate('/ai-search'); setMobileMenuOpen(false); }} className="block text-slate-300 hover:text-slate-100 transition-colors cursor-pointer">AI Search</a>
@@ -77,7 +80,7 @@ export default function Home() {
             <a onClick={() => { navigate('/chatbot'); setMobileMenuOpen(false); }} className="block text-slate-300 hover:text-slate-100 transition-colors cursor-pointer">How It Works</a>
             <a onClick={() => { navigate('/ai'); setMobileMenuOpen(false); }} className="block text-slate-300 hover:text-slate-100 transition-colors cursor-pointer">About AI</a>
           </div>
-        )}
+        )} */}
       </header>
       <Sidebar />
 
@@ -672,6 +675,7 @@ export default function Home() {
           </div>
         </section>
       </main>
+      <ChatBot />
     </div>
   );
 }
