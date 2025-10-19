@@ -35,6 +35,7 @@ class CacheEntry:
     response: Dict[str, Any]
     timestamp: float
     embedding: Optional[List[float]] = None
+    workspace_id: Optional[str] = None
 
 class RedisCacheService:
     def __init__(self, 
@@ -103,12 +104,12 @@ class RedisCacheService:
             logger.warning(f"Failed to load embedding model: {e}")
             self.embedding_model = None
     
-    def _generate_cache_key(self, request_data: Dict[str, Any], endpoint_type: str) -> str:
+    def _generate_cache_key(self, request_data: Dict[str, Any], endpoint_type: str, workspace_id: str = None) -> str:
         """Generate a hash-based cache key for exact matching."""
         # Create a normalized request for hashing
         if endpoint_type == "completion":
             key_data = {
-                "model": request_data.get("model"),
+                # "model": request_data.get("model"),
                 "prompt": request_data.get("prompt"),
                 "temperature": request_data.get("temperature", 1.0),
                 "max_tokens": request_data.get("max_tokens"),
@@ -118,7 +119,7 @@ class RedisCacheService:
             }
         else:  # chat completion
             key_data = {
-                "model": request_data.get("model"),
+                # "model": request_data.get("model"),
                 "messages": request_data.get("messages"),
                 "temperature": request_data.get("temperature", 1.0),
                 "max_tokens": request_data.get("max_tokens"),
@@ -130,7 +131,9 @@ class RedisCacheService:
         # Sort and serialize for consistent hashing
         serialized = json.dumps(key_data, sort_keys=True)
         cache_key = hashlib.sha256(serialized.encode()).hexdigest()
-        return f"llm_cache:{endpoint_type}:{cache_key}"
+        # Include workspace_id in cache key to ensure workspace isolation
+        workspace_prefix = f"ws:{workspace_id}:" if workspace_id else ""
+        return f"llm_cache:{workspace_prefix}{endpoint_type}:{cache_key}"
     
     def _clean_text(self, text: str) -> str:
         """Lowercase, remove punctuation and extra spaces."""
@@ -172,19 +175,22 @@ class RedisCacheService:
                     request=data["request"],
                     response=data["response"],
                     timestamp=data["timestamp"],
-                    embedding=data.get("embedding")
+                    embedding=data.get("embedding"),
+                    workspace_id=data.get("workspace_id")
                 )
         except Exception as e:
             logger.error(f"Failed to get exact match from Redis: {e}")
         
         return None
     
-    def _find_semantic_match(self, query_embedding: List[float], model: str, endpoint_type: str) -> Tuple[Optional[CacheEntry], float]:
+    def _find_semantic_match(self, query_embedding: List[float], model: str, endpoint_type: str, workspace_id: str = None) -> Tuple[Optional[CacheEntry], float]:
         """Return best semantic match and similarity %."""
         if not self.redis_client or not self.embedding_model:
             return None, 0.0
         try:
-            keys = self.redis_client.keys(f"llm_cache:{endpoint_type}:*")
+            # Include workspace filter in key pattern
+            workspace_prefix = f"ws:{workspace_id}:" if workspace_id else ""
+            keys = self.redis_client.keys(f"llm_cache:{workspace_prefix}{endpoint_type}:*")
             best_match = None
             best_similarity = 0.0
             query_np = np.array(query_embedding).reshape(1, -1)
@@ -195,13 +201,22 @@ class RedisCacheService:
                     if not data:
                         continue
                     entry = json.loads(data)
-                    if entry["request"].get("model") != model or not entry.get("embedding"):
+                    if not entry.get("embedding"):
+                        continue
+                    # Additional workspace check from stored data
+                    if workspace_id and entry.get("workspace_id") != workspace_id:
                         continue
                     cached_np = np.array(entry["embedding"]).reshape(1, -1)
                     similarity = cosine_similarity(query_np, cached_np)[0][0]
                     if similarity > best_similarity:
                         best_similarity = similarity
-                        best_match = CacheEntry(**entry)
+                        best_match = CacheEntry(
+                            request=entry["request"],
+                            response=entry["response"],
+                            timestamp=entry["timestamp"],
+                            embedding=entry.get("embedding"),
+                            workspace_id=entry.get("workspace_id")
+                        )
                 except Exception as e:
                     logger.error(f"Error processing key {key}: {e}")
 
@@ -210,13 +225,14 @@ class RedisCacheService:
             logger.error(f"Semantic search failed: {e}")
             return None, 0.0
     
-    def get_cached_response(self, request_data: Dict[str, Any], endpoint_type: str, threshold: float = None) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    def get_cached_response(self, request_data: Dict[str, Any], endpoint_type: str, workspace_id: str = None, threshold: float = None) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
         """
         Get cached response with exact match first, then semantic search.
         
         Args:
             request_data: The request payload
             endpoint_type: "completion" or "chat"
+            workspace_id: Workspace identifier for cache isolation
             threshold: Custom semantic similarity threshold (overrides default)
         
         Returns:
@@ -226,10 +242,15 @@ class RedisCacheService:
             return None, None
         
         # Try exact match first
-        cache_key = self._generate_cache_key(request_data, endpoint_type)
+        cache_key = self._generate_cache_key(request_data, endpoint_type, workspace_id)
         exact_match = self._get_exact_match(cache_key)
         
         if exact_match:
+            # Verify workspace match from cache entry
+            if workspace_id and exact_match.workspace_id and exact_match.workspace_id != workspace_id:
+                logger.warning(f"Workspace mismatch in cached data for {cache_key}: expected {workspace_id}, got {exact_match.workspace_id}")
+                return None, None  # Don't return mismatched workspace cache
+            
             logger.info(f"Cache HIT (exact match): {cache_key}")
             return exact_match.response, "exact"
         
@@ -241,7 +262,8 @@ class RedisCacheService:
                 semantic_match, similarity = self._find_semantic_match(
                     query_embedding, 
                     request_data.get("model"), 
-                    endpoint_type
+                    endpoint_type,
+                    workspace_id
                 )
                 if semantic_match and similarity >= self.similarity_threshold * 100:
                     logger.info(f"Cache HIT (semantic match): {cache_key}")
@@ -250,7 +272,7 @@ class RedisCacheService:
         logger.info(f"Cache MISS: {cache_key}")
         return None, None
     
-    def store_response(self, request_data: Dict[str, Any], response_data: Dict[str, Any], endpoint_type: str) -> bool:
+    def store_response(self, request_data: Dict[str, Any], response_data: Dict[str, Any], endpoint_type: str, workspace_id: str = None) -> bool:
         """
         Store request/response pair in cache with embedding for semantic search.
         
@@ -258,6 +280,7 @@ class RedisCacheService:
             request_data: The original request payload
             response_data: The LLM response
             endpoint_type: "completion" or "chat"
+            workspace_id: Workspace identifier for cache isolation
         
         Returns:
             True if stored successfully, False otherwise
@@ -266,25 +289,22 @@ class RedisCacheService:
             return False
         
         try:
-            # Generate cache key
-            # logger.info(f"Storing response in cache for request: {request_data}")
-            # logger.info(f"Endpoint type: {endpoint_type}")
-            # logger.info(f"Response data: {response_data}")
-
-            cache_key = self._generate_cache_key(request_data, endpoint_type)
+            # Generate cache key with workspace isolation
+            cache_key = self._generate_cache_key(request_data, endpoint_type, workspace_id)
             
             # Generate embedding for semantic search
             text_content = self._extract_text_for_embedding(request_data, endpoint_type)
             embedding = self._generate_embedding(text_content)
             
-            # Prepare cache entry
+            # Prepare cache entry with workspace_id
             cache_entry = {
                 "request": request_data,
                 "response": response_data,
                 "timestamp": time.time(),
-                "embedding": embedding
+                "embedding": embedding,
+                "workspace_id": workspace_id
             }
-            # logger.info(f"Storing response in cache with key: {cache_entry}")
+            
             # Store in Redis with TTL (30 days = 2592000 seconds)
             self.redis_client.setex(
                 cache_key,
@@ -292,7 +312,7 @@ class RedisCacheService:
                 json.dumps(cache_entry)
             )
             
-            logger.info(f"Stored response in cache: {cache_key}")
+            logger.info(f"Stored response in cache: {cache_key} for workspace: {workspace_id}")
             return True
             
         except Exception as e:

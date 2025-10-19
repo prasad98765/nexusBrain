@@ -19,6 +19,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -47,7 +60,9 @@ import {
   Cpu,
   Calendar,
   RefreshCw,
-  Info
+  Info,
+  Check,
+  ChevronsUpDown
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -59,6 +74,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useModelStore } from '@/store/modelStore';
+import { cn } from '@/lib/utils';
 
 interface UsageLog {
   id: string;
@@ -367,6 +383,7 @@ export default function UsageLogsPage() {
   // Modal state
   const [selectedLog, setSelectedLog] = useState<UsageLog | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [modelSearchOpen, setModelSearchOpen] = useState(false);
 
   const { data: logsData, isLoading, error, refetch } = useQuery<UsageLogsResponse>({
     queryKey: [
@@ -537,23 +554,89 @@ export default function UsageLogsPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {/* Model Filter */}
+          {/* Model Filter with Search */}
           <div>
             <Label htmlFor="model-filter">Model</Label>
-            <Select value={model} onValueChange={setModel}>
-              <SelectTrigger id="model-filter" data-testid="select-model-filter">
-                <SelectValue placeholder="All Models" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Models</SelectItem>
-
-                {models?.map((mod: any) => (
-                  <SelectItem key={mod.id} value={mod.id}>
-                    {mod.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={modelSearchOpen} onOpenChange={setModelSearchOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  id="model-filter"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={modelSearchOpen}
+                  className="w-full justify-between font-normal"
+                  data-testid="select-model-filter"
+                >
+                  <span className="truncate">
+                    {model === 'all'
+                      ? 'All Models'
+                      : models?.find((m: any) => m.id === model)?.name || 'Select model...'}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-[320px] p-0 pointer-events-auto"
+                align="start"
+                sideOffset={4}
+              >
+                <div className="max-h-[300px] overflow-y-auto" style={{ overflowY: 'auto' }}>
+                  <Command shouldFilter={true}>
+                    <CommandInput
+                      placeholder="Search models..."
+                      className="h-9 border-none"
+                    />
+                    <CommandList className="max-h-none">
+                      <CommandEmpty className="py-6 text-center text-sm">
+                        No model found.
+                      </CommandEmpty>
+                      <CommandGroup className="p-1">
+                        <CommandItem
+                          value="all-models"
+                          onSelect={() => {
+                            setModel('all');
+                            setModelSearchOpen(false);
+                          }}
+                          className="cursor-pointer px-2 py-1.5"
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4 flex-shrink-0",
+                              model === 'all' ? 'opacity-100' : 'opacity-0'
+                            )}
+                          />
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-sm truncate">All Models</span>
+                          </div>
+                        </CommandItem>
+                        {models?.map((mod: any) => (
+                          <CommandItem
+                            key={mod.id}
+                            value={mod.name}
+                            onSelect={() => {
+                              setModel(mod.id);
+                              setModelSearchOpen(false);
+                            }}
+                            className="cursor-pointer px-2 py-1.5"
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4 flex-shrink-0",
+                                model === mod.id ? 'opacity-100' : 'opacity-0'
+                              )}
+                            />
+                            <div className="flex flex-col flex-1 min-w-0">
+                              <span className="text-sm truncate">{mod.name}</span>
+                              <span className="text-xs text-muted-foreground truncate">{mod.id}</span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Provider Filter */}

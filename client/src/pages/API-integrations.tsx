@@ -48,7 +48,8 @@ import {
     Search,
     Filter,
     Download,
-    CalendarIcon
+    CalendarIcon,
+    Link2
 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -170,6 +171,16 @@ export default function APIIntegrationsPage() {
         toast({
             title: "Copied to clipboard! 📋",
             description: "The token has been copied to your clipboard.",
+        });
+    };
+
+    const copyExternalLink = () => {
+        if (!existingToken) return;
+        const externalUrl = `${window.location.origin}/chat-playground?token=${existingToken.userId}`;
+        navigator.clipboard.writeText(externalUrl);
+        toast({
+            title: "External Link Copied! 🔗",
+            description: "Share this link to test your bot with a ChatGPT-like interface.",
         });
     };
 
@@ -408,6 +419,14 @@ export default function APIIntegrationsPage() {
                             <AlertDialog open={isRegenerateDialogOpen} onOpenChange={setIsRegenerateDialogOpen}>
                                 <Button
                                     variant="outline"
+                                    onClick={copyExternalLink}
+                                    data-testid="copy-external-link"
+                                >
+                                    <Link2 className="w-4 h-4 mr-2" />
+                                    Copy External Link
+                                </Button>
+                                <Button
+                                    variant="outline"
                                     onClick={() => window.open('/docs/api-reference', '_blank')}
                                     data-testid="view-docs"
                                 >
@@ -420,7 +439,8 @@ export default function APIIntegrationsPage() {
                                         Regenerate Token
                                     </Button>
                                 </AlertDialogTrigger>
-                                <AlertDialogContent>
+                                {/* apply color white to AlertDialogContent */}
+                                <AlertDialogContent className="bg-slate-800 border-slate-700 text-white">
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Regenerate API Token</AlertDialogTitle>
                                         <AlertDialogDescription>
@@ -428,16 +448,6 @@ export default function APIIntegrationsPage() {
                                             Any applications using the current token will stop working until you update them with the new token.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
-                                    <div className="space-y-4 py-4">
-                                        <div className="flex items-center space-x-2">
-                                            <Switch
-                                                id="new-caching"
-                                                checked={cachingEnabled}
-                                                onCheckedChange={setCachingEnabled}
-                                            />
-                                            <Label htmlFor="new-caching">Enable response caching</Label>
-                                        </div>
-                                    </div>
                                     <AlertDialogFooter>
                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                                         <AlertDialogAction

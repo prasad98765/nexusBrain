@@ -217,6 +217,46 @@ function EditAnswerPopover({ entry, open, onOpenChange, onSave, isSaving, setEdi
 }
 
 export default function QATable() {
+  // State for add Q/A dialog
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [newQA, setNewQA] = useState({ question: '', answer: '' });
+
+  // Add Q/A mutation
+  const addQAMutation = useMutation({
+    mutationFn: async (qaData: { question: string; answer: string }) => {
+      const response = await axios.post(
+        `/api/qa/entries`,
+        qaData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/qa/entries'] });
+      setAddDialogOpen(false);
+      setNewQA({ question: '', answer: '' });
+      toast({
+        title: 'Q/A Added Successfully! ✅',
+        description: 'Your custom Q/A entry has been added.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to Add Q/A',
+        description: error.response?.data?.error || 'An error occurred while adding the Q/A entry.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleAddQA = () => {
+    if (newQA.question.trim() && newQA.answer.trim()) {
+      addQAMutation.mutate(newQA);
+    }
+  };
+
   // State for delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingEntry, setDeletingEntry] = useState<QAEntry | null>(null);
@@ -387,7 +427,7 @@ export default function QATable() {
         </div>
         <div className="flex gap-2">
           {/* Future feature buttons */}
-          <Tooltip>
+          {/* <Tooltip>
             <TooltipTrigger asChild>
               <div>
                 <Button
@@ -404,15 +444,14 @@ export default function QATable() {
             <TooltipContent>
               <p>Coming Soon - AI-powered answer revision</p>
             </TooltipContent>
-          </Tooltip>
+          </Tooltip> */}
 
-          <Tooltip>
+          {/* <Tooltip>
             <TooltipTrigger asChild>
               <div>
                 <Button
-                  disabled
+                  onClick={() => setAddDialogOpen(true)}
                   data-testid="button-add-qa"
-                  className="opacity-50"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Add Q&A
@@ -420,9 +459,9 @@ export default function QATable() {
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Coming Soon - Manual Q&A creation</p>
+              <p>Add your own custom Q&A pair</p>
             </TooltipContent>
-          </Tooltip>
+          </Tooltip> */}
 
           <Button
             onClick={() => refetch()}
@@ -630,6 +669,90 @@ export default function QATable() {
           </div>
         </div>
       )}
+
+      {/* Add Q/A Dialog */}
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent className="w-[600px] p-6" style={{ color: "white" }}>
+          <div className="space-y-6">
+            <div>
+              <h4 className="text-lg font-semibold mb-2">Add Custom Q&A</h4>
+              <p className="text-sm text-muted-foreground">Create your own question and answer pair for your knowledge base.</p>
+              <div className="h-px bg-border mt-4" />
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="question-input" className="text-sm font-medium flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                  Question
+                </Label>
+                <Textarea
+                  id="question-input"
+                  value={newQA.question}
+                  onChange={(e) => setNewQA({ ...newQA, question: e.target.value })}
+                  placeholder="Enter your question..."
+                  className="min-h-[80px] resize-none"
+                  maxLength={1000}
+                  data-testid="textarea-add-question"
+                />
+                <div className="text-xs text-muted-foreground text-right">
+                  {newQA.question.length}/1000 characters
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="answer-input" className="text-sm font-medium flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-muted-foreground" />
+                  Answer
+                </Label>
+                <Textarea
+                  id="answer-input"
+                  value={newQA.answer}
+                  onChange={(e) => setNewQA({ ...newQA, answer: e.target.value })}
+                  placeholder="Enter your answer..."
+                  className="min-h-[150px] resize-none"
+                  maxLength={10000}
+                  data-testid="textarea-add-answer"
+                />
+                <div className="text-xs text-muted-foreground text-right">
+                  {newQA.answer.length}/10000 characters
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setAddDialogOpen(false);
+                  setNewQA({ question: '', answer: '' });
+                }}
+                disabled={addQAMutation.isPending}
+                data-testid="button-cancel-add"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAddQA}
+                disabled={addQAMutation.isPending || !newQA.question.trim() || !newQA.answer.trim()}
+                data-testid="button-confirm-add"
+              >
+                {addQAMutation.isPending ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Q&A
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

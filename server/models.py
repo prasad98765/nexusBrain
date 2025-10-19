@@ -33,6 +33,7 @@ class Workspace(db.Model):
     description = db.Column(db.Text)
     owner_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
     balance = db.Column(db.Float, default=100.0, nullable=False)  # User balance initialized to 100
+    model_config = db.Column(db.JSON)  # Model configuration for categories
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

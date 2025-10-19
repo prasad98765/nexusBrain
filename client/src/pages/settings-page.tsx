@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Settings, Users, Cpu, Bot, Key, Database, Network } from 'lucide-react';
+import { Settings, Users, Cpu, Bot, Key, Database, Network, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ContactProperties from './settings/contact-properties';
 import LLMSettings from './settings/llm-settings';
+import ModelConfiguration from './model-configuration';
 
 interface TabButtonProps {
   active: boolean;
@@ -50,6 +51,13 @@ export default function SettingsPage({ workspaceId }: SettingsPageProps) {
       component: LLMSettings,
       description: 'Configure AI model settings'
     },
+    // {
+    //   id: 'model-configuration',
+    //   label: 'Model Configuration',
+    //   icon: Layers,
+    //   component: ModelConfiguration,
+    //   description: 'Configure models for specific categories'
+    // },
     // Commented out but keeping for future reference
     // {
     //   id: 'contact-properties',

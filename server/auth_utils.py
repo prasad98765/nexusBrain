@@ -106,26 +106,29 @@ def require_auth_for_expose_api(f):
         import hashlib
         from datetime import datetime
 
+        token_hash = ""
         # Get token from Authorization header
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'error': 'Missing or invalid Authorization header'}), 401
-        
-        token = auth_header[7:]  # Remove 'Bearer ' prefix
-        
-        # Validate token format
-        if not token.startswith('nxs-'):
-            return jsonify({'error': 'Invalid token format'}), 401
-        
-        # Hash the token to compare with stored hash
-        token_hash = hashlib.sha256(token.encode()).hexdigest()
-        
+        if request.headers.get('internal') == "false" or request.headers.get('internal') is None:
+            auth_header = request.headers.get('Authorization')
+            if not auth_header or not auth_header.startswith('Bearer '):
+                return jsonify({'error': 'Missing or invalid Authorization header'}), 401
+            
+            token = auth_header[7:]  # Remove 'Bearer ' prefix
+            
+            # Validate token format
+            if not token.startswith('nxs-'):
+                return jsonify({'error': 'Invalid token format'}), 401
+            
+            # Hash the token to compare with stored hash
+            token_hash = hashlib.sha256(token.encode()).hexdigest()
+        else:
+            token_hash = request.headers.get('Authorization')
+
         # Look up token in database
         api_token = ApiToken.query.filter_by(
             token=token_hash,
             is_active=True
         ).first()
-        
         if not api_token:
             return jsonify({'error': 'Invalid or inactive API token'}), 401
             

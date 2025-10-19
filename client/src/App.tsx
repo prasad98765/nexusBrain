@@ -21,6 +21,7 @@ import LandingNew from "@/pages/landing-new";
 import ChatbotPage from "@/pages/chatbot";
 import ContactPropertiesPage from "@/pages/settings/contact-properties-page";
 import ContactsPage from "@/components/contacts/ContactsTable"
+import ChatPlayground from "@/pages/chat-playground.tsx";
 import { Routes, Route, BrowserRouter, useNavigate, useLocation, Navigate } from "react-router-dom";
 import AgentsPage from "./pages/agents-page";
 import Layout from "./pages/Layout";
@@ -97,6 +98,9 @@ function Router() {
 
       {/* Chatbot Interface - Always accessible for embedded use */}
       <Route path="/chatbot" Component={ChatbotPage} />
+
+      {/* Chat Playground - External testing interface */}
+      <Route path="/chat-playground" Component={ChatPlayground} />
 
       <Route path="/auth" element={isAuthenticated ? <Layout /> : <AuthPage />} >
         <Route index element={<Home />} />

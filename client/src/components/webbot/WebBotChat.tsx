@@ -122,7 +122,7 @@ export default function WebBotChat({ isOpen, onClose }: WebBotChatProps) {
   const [showConfig, setShowConfig] = useState(false);
   const { models } = useModelStore();
   const [config, setConfig] = useState<ChatConfig>({
-    model: 'gpt-3.5-turbo',
+    model: 'meta-llama/llama-3.3-8b-instruct:free',
     temperature: 0.7,
     cacheThreshold: 0.8,
     isCached: true,

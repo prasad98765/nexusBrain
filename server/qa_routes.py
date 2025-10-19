@@ -164,12 +164,11 @@ def create_qa_entry():
         if not data:
             return jsonify({'error': 'Request body is required'}), 400
         
-        model = data.get('model')
         question = data.get('question')
         answer = data.get('answer')
         
-        if not all([model, question, answer]):
-            return jsonify({'error': 'model, question, and answer are required'}), 400
+        if not all([question, answer]):
+            return jsonify({'error': 'question, and answer are required'}), 400
         
         # Validate input lengths
         if len(question) > 1000:
@@ -178,7 +177,7 @@ def create_qa_entry():
             return jsonify({'error': 'Answer too long (max 10000 characters)'}), 400
         
         # Store Q/A entry
-        qa_id = qa_redis_service.store_qa(workspace_id, model, question, answer)
+        qa_id = qa_redis_service.store_qa(workspace_id, question, answer)
         
         if not qa_id:
             return jsonify({'error': 'Failed to create Q/A entry'}), 500
@@ -193,7 +192,6 @@ def create_qa_entry():
         return jsonify({
             'id': created_entry.id,
             'workspace_id': created_entry.workspace_id,
-            'model': created_entry.model,
             'question': created_entry.question,
             'answer': created_entry.answer,
             'created_at': created_entry.created_at,

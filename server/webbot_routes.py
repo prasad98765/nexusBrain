@@ -1,3 +1,4 @@
+import os
 from flask import Blueprint, request, jsonify, Response
 import json
 import logging
@@ -51,19 +52,20 @@ def webbot_chat():
             'stream': data.get('stream', True),  # Enable streaming by default
             'max_tokens': data.get('max_tokens', 1000),
             'temperature': data.get('temperature', 0.4),
-            'is_cached': data.get('is_cached', False),
+            'is_cached': data.get('use_cache', False),
             'cache_threshold': data.get('cache_threshold', 0.5)
         }
         
         # Make internal request to /api/v1/chat/create
-        # Use localhost:5000 since this is an internal call to the same Flask app
-        chat_url = "http://127.0.0.1:5000/api/v1/chat/create"
-        
+        # Use localhost:5000 since this is an internal call to the same Flask app get it from environment as BACKEND_URL
+        chat_url =  f"{os.getenv('BACKEND_URL')}/api/v1/chat/create"
+        logger.info(f"----------api_token: {chat_url}")
         headers = {
-            'Authorization': f'Bearer {"nxs-aXkDVM7aAVNVuVcYa6FqoLDD98fHIwOF4VVX-tkcHgs"}',
-            'Content-Type': 'application/json'
+            'Authorization': api_token.token,
+            'Content-Type': 'application/json',
+            "internal": "true"
         }
-        
+        logger.info(f"------------Headers for internal request: {headers}")
         # Make the initial request
         response = requests.post(
             chat_url,

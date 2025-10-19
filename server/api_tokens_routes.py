@@ -45,9 +45,9 @@ def get_api_tokens():
                 'id': token.id,
                 'name': token.name,
                 'workspaceId': token.workspace_id,
-                'userId': token.user_id,
-                'cachingEnabled': token.caching_enabled,
-                'semanticCacheThreshold': token.semantic_cache_threshold,
+                'userId': token.token,
+                # 'cachingEnabled': token.caching_enabled,
+                # 'semanticCacheThreshold': token.semantic_cache_threshold,
                 'isActive': token.is_active,
                 'lastUsedAt': token.last_used_at.isoformat() if token.last_used_at else None,
                 'createdAt': token.created_at.isoformat(),
@@ -86,9 +86,9 @@ def create_api_token():
             return jsonify({'error': 'Workspace already has an active API token'}), 400
 
         # Validate semantic cache threshold
-        semantic_threshold = data.get('semanticCacheThreshold', 0.5)  # Default 50%
-        if not isinstance(semantic_threshold, (int, float)) or not 0 <= semantic_threshold <= 1:
-            return jsonify({'error': 'Semantic cache threshold must be between 0 and 1'}), 400
+        # semantic_threshold = data.get('semanticCacheThreshold', 0.5)  # Default 50%
+        # if not isinstance(semantic_threshold, (int, float)) or not 0 <= semantic_threshold <= 1:
+        #     return jsonify({'error': 'Semantic cache threshold must be between 0 and 1'}), 400
 
         # Generate and hash token
         plain_token = generate_token()
@@ -100,8 +100,8 @@ def create_api_token():
             name=data.get('name', 'Default Token'),
             workspace_id=workspace_id,
             user_id=user_id,
-            caching_enabled=data.get('cachingEnabled', True),
-            semantic_cache_threshold=semantic_threshold,
+            # caching_enabled=data.get('cachingEnabled', True),
+            # semantic_cache_threshold=semantic_threshold,
             is_active=True
         )
         
@@ -115,8 +115,8 @@ def create_api_token():
             'name': token.name,
             'workspaceId': token.workspace_id,
             'userId': token.user_id,
-            'cachingEnabled': token.caching_enabled,
-            'semanticCacheThreshold': token.semantic_cache_threshold,
+            # 'cachingEnabled': token.caching_enabled,
+            # 'semanticCacheThreshold': token.semantic_cache_threshold,
             'isActive': token.is_active,
             'createdAt': token.created_at.isoformat()
         }), 201
@@ -147,13 +147,13 @@ def update_api_token(token_id):
         # Update fields if provided
         if 'name' in data:
             token.name = data['name']
-        if 'cachingEnabled' in data:
-            token.caching_enabled = data['cachingEnabled']
-        if 'semanticCacheThreshold' in data:
-            threshold = data['semanticCacheThreshold']
-            if not isinstance(threshold, (int, float)) or not 0 <= threshold <= 1:
-                return jsonify({'error': 'Semantic cache threshold must be between 0 and 1'}), 400
-            token.semantic_cache_threshold = threshold
+        # if 'cachingEnabled' in data:
+        #     token.caching_enabled = data['cachingEnabled']
+        # if 'semanticCacheThreshold' in data:
+        #     threshold = data['semanticCacheThreshold']
+        #     if not isinstance(threshold, (int, float)) or not 0 <= threshold <= 1:
+        #         return jsonify({'error': 'Semantic cache threshold must be between 0 and 1'}), 400
+        #     token.semantic_cache_threshold = threshold
 
         token.updated_at = datetime.utcnow()
         db.session.commit()
@@ -163,8 +163,8 @@ def update_api_token(token_id):
             'name': token.name,
             'workspaceId': token.workspace_id,
             'userId': token.user_id,
-            'cachingEnabled': token.caching_enabled,
-            'semanticCacheThreshold': token.semantic_cache_threshold,
+            # 'cachingEnabled': token.caching_enabled,
+            # 'semanticCacheThreshold': token.semantic_cache_threshold,
             'isActive': token.is_active,
             'lastUsedAt': token.last_used_at.isoformat() if token.last_used_at else None,
             'createdAt': token.created_at.isoformat(),
@@ -210,8 +210,8 @@ def regenerate_api_token(token_id):
         new_token.name = data.get('name', old_token.name)
         new_token.workspace_id = workspace_id
         new_token.user_id = user_id
-        new_token.caching_enabled = data.get('cachingEnabled', old_token.caching_enabled)
-        new_token.semantic_cache_threshold = data.get('semanticCacheThreshold', old_token.semantic_cache_threshold)
+        # new_token.caching_enabled = data.get('cachingEnabled', old_token.caching_enabled)
+        # new_token.semantic_cache_threshold = data.get('semanticCacheThreshold', old_token.semantic_cache_threshold)
         new_token.is_active = True
         
         db.session.add(new_token)
@@ -223,8 +223,8 @@ def regenerate_api_token(token_id):
             'name': new_token.name,
             'workspaceId': new_token.workspace_id,
             'userId': new_token.user_id,
-            'cachingEnabled': new_token.caching_enabled,
-            'semanticCacheThreshold': new_token.semantic_cache_threshold,
+            # 'cachingEnabled': new_token.caching_enabled,
+            # 'semanticCacheThreshold': new_token.semantic_cache_threshold,
             'isActive': new_token.is_active,
             'createdAt': new_token.created_at.isoformat()
         }), 201
