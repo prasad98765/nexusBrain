@@ -210,7 +210,7 @@ export default function ChatPlayground() {
                 use_rag: config.use_rag
             };
 
-            const response = await fetch(`${process.env.BACKEND_URL}/api/v1/chat/create`, {
+            const response = await fetch(`https://www.nexusaihub.co.in/api/v1/chat/create`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `${token}`,
