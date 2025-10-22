@@ -527,7 +527,10 @@ export default function UsageLogsPage() {
           </p>
         </div>
         <Button
-          onClick={() => refetch()}
+          onClick={() => {
+            setPage(1);
+            refetch();
+          }}
           variant="outline"
           data-testid="button-refresh"
         >

@@ -11,7 +11,7 @@ import httpx
 
 from .auth_utils import require_auth, require_auth_for_expose_api
 from .redis_cache_service import get_cache_service
-from .models import db, ApiToken, ApiUsageLog, Workspace
+from .models import db, ApiToken, ApiUsageLog, Workspace, SystemPrompt
 from .rag_service import rag_service
 
 # Async logging to prevent blocking
@@ -682,6 +682,33 @@ def augment_prompt_with_rag_context(prompt, workspace_id, use_rag=False, top_k=5
         return prompt, [], prompt
 
 
+def get_active_system_prompt(workspace_id):
+    """
+    Retrieve the active system prompt for a workspace.
+    
+    Args:
+        workspace_id: The workspace ID to query
+    
+    Returns:
+        The active system prompt text, or None if no active prompt exists
+    """
+    try:
+        active_prompt = SystemPrompt.query.filter_by(
+            workspace_id=workspace_id,
+            is_active=True
+        ).first()
+        
+        if active_prompt:
+            logger.info(f"Found active system prompt '{active_prompt.title}' for workspace {workspace_id}")
+            return active_prompt.prompt
+        else:
+            logger.info(f"No active system prompt found for workspace {workspace_id}")
+            return None
+    except Exception as e:
+        logger.error(f"Error retrieving active system prompt: {e}")
+        return None
+
+
 @api_llm_routes.route("/v1/models", methods=["GET"])
 # @require_auth_for_expose_api
 def get_models():
@@ -739,6 +766,14 @@ def create_completion():
     original_payload = payload.copy()  # Store original for caching
     document_contexts = False
     
+    # Get active system prompt and prepend to the prompt if exists
+    active_system_prompt = get_active_system_prompt(str(api_token.workspace_id))
+    if active_system_prompt:
+        # Prepend system prompt to user prompt
+        original_user_prompt = payload["prompt"]
+        payload["prompt"] = f"{active_system_prompt}\n\n{original_user_prompt}"
+        logger.info(f"Prepended active system prompt to completion request")
+    
 
     # Check cache if caching is enabled (use original payload, not augmented)
     cached_response = None
@@ -781,8 +816,11 @@ def create_completion():
             rag_top_k = data.get("rag_top_k", 3)
             rag_threshold = data.get("rag_threshold", 0.50)
             
+            # Get the current prompt (which may already have system prompt prepended)
+            current_prompt = payload["prompt"]
+            
             augmented_prompt, rag_contexts, original_prompt = augment_prompt_with_rag_context(
-                prompt=payload["prompt"],
+                prompt=current_prompt,
                 workspace_id=workspace_id,
                 use_rag=True,
                 top_k=rag_top_k,
@@ -792,8 +830,8 @@ def create_completion():
             if rag_contexts:
                 # Update payload with augmented prompt for OpenRouter
                 payload["prompt"] = augmented_prompt
-                # Keep original prompt for caching
-                original_payload["prompt"] = original_prompt
+                # Keep original prompt for caching (without RAG context but with system prompt)
+                # Note: original_payload already has the system prompt if it was added
                 document_contexts = True
                 logger.info(f"Augmented prompt with {len(rag_contexts)} RAG contexts")
 
@@ -1009,6 +1047,28 @@ def create_chat_completion():
     original_payload = payload.copy()  # Store original for caching
     document_contexts = False
     
+    # Get active system prompt and inject as system message if exists
+    active_system_prompt = get_active_system_prompt(str(api_token.workspace_id))
+    if active_system_prompt:
+        # Check if there's already a system message
+        has_system_message = any(msg.get('role') == 'system' for msg in payload['messages'])
+        
+        if has_system_message:
+            # Prepend to existing system message
+            for msg in payload['messages']:
+                if msg.get('role') == 'system':
+                    msg['content'] = f"{active_system_prompt}\n\n{msg['content']}"
+                    logger.info(f"Prepended active system prompt to existing system message")
+                    break
+        else:
+            # Add new system message at the beginning
+            system_message = {
+                "role": "system",
+                "content": active_system_prompt
+            }
+            payload['messages'].insert(0, system_message)
+            logger.info(f"Added active system prompt as new system message")
+    
 
     # Check cache if caching is enabled (use original payload, not augmented)
     cached_response = None
@@ -1051,8 +1111,11 @@ def create_chat_completion():
             rag_top_k = data.get("rag_top_k", 3)
             rag_threshold = data.get("rag_threshold", 0.50)
             
+            # Get the current messages (which may already have system prompt added)
+            current_messages = payload["messages"]
+            
             augmented_messages, rag_contexts, original_messages = augment_with_rag_context(
-                messages=payload["messages"],
+                messages=current_messages,
                 workspace_id=workspace_id,
                 use_rag=True,
                 top_k=rag_top_k,
@@ -1063,8 +1126,8 @@ def create_chat_completion():
             if rag_contexts:
                 # Update payload with augmented messages for OpenRouter
                 payload["messages"] = augmented_messages
-                # Keep original messages for caching
-                original_payload["messages"] = original_messages
+                # Keep original messages for caching (without RAG context but with system prompt)
+                # Note: original_payload already has the system prompt if it was added
                 document_contexts = True
                 logger.info(f"Augmented chat with {len(rag_contexts)} RAG contexts as system prompt")
 

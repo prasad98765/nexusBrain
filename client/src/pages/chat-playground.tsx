@@ -92,6 +92,7 @@ export default function ChatPlayground() {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [selectedText, setSelectedText] = useState('');
+    const [showAskToNexus, setShowAskToNexus] = useState(false);
     const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
     const [editedContent, setEditedContent] = useState('');
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -132,15 +133,26 @@ export default function ChatPlayground() {
         staleTime: 10 * 60 * 1000,
     });
 
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        if (isMobile) setSidebarOpen(false);
-    }, [messages]);
+    // useEffect(() => {
+    //     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    //     if (isMobile) setSidebarOpen(false);
+
+    //     // Auto-focus input after assistant message
+    //     if (messages.length > 0) {
+    //         const lastMessage = messages[messages.length - 1];
+    //         if (lastMessage.role === 'assistant' && !lastMessage.isStreaming && !isLoading) {
+    //             // Small delay to ensure smooth scroll completes first
+    //             setTimeout(() => {
+    //                 textareaRef.current?.focus();
+    //             }, 100);
+    //         }
+    //     }
+    // }, [messages, isLoading]);
 
     useEffect(() => {
         if (textareaRef.current) {
             // Reset height to recalculate
-            textareaRef.current.style.height = '24px'; // Min height for 1 line
+            textareaRef.current.style.height = '45px'; // Min height for 1 line
 
             // Calculate new height based on content
             const scrollHeight = textareaRef.current.scrollHeight;
@@ -210,7 +222,7 @@ export default function ChatPlayground() {
                 use_rag: config.use_rag
             };
 
-            const response = await fetch(`https://www.nexusaihub.co.in/api/v1/chat/create`, {
+            const response = await fetch(`/api/v1/chat/create`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `${token}`,
@@ -346,9 +358,23 @@ export default function ChatPlayground() {
 
     const handleTextSelection = () => {
         const selection = window.getSelection()?.toString();
-        if (selection) {
+        if (selection && selection.trim()) {
             setSelectedText(selection);
-            setInput(`Explain the following: "${selection}"`);
+            setShowAskToNexus(true);
+        } else {
+            setSelectedText('');
+            setShowAskToNexus(false);
+        }
+    };
+
+    const handleAskToNexus = () => {
+        if (selectedText && selectedText.trim()) {
+            const promptText = `Explain the following: "${selectedText}"`;
+            setInput(promptText);
+            setTimeout(() => {
+                textareaRef.current?.focus();
+            }, 50);
+            setShowAskToNexus(false);
         }
     };
 
@@ -472,7 +498,7 @@ export default function ChatPlayground() {
 
                 {/* Messages Area */}
                 <ScrollArea className="flex-1" onMouseUp={handleTextSelection}>
-                    <div className="max-w-3xl mx-auto">
+                    <div className="max-w-3xl mx-auto relative">
                         {messages.length === 0 && (
                             <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
                                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-6">
@@ -482,12 +508,39 @@ export default function ChatPlayground() {
                             </div>
                         )}
 
+                        {/* Ask to Nexus Button - appears when text is selected */}
+                        {/* {showAskToNexus && selectedText && (
+                            <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
+                                <div className="bg-[#2f2f2f] border border-[#565869] rounded-lg shadow-xl p-2 flex gap-2">
+                                    <Button
+                                        onClick={handleAskToNexus}
+                                        size="sm"
+                                        className="bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white"
+                                    >
+                                        <Sparkles className="w-4 h-4 mr-2" />
+                                        Ask to Nexus
+                                    </Button>
+                                    <Button
+                                        onClick={() => {
+                                            setShowAskToNexus(false);
+                                            // setSelectedText('');
+                                            window.getSelection()?.removeAllRanges();
+                                        }}
+                                        size="sm"
+                                        variant="ghost"
+                                        className="hover:bg-[#40414f] text-slate-400"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        )} */}
+
                         {messages.map((message, index) => (
                             <div
                                 key={message.id}
                                 className={cn(
-                                    "group py-6 px-4 md:px-6",
-                                    message.role === 'assistant' ? 'bg-[#2f2f2f]' : 'bg-transparent'
+                                    "group py-6 px-4 md:px-6 bg-transparent"
                                 )}
                             >
                                 <div className="max-w-3xl mx-auto">
@@ -646,7 +699,7 @@ export default function ChatPlayground() {
                 {/* Input Area */}
                 <div className="border-t border-[#2f2f2f] p-4 bg-[#212121]">
                     <div className="max-w-3xl mx-auto">
-                        {selectedText && (
+                        {selectedText && !showAskToNexus && (
                             <div className="mb-2 p-2 bg-[#2f2f2f] rounded-lg text-sm flex items-center justify-between">
                                 <span className="text-slate-400 truncate">Selected: {selectedText.slice(0, 50)}...</span>
                                 <Button
@@ -667,7 +720,7 @@ export default function ChatPlayground() {
                                 onKeyDown={handleKeyPress}
                                 placeholder="Ask anything..."
                                 className="flex-1 bg-transparent border-none resize-none min-h-[24px] max-h-[200px] text-white placeholder:text-slate-500 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 text-[15px] leading-6 overflow-y-auto"
-                                style={{ height: '24px' }}
+                                style={{ height: '45px' }}
                                 rows={1}
                                 disabled={isLoading}
                             />
@@ -847,12 +900,12 @@ export default function ChatPlayground() {
                         </div>
 
                         {/* Current Config Display */}
-                        <div className="mt-6 p-4 bg-[#2f2f2f] rounded-lg border border-[#565869]">
+                        {/* <div className="mt-6 p-4 bg-[#2f2f2f] rounded-lg border border-[#565869]">
                             <div className="text-xs text-slate-400 mb-2 font-medium">Current Configuration:</div>
                             <pre className="text-xs text-slate-300 overflow-auto">
                                 {JSON.stringify(config, null, 2)}
                             </pre>
-                        </div>
+                        </div> */}
                     </div>
                 </SheetContent>
             </Sheet>

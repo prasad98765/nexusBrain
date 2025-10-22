@@ -111,7 +111,7 @@ export default function ChatBot() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    model: 'meta-llama/llama-3.3-8b-instruct:free',
+                    model: 'google/gemini-2.5-flash-lite',
                     messages: apiMessages,
                     max_tokens: 500,
                     temperature: 0.5,

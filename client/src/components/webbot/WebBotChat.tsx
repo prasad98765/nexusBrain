@@ -419,7 +419,7 @@ export default function WebBotChat({ isOpen, onClose }: WebBotChatProps) {
             <div className="space-y-2 text-sm text-slate-400">
               <p>• This bot is for testing purposes and uses your stored API key to get responses.</p>
               <p>• If you close the bot or refresh the page, the session will end. A new session will always start fresh.</p>
-              <p>• All usage and questions will be stored in logs.</p>
+              <p>• All usage will be stored in logs.</p>
             </div>
           </div>
 
