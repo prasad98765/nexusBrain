@@ -118,7 +118,8 @@ export default function ChatBot() {
                     stream: true,
                     cache_threshold: 0.50,
                     is_cached: false,
-                    use_rag: false
+                    use_rag: false,
+                    disable_system_prompt: true
                 }),
                 signal: abortControllerRef.current.signal
             });
