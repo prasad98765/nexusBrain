@@ -1049,7 +1049,8 @@ def create_chat_completion():
     
     # Get active system prompt and inject as system message if exists
     active_system_prompt = get_active_system_prompt(str(api_token.workspace_id))
-    if active_system_prompt:
+    disable_system_prompt = data.get("disable_system_prompt", False)
+    if active_system_prompt and not disable_system_prompt:
         # Check if there's already a system message
         has_system_message = any(msg.get('role') == 'system' for msg in payload['messages'])
         
