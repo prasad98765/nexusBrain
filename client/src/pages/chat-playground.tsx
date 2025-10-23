@@ -234,58 +234,96 @@ export default function ChatPlayground() {
             });
 
             if (!response.ok) {
-                throw new Error(`API Error: ${response.statusText}`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `API Error: ${response.statusText}`);
             }
 
             if (config.stream && response.body) {
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let accumulatedContent = '';
+                // Check if response is actually streaming or just a cached JSON response
+                const contentType = response.headers.get('content-type');
+                const isActuallyStreaming = contentType?.includes('text/event-stream');
 
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
+                if (isActuallyStreaming) {
+                    // Streaming response handling
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let accumulatedContent = '';
 
-                    const chunk = decoder.decode(value, { stream: true });
-                    const lines = chunk.split('\n').filter(line => line.trim() !== '');
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
 
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const data = line.slice(6);
-                            if (data === '[DONE]') continue;
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split('\n').filter(line => line.trim() !== '');
 
-                            try {
-                                const parsed = JSON.parse(data);
-                                const content = parsed.choices?.[0]?.delta?.content || '';
-                                if (content) {
-                                    accumulatedContent += content;
-                                    setMessages(prev => {
-                                        const updated = [...prev];
-                                        const lastMsg = updated[updated.length - 1];
-                                        if (lastMsg.role === 'assistant') {
-                                            lastMsg.content = accumulatedContent;
-                                        }
-                                        return updated;
-                                    });
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const data = line.slice(6);
+                                if (data === '[DONE]') continue;
+
+                                try {
+                                    const parsed = JSON.parse(data);
+                                    const content = parsed.choices?.[0]?.delta?.content || '';
+                                    if (content) {
+                                        accumulatedContent += content;
+                                        setMessages(prev => {
+                                            const updated = [...prev];
+                                            const lastMsg = updated[updated.length - 1];
+                                            if (lastMsg.role === 'assistant') {
+                                                lastMsg.content = accumulatedContent;
+                                            }
+                                            return updated;
+                                        });
+                                    }
+                                } catch (e) {
+                                    console.error('Parse error:', e);
                                 }
-                            } catch (e) {
-                                console.error('Parse error:', e);
                             }
                         }
                     }
-                }
 
-                setMessages(prev => {
-                    const updated = [...prev];
-                    const lastMsg = updated[updated.length - 1];
-                    if (lastMsg.role === 'assistant') {
-                        lastMsg.isStreaming = false;
+                    // Mark streaming as complete
+                    setMessages(prev => {
+                        const updated = [...prev];
+                        const lastMsg = updated[updated.length - 1];
+                        if (lastMsg.role === 'assistant') {
+                            lastMsg.isStreaming = false;
+                        }
+                        return updated;
+                    });
+                } else {
+                    // Cached response returned as JSON even though stream was requested
+                    const data = await response.json();
+                    const content = data.choices?.[0]?.message?.content || 'No response Please try again.';
+                    const isCached = data.cached || data.cache_hit || false;
+                    const cacheType = data.cache_type;
+
+                    setMessages(prev => {
+                        const updated = [...prev];
+                        const lastMsg = updated[updated.length - 1];
+                        if (lastMsg.role === 'assistant') {
+                            lastMsg.content = content;
+                            lastMsg.isStreaming = false;
+                        }
+                        return updated;
+                    });
+
+                    // Show toast if response was cached
+                    if (isCached) {
+                        toast({
+                            title: '⚡ Cached Response',
+                            description: `Response served from cache (${cacheType || 'unknown'} match)`,
+                            duration: 2000
+                        });
                     }
-                    return updated;
-                });
+                }
             } else {
+                // Non-streaming response handling
                 const data = await response.json();
-                const content = data.choices?.[0]?.message?.content || 'No response';
+                const content = data.choices?.[0]?.message?.content || 'No response Please try again.';
+                const isCached = data.cached || data.cache_hit || false;
+                const cacheType = data.cache_type;
+
                 setMessages(prev => {
                     const updated = [...prev];
                     const lastMsg = updated[updated.length - 1];
@@ -295,6 +333,15 @@ export default function ChatPlayground() {
                     }
                     return updated;
                 });
+
+                // Show toast if response was cached
+                if (isCached) {
+                    toast({
+                        title: '⚡ Cached Response',
+                        description: `Response served from cache (${cacheType || 'unknown'} match)`,
+                        duration: 2000
+                    });
+                }
             }
         } catch (error: any) {
             if (error.name === 'AbortError') {
@@ -309,6 +356,7 @@ export default function ChatPlayground() {
                     variant: 'destructive'
                 });
             }
+            // Remove the empty assistant message on error
             setMessages(prev => prev.slice(0, -1));
         } finally {
             setIsLoading(false);

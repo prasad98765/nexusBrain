@@ -464,7 +464,7 @@ export default function QATable() {
           </Tooltip> */}
 
           <Button
-            onClick={() => refetch()}
+            onClick={() => { setPage(1); refetch(); }}
             variant="outline"
             data-testid="button-refresh-qa"
           >
