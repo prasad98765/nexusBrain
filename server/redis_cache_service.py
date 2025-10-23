@@ -230,7 +230,7 @@ class RedisCacheService:
         Get cached response with exact match first, then semantic search.
         
         Args:
-            request_data: The request payload
+            request_data: The request payload (simplified - only last user + system messages)
             endpoint_type: "completion" or "chat"
             workspace_id: Workspace identifier for cache isolation
             threshold: Custom semantic similarity threshold (overrides default)
@@ -239,10 +239,15 @@ class RedisCacheService:
             Tuple of (cached response data, cache type) or (None, None) if no match found
         """
         if not self.redis_client:
+            logger.warning("Redis client not available, skipping cache lookup")
             return None, None
         
-        # Try exact match first
+        # Use custom threshold if provided
+        effective_threshold = threshold if threshold is not None else self.similarity_threshold
+        
+        # Try exact match first (with workspace isolation)
         cache_key = self._generate_cache_key(request_data, endpoint_type, workspace_id)
+        logger.debug(f"Checking exact cache for workspace {workspace_id}, key: {cache_key[:50]}...")
         exact_match = self._get_exact_match(cache_key)
         
         if exact_match:
@@ -251,12 +256,15 @@ class RedisCacheService:
                 logger.warning(f"Workspace mismatch in cached data for {cache_key}: expected {workspace_id}, got {exact_match.workspace_id}")
                 return None, None  # Don't return mismatched workspace cache
             
-            logger.info(f"Cache HIT (exact match): {cache_key}")
+            logger.info(f"Cache HIT (exact match) for workspace {workspace_id}")
             return exact_match.response, "exact"
+        else:
+            logger.debug(f"No exact match found for workspace {workspace_id}")
         
-        # Try semantic search if embedding model is available
+        # Try semantic search if embedding model is available (with workspace isolation)
         if self.embedding_model:
             text_content = self._extract_text_for_embedding(request_data, endpoint_type)
+            logger.debug(f"Attempting semantic search for workspace {workspace_id}, text: {text_content[:50]}...")
             query_embedding = self._generate_embedding(text_content)
             if query_embedding:
                 semantic_match, similarity = self._find_semantic_match(
@@ -265,9 +273,19 @@ class RedisCacheService:
                     endpoint_type,
                     workspace_id
                 )
-                if semantic_match and similarity >= self.similarity_threshold * 100:
-                    logger.info(f"Cache HIT (semantic match): {cache_key}")
+                logger.debug(f"Semantic search result for workspace {workspace_id}: similarity={similarity:.2f}%, threshold={effective_threshold * 100:.2f}%")
+                if semantic_match and similarity >= effective_threshold * 100:
+                    logger.info(f"Cache HIT (semantic match) for workspace {workspace_id}, similarity={similarity:.2f}%")
                     return semantic_match.response, "semantic"
+                else:
+                    logger.debug(f"Semantic match below threshold for workspace {workspace_id}")
+            else:
+                logger.debug(f"Failed to generate embedding for workspace {workspace_id}")
+        else:
+            logger.debug("Embedding model not available, skipping semantic search")
+        
+        logger.info(f"Cache MISS for workspace {workspace_id}, will proceed to LLM call")
+        return None, None
         
         logger.info(f"Cache MISS: {cache_key}")
         return None, None
@@ -277,7 +295,7 @@ class RedisCacheService:
         Store request/response pair in cache with embedding for semantic search.
         
         Args:
-            request_data: The original request payload
+            request_data: The original request payload (simplified - only last user + system messages)
             response_data: The LLM response
             endpoint_type: "completion" or "chat"
             workspace_id: Workspace identifier for cache isolation
@@ -286,15 +304,23 @@ class RedisCacheService:
             True if stored successfully, False otherwise
         """
         if not self.redis_client:
+            logger.warning("Redis client not available, skipping cache storage")
             return False
         
         try:
             # Generate cache key with workspace isolation
             cache_key = self._generate_cache_key(request_data, endpoint_type, workspace_id)
+            logger.debug(f"Storing response in cache for workspace {workspace_id}, key: {cache_key[:50]}...")
             
             # Generate embedding for semantic search
             text_content = self._extract_text_for_embedding(request_data, endpoint_type)
+            logger.debug(f"Generating embedding for workspace {workspace_id}, text: {text_content[:50]}...")
             embedding = self._generate_embedding(text_content)
+            
+            if embedding:
+                logger.debug(f"Generated embedding with {len(embedding)} dimensions for workspace {workspace_id}")
+            else:
+                logger.warning(f"Failed to generate embedding for workspace {workspace_id}, semantic search will not work for this entry")
             
             # Prepare cache entry with workspace_id
             cache_entry = {
@@ -312,11 +338,11 @@ class RedisCacheService:
                 json.dumps(cache_entry)
             )
             
-            logger.info(f"Stored response in cache: {cache_key} for workspace: {workspace_id}")
+            logger.info(f"Successfully stored response in cache for workspace {workspace_id}")
             return True
             
         except Exception as e:
-            logger.error(f"Failed to store response in cache: {e}")
+            logger.error(f"Failed to store response in cache for workspace {workspace_id}: {e}", exc_info=True)
             return False
     
     def clear_cache(self, pattern: str = "llm_cache:*") -> int:

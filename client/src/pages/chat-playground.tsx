@@ -149,6 +149,11 @@ export default function ChatPlayground() {
     //     }
     // }, [messages, isLoading]);
 
+    // Auto-scroll to bottom when messages change or streaming updates
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
     useEffect(() => {
         if (textareaRef.current) {
             // Reset height to recalculate

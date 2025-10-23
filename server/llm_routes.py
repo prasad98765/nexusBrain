@@ -4,6 +4,7 @@ import hashlib
 import time
 import json
 import threading
+import re
 from datetime import datetime
 from flask import Blueprint, request, jsonify, Response, stream_with_context, current_app
 
@@ -45,16 +46,35 @@ def log_api_usage_background(api_token, workspace, endpoint, method, payload, re
                            response_time_ms, cached=False, cache_type=None, error_message=None, request_meta=None, document_contexts=False):
     """Background version of log_api_usage that handles its own DB operations."""
     try:
-        # Extract model information
-        model = payload.get('model', 'unknown')
+        # Extract model information from payload
+        # Handle both 'model' (string) and 'models' (array) fields
+        requested_model = payload.get('model') or payload.get('models', 'unknown')
+        
+        # Convert array to string for logging requested models
+        if isinstance(requested_model, list):
+            requested_models_str = ', '.join(requested_model)
+            logger.info(f"Requested models array: [{requested_models_str}]")
+        else:
+            requested_models_str = requested_model
+        
         ip_address = request_meta.get("ip") if request_meta else None
         user_agent = request_meta.get("user_agent") if request_meta else None
 
         # Parse OpenRouter response for detailed information
         usage_data = {}
+        actual_model_used = None  # Track which model was actually used
+        
         if response_data and isinstance(response_data, dict):
             generation_id = response_data.get('id')
+            
+            # IMPORTANT: OpenRouter returns the actual model used in response
+            # When 'models' array is provided, this tells us which one succeeded
             model_permaslug = response_data.get('model')
+            actual_model_used = model_permaslug  # This is the model that actually processed the request
+            
+            if isinstance(requested_model, list):
+                logger.info(f"OpenRouter selected model '{actual_model_used}' from array: [{requested_models_str}]")
+            
             provider = response_data.get('provider')
 
             usage = response_data.get('usage', {})
@@ -146,7 +166,7 @@ def log_api_usage_background(api_token, workspace, endpoint, method, payload, re
             db.session.add(workspace)
 
         db.session.commit()
-        logger.info(f"Logged API usage (background) - Model: {model}, Tokens: {usage_data.get('prompt_tokens', 0) + usage_data.get('completion_tokens', 0)}, Cached: {cached}")
+        logger.info(f"Logged API usage (background) - Requested: {requested_models_str}, Used: {actual_model_used or 'N/A'}, Tokens: {usage_data.get('prompt_tokens', 0) + usage_data.get('completion_tokens', 0)}, Cached: {cached}")
 
     except Exception as e:
         logger.error(f"Failed to log API usage in background: {e}")
@@ -173,7 +193,195 @@ except Exception as e:
 # Global httpx client for connection pooling
 httpx_client = httpx.Client(timeout=30.0, limits=httpx.Limits(max_keepalive_connections=20, max_connections=100))
 
+# Profile patterns for intent detection
+profile_patterns = {
+    "teacher": {
+        "keywords": [
+            "explain", "teach", "understand", "concept", "learn",
+            "tutorial", "guide", "education", "lesson", "clarify",
+            "what is", "how does", "why does", "help me understand",
+            "diagram", "visualize", "chart", "illustration", "sketch", 
+            "draw this", "image explanation", "infographic"
+        ],
+        "patterns": [
+            r"explain\s+(?:to me|how|why)",
+            r"what\s+(?:is|are|does)",
+            r"help\s+(?:me)?\s*understand",
+            r"can\s+you\s+teach",
+            r"(?:make|generate|draw)\s+(?:a\s+)?diagram"
+        ]
+    },
+    "coder": {
+        "keywords": [
+            "code", "program", "function", "bug", "error",
+            "debug", "implement", "algorithm", "api", "class",
+            "module", "library", "framework", "syntax", "compile",
+            "flowchart", "uml diagram", "architecture diagram", "visual code"
+        ],
+        "patterns": [
+            r"(?:write|create|implement)\s+(?:a|the)?\s*(?:function|code|program)",
+            r"(?:fix|debug)\s+(?:this)?\s*(?:code|error|bug)",
+            r"(?:how\s+to|help\s+(?:me)?\s+with)\s+coding",
+            r"(?:draw|make)\s+(?:a\s+)?(flowchart|uml|diagram)"
+        ]
+    },
+    "summarizer": {
+        "keywords": [
+            "summarize", "summary", "brief", "overview", "tldr",
+            "key points", "main ideas", "recap", "condense", "shorten",
+            "infographic", "visual summary", "chart summary", "diagram overview"
+        ],
+        "patterns": [
+            r"(?:can\s+you)?\s*summarize",
+            r"give\s+(?:me)?\s*(?:a|the)?\s*summary",
+            r"tldr",
+            r"what\s+are\s+the\s+key\s+points",
+            r"(?:visual|image)\s+summary"
+        ]
+    },
+    "fact_checker": {
+        "keywords": [
+            "verify", "fact", "check", "accurate", "truth",
+            "source", "evidence", "proof", "validate", "correct",
+            "image authenticity", "is this picture real", "verify photo", 
+            "deepfake check", "visual fact check"
+        ],
+        "patterns": [
+            r"(?:is|are)\s+(?:this|these|that|those)\s+(?:fact|statement).?\s*(?:true|correct|accurate)",
+            r"(?:can\s+you)?\s*verify",
+            r"(?:what\s+are)?\s*the\s+facts",
+            r"(?:verify|check)\s+(?:this)?\s*(?:image|photo|picture)"
+        ]
+    },
+    "creative": {
+        "keywords": [
+            "create", "creative", "story", "imagine", "generate",
+            "design", "innovative", "unique", "artistic", "write",
+            "prompt", "image", "picture", "drawing", "illustration",
+            "digital art", "painting", "fantasy scene", "sci-fi concept",
+            "one line prompt", "five line prompt", "30 line prompt",
+            "photorealistic", "render", "3d art", "pixel art"
+        ],
+        "patterns": [
+            r"(?:write|create)\s+(?:a|an)?\s*(?:story|poem|creative|image prompt)",
+            r"(?:help\s+me)?\s*(?:be|get)\s*creative",
+            r"imagine\s+(?:if|what|how)",
+            r"(?:generate|make|draw)\s+(?:an?\s+)?(?:image|art|picture|prompt)"
+        ]
+    }
+}
+
 # Helpers
+def detect_intent_from_prompt(prompt: str) -> str:
+    """
+    Detect the intent/category from a prompt using pattern matching.
+    
+    Args:
+        prompt: The user's prompt text
+        
+    Returns:
+        Category string: "teacher", "coder", "creative", "summarizer", "fact_checker", or "general"
+    """
+    prompt_lower = prompt.lower()
+    
+    # Score each category
+    category_scores = {category: 0 for category in profile_patterns.keys()}
+    category_scores["general"] = 0
+    
+    for category, config in profile_patterns.items():
+        # Check keywords
+        for keyword in config["keywords"]:
+            if keyword.lower() in prompt_lower:
+                category_scores[category] += 1
+        
+        # Check regex patterns (higher weight)
+        for pattern in config["patterns"]:
+            if re.search(pattern, prompt_lower):
+                category_scores[category] += 3
+    
+    # Get the category with highest score
+    max_score = max(category_scores.values())
+    if max_score > 0:
+        detected_category = max(category_scores, key=category_scores.get)
+        logger.info(f"Detected intent: {detected_category} (score: {max_score}) from prompt: '{prompt[:50]}...'")
+        return detected_category
+    else:
+        logger.info(f"No specific intent detected, using 'general' for prompt: '{prompt[:50]}...'")
+        return "general"
+
+
+def resolve_nexus_model(model: str, workspace_id: int, prompt: str = None):
+    """
+    Resolve nexus/auto model routing to actual OpenRouter models.
+    
+    Args:
+        model: The model string (e.g., "nexus/auto", "nexus/auto:teacher", "nexus/auto:intent")
+        workspace_id: The workspace ID for fetching model_config
+        prompt: The user's prompt (required for intent detection)
+        
+    Returns:
+        Resolved model string or list of models, or original model if not a nexus model
+    """
+    if not model.startswith("nexus/auto"):
+        return model
+    
+    try:
+        # Case 1: nexus/auto → openrouter/auto
+        if model == "nexus/auto":
+            logger.info(f"Resolving nexus/auto → openrouter/auto")
+            return "openrouter/auto"
+        
+        # Case 2: nexus/auto:teacher → get teacher models from workspace config
+        if model.startswith("nexus/auto:"):
+            category = model.split(":", 1)[1]  # Extract category after colon
+            
+            # Special case: intent detection
+            if category == "intent":
+                if not prompt:
+                    logger.warning("Intent detection requested but no prompt provided, defaulting to 'general'")
+                    category = "general"
+                else:
+                    category = detect_intent_from_prompt(prompt)
+                    logger.info(f"Intent-based routing: detected category '{category}' for model selection")
+            
+            # Fetch workspace model_config from database
+            workspace = Workspace.query.get(workspace_id)
+            if not workspace:
+                logger.error(f"Workspace {workspace_id} not found, falling back to openrouter/auto")
+                return "openrouter/auto"
+            
+            # Parse model_config JSON
+            model_config = workspace.model_config
+            if not model_config:
+                logger.warning(f"No model_config found for workspace {workspace_id}, falling back to openrouter/auto")
+                return "openrouter/auto"
+            
+            # model_config is already a dict (stored as JSON in DB)
+            if not isinstance(model_config, dict):
+                try:
+                    model_config = json.loads(model_config)
+                except Exception as e:
+                    logger.error(f"Failed to parse model_config for workspace {workspace_id}: {e}")
+                    return "openrouter/auto"
+            
+            # Get models for the category
+            category_models = model_config.get(category)
+            if not category_models:
+                logger.warning(f"Category '{category}' not found in model_config for workspace {workspace_id}, falling back to 'general'")
+                category_models = model_config.get("general", ["openrouter/auto"])
+            
+            logger.info(f"Resolved {model} → category '{category}' with models: {category_models}")
+            return category_models
+        
+        # Default fallback
+        logger.warning(f"Unrecognized nexus model format: {model}, falling back to openrouter/auto")
+        return "openrouter/auto"
+        
+    except Exception as e:
+        logger.error(f"Error resolving nexus model '{model}': {e}, falling back to openrouter/auto")
+        return "openrouter/auto"
+
+
 def get_api_token_from_request():
     """Extract and validate API token from Authorization header."""
     api_token = {}
@@ -399,6 +607,11 @@ def forward_to_openrouter(endpoint: str, payload: dict):
             payload["prompt"] = f"{combined_rag}\n\n{original_prompt}"
 
     # --- 2. Forward request ---
+    # check payload model is array 
+    if isinstance(payload.get("model"), list):
+        payload["models"] = payload.get("model")
+    else:
+        payload["model"] = payload.get("model")
     try:
         # logger.info(f"Forwarding request to OpenRouter endpoint: {endpoint} with model: {payload}")
         resp = httpx_client.post(url, headers=get_openrouter_headers(), json=payload)
@@ -453,6 +666,63 @@ def forward_to_openrouter_for_model_and_provider(endpoint: str):
             body = resp.json()
         except ValueError:
             body = {"error": resp.text}
+            
+        # Add Nexus auto models to the response
+        nexus_models = [
+            {
+                "id": "nexus/auto",
+                "name": "Nexus Auto",
+                "canonical_slug": "nexus/auto",
+                "description": "Automatically routes to the best model"
+            },
+            {
+                "id": "nexus/auto:intent",
+                "name": "Nexus Auto Intent",
+                "canonical_slug": "nexus/auto:intent", 
+                "description": "Intelligently routes based on detected intent"
+            },
+            {
+                "id": "nexus/auto:teacher",
+                "name": "Nexus Auto Teacher",
+                "canonical_slug": "nexus/auto:teacher",
+                "description": "Specialized for teaching and explanations"
+            },
+            {
+                "id": "nexus/auto:coder",
+                "name": "Nexus Auto Coder",
+                "canonical_slug": "nexus/auto:coder",
+                "description": "Optimized for coding and technical tasks"
+            },
+            {
+                "id": "nexus/auto:summarizer",
+                "name": "Nexus Auto Summarizer",
+                "canonical_slug": "nexus/auto:summarizer",
+                "description": "Specialized for summarization tasks"
+            },
+            {
+                "id": "nexus/auto:creative",
+                "name": "Nexus Auto Creative",
+                "canonical_slug": "nexus/auto:creative",
+                "description": "Optimized for creative tasks"
+            },
+            {
+                "id": "nexus/auto:fact_checker",
+                "name": "Nexus Auto Fact Checker",
+                "canonical_slug": "nexus/auto:fact_checker",
+                "description": "Specialized for fact checking and verification"
+            },
+            {
+                "id": "nexus/auto:general",
+                "name": "Nexus Auto General",
+                "canonical_slug": "nexus/auto:general",
+                "description": "General purpose model routing"
+            }
+        ]
+
+        if endpoint == "/models" and "data" in body:
+            # Add Nexus models to the beginning of the models list
+            body["data"] = nexus_models + body["data"]
+
         return jsonify(body), resp.status_code
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -461,6 +731,11 @@ def forward_to_openrouter_stream(endpoint: str, payload: dict):
     """Forward streaming requests and return a proper SSE response."""
     url = f"{OPENROUTER_BASE_URL}{endpoint}"
     headers = get_openrouter_headers()
+
+    if isinstance(payload.get("model"), list):
+        payload["models"] = payload.get("model")
+    else:
+        payload["model"] = payload.get("model")
 
     def generate():
         try:
@@ -739,11 +1014,21 @@ def create_completion():
     if not data.get("model") or not data.get("prompt"):
         return jsonify({"error": "Fields 'model' and 'prompt' are required"}), 400
 
+    # Resolve nexus/auto model routing
+    resolved_model = resolve_nexus_model(
+        model=data["model"],
+        workspace_id=api_token.workspace_id,
+        prompt=data.get("prompt", "")
+    )
+    logger.info(f"Resolved model: {data['model']} → {resolved_model}")
+    
     # Construct payload with all supported (and optionally passed) parameters
     payload = {
-        "model": data["model"],
+        "model": resolved_model,
         "prompt": data["prompt"],
     }
+    
+
 
     # Optional parameters (per docs) — only include if present
     for opt in [
@@ -837,13 +1122,17 @@ def create_completion():
 
     # Cache miss - forward to OpenRouter
     if payload.get("stream"):
-        logger.info(f"Cache MISS for completion model: {payload['model']} with streaming - forwarding to OpenRouter")
+        # Get the model info for logging (handle both 'model' and 'models' fields)
+        requested_model = payload.get('model') or payload.get('models', 'unknown')
+        requested_model_str = ', '.join(requested_model) if isinstance(requested_model, list) else requested_model
+        
+        logger.info(f"Cache MISS for completion - Requested: {requested_model_str} with streaming - forwarding to OpenRouter")
         start_stream_time = time.time()
 
         def stream_and_cache():
             combined_response = {
                 "id": None,
-                "model": payload["model"],
+                "model": None,  # Will be populated from response
                 "choices": [],
                 "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
             }
@@ -865,9 +1154,15 @@ def create_completion():
                         if chunk.startswith("data: "):
                             chunk_data = json.loads(chunk[6:])  # Remove "data: " prefix
 
-                            # Update combined response
+                            # Update combined response metadata
                             if "id" in chunk_data and not combined_response["id"]:
                                 combined_response["id"] = chunk_data["id"]
+                            
+                            # Capture the actual model used by OpenRouter
+                            if "model" in chunk_data and not combined_response["model"]:
+                                combined_response["model"] = chunk_data["model"]
+                                if isinstance(requested_model, list):
+                                    logger.info(f"OpenRouter selected '{chunk_data['model']}' from models array")
 
                             if "choices" in chunk_data and chunk_data["choices"]:
                                 text = chunk_data["choices"][0].get("text", "")
@@ -879,6 +1174,7 @@ def create_completion():
                                     if key in chunk_data["usage"]:
                                         combined_response["usage"][key] = chunk_data["usage"][key]
 
+                            combined_response["model"] = chunk_data['model']
                     except json.JSONDecodeError:
                         logger.error("Failed to parse streaming chunk")
                         continue
@@ -941,7 +1237,11 @@ def create_completion():
 
         return stream_and_cache()
     else:
-        logger.info(f"Cache MISS for completion model: {payload['model']} - forwarding to OpenRouter")
+        # Get the model info for logging (handle both 'model' and 'models' fields)
+        requested_model = payload.get('model') or payload.get('models', 'unknown')
+        requested_model_str = ', '.join(requested_model) if isinstance(requested_model, list) else requested_model
+        
+        logger.info(f"Cache MISS for completion - Requested: {requested_model_str} - forwarding to OpenRouter")
         response, status_code = forward_to_openrouter("/completions", payload)
 
     response_time_ms = int((time.time() - start_time) * 1000)
@@ -1006,8 +1306,24 @@ def create_chat_completion():
     if not data.get("model") or not data.get("messages"):
         return jsonify({"error": "Fields 'model' and 'messages' are required"}), 400
 
+    # Extract last user message for intent detection (if needed)
+    last_user_message = ""
+    for msg in reversed(data.get("messages", [])):
+        if msg.get("role") == "user":
+            last_user_message = msg.get("content", "")
+            break
+
+    # Resolve nexus/auto model routing
+    resolved_model = resolve_nexus_model(
+        model=data["model"],
+        workspace_id=api_token.workspace_id,
+        prompt=last_user_message
+    )
+    
+    logger.info(f"Resolved model: {data['model']} → {resolved_model}")
+
     payload = {
-        "model": data["model"],
+        "model" : resolved_model,
         "messages": data["messages"],
     }
 
@@ -1070,24 +1386,86 @@ def create_chat_completion():
             payload['messages'].insert(0, system_message)
             logger.info(f"Added active system prompt as new system message")
     
+    # Create simplified cache payload (last user message + system message)
+    # This ensures cache lookup and storage use the same key format
+    cache_payload = None
+    skip_cache = False
+    last_user_content = ""
+    
+    if data.get("is_cached"):
+        # Extract last user message content
+        for msg in reversed(payload.get("messages", [])):
+            if msg.get("role") == "user":
+                last_user_content = msg.get("content", "")
+                break
+        
+        # Check word count - skip cache if less than 3 words
+        word_count = len(last_user_content.split())
+        if word_count < 3:
+            skip_cache = True
+            logger.info(f"Skipping cache for short question (word count: {word_count}): '{last_user_content}'")
+        else:
+            # Extract system message content if exists
+            system_content = ""
+            for msg in payload.get("messages", []):
+                if msg.get("role") == "system":
+                    system_content = msg.get("content", "")
+                    break
+            
+            # Create simplified payload with only last user message and system message
+            cache_payload = {
+                "messages": []
+            }
+            
+            # Copy model or models field from payload
+            if "models" in payload:
+                cache_payload["models"] = payload["models"]
+            elif "model" in payload:
+                cache_payload["model"] = payload["model"]
+            
+            # Copy request parameters for cache key generation
+            for param in ["temperature", "max_tokens", "top_p", "frequency_penalty", "presence_penalty"]:
+                if param in payload:
+                    cache_payload[param] = payload[param]
+            
+            # Add system message if exists
+            if system_content:
+                cache_payload["messages"].append({
+                    "role": "system",
+                    "content": system_content
+                })
+            
+            # Add last user message
+            cache_payload["messages"].append({
+                "role": "user",
+                "content": last_user_content
+            })
+            
+            logger.info(f"Created cache payload with last user message ({word_count} words) + system message for cache lookup")
 
-    # Check cache if caching is enabled (use original payload, not augmented)
+    # Check cache if caching is enabled and not skipped (use simplified cache payload)
     cached_response = None
     cache_type = None
 
-    if data.get("is_cached"):
+    if data.get("is_cached") and not skip_cache and cache_payload:
         cache_service = get_cache_service()
         # Pass the semantic cache threshold and workspace_id from the API token
+        # This checks exact match first, then semantic match with workspace isolation
         cached_response, cache_type = cache_service.get_cached_response(
-            original_payload, "chat", 
+            cache_payload, "chat", 
             workspace_id=str(api_token.workspace_id),
             threshold=api_token.semantic_cache_threshold
         )
+        
+        if cached_response:
+            logger.info(f"Cache HIT ({cache_type}) for workspace {api_token.workspace_id}, question: '{last_user_content[:50]}...'")
+        else:
+            logger.info(f"Cache MISS for workspace {api_token.workspace_id}, proceeding to LLM call for: '{last_user_content[:50]}...'")  
 
     response_time_ms = int((time.time() - start_time) * 1000)
 
     if cached_response:
-        logger.info(f"Cache HIT ({cache_type}) for chat model: {original_payload['model']} : document_contexts={document_contexts}")
+        logger.info(f"Returning cached response ({cache_type} match) for chat model: {payload['model']}, workspace: {api_token.workspace_id}")
 
         # Log cache hit
         async_log_api_usage(
@@ -1095,7 +1473,7 @@ def create_chat_completion():
             workspace_id=api_token.workspace_id,
             endpoint="/v1/chat/create",
             method="POST",
-            payload=original_payload,
+            payload=cache_payload if cache_payload else original_payload,
             response_data=cached_response,
             status_code=200,
             response_time_ms=response_time_ms,
@@ -1146,7 +1524,7 @@ def create_chat_completion():
         def stream_and_cache():
             combined_response = {
                 "id": None,
-                "model": payload["model"],
+                "model": payload["model"] ,
                 "choices": [],
                 "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
             }
@@ -1213,16 +1591,18 @@ def create_chat_completion():
                     "index": 0,
                     "finish_reason": finish_reason
                 }]
+                combined_response["model"] = last_chunk_data['model']
 
-                # Store in cache if enabled (use original payload, not augmented)
-                if data.get("is_cached") and combined_response["choices"]:
+                # Store in cache if enabled (reuse the cache_payload from earlier)
+                # This ensures cache lookup and storage use the same key format
+                if data.get("is_cached") and not skip_cache and cache_payload and combined_response["choices"]:
                     try:
                         cache_service = get_cache_service()
                         cache_service.store_response(
-                            original_payload, combined_response, "chat",
+                            cache_payload, combined_response, "chat",
                             workspace_id=str(api_token.workspace_id)
                         )
-                        logger.info(f"Stored combined streaming chat response in cache for model: {original_payload['model']}")
+                        logger.info(f"Stored combined streaming chat response in cache for workspace {api_token.workspace_id}, model: {payload['model']} (last user message + system message only)")
                     except Exception as e:
                         logger.error(f"Failed to store streaming chat response in cache: {e}")
 
@@ -1255,7 +1635,7 @@ def create_chat_completion():
 
         return stream_and_cache()
     else:
-        logger.info(f"Cache MISS for chat model: {payload} - forwarding to OpenRouter")
+        logger.info(f"Cache MISS for chat model: {payload['model']}, making non-streaming LLM call for workspace {api_token.workspace_id}")
         response, status_code = forward_to_openrouter("/chat/completions", payload)
         
     response_time_ms = int((time.time() - start_time) * 1000)
@@ -1266,14 +1646,15 @@ def create_chat_completion():
     if status_code == 200:
         try:
             response_data = response.get_json() if hasattr(response, 'get_json') else response.json
-
-            if data.get("is_cached") and response_data:
-                logger.info(f"Caching chat response for model: {original_payload['model']}")
+            # Store in cache if enabled (reuse the cache_payload from earlier)
+            # This ensures cache lookup and storage use the same key format
+            if data.get("is_cached") and not skip_cache and cache_payload and response_data:
+                logger.info(f"Caching chat response for workspace {api_token.workspace_id}, model: {payload['model']} (last user message + system message only)")
                 cache_service.store_response(
-                    original_payload, response_data, "chat",
+                    cache_payload, response_data, "chat",
                     workspace_id=str(api_token.workspace_id)
                 )
-                logger.info(f"Stored chat response in cache for model: {original_payload['model']}")
+                logger.info(f"Stored chat response in cache for workspace {api_token.workspace_id}, model: {payload['model']}")
 
         except Exception as e:
             logger.error(f"Failed to store chat response in cache: {e}")

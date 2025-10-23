@@ -203,6 +203,7 @@ export default function ApiDocumentation() {
   const sidebarItems = [
     { id: 'overview', label: 'Overview', icon: BookOpen },
     { id: 'authentication', label: 'Authentication', icon: Key },
+    { id: 'model-selection', label: 'Model Selection', icon: Sparkles },
     { id: 'completions', label: 'Completions', icon: Code },
     { id: 'chat', label: 'Chat Completions', icon: Sparkles },
     { id: 'streaming', label: 'Streaming', icon: Zap },
@@ -379,7 +380,7 @@ export default function ApiDocumentation() {
                                                   <div className="w-2 h-2 rounded-full bg-green-500"></div>
                                                   <h4 className="font-medium text-slate-100">{model.name}</h4>
                                                   <Badge variant="secondary" className="text-xs">
-                                                    {model.architecture.modality}
+                                                    {model?.architecture?.modality}
                                                   </Badge>
                                                 </div>
                                                 <p className="text-xs text-slate-400 font-mono">{model.id}</p>
@@ -413,7 +414,7 @@ export default function ApiDocumentation() {
                                                 <div className="space-y-1">
                                                   <div className="flex justify-between">
                                                     <span className="text-slate-300">Tokenizer:</span>
-                                                    <span className="text-slate-200">{model.architecture.tokenizer}</span>
+                                                    <span className="text-slate-200">{model?.architecture?.tokenizer}</span>
                                                   </div>
                                                   <div className="flex justify-between">
                                                     <span className="text-slate-300">Moderated:</span>
@@ -436,7 +437,7 @@ export default function ApiDocumentation() {
                                                   <div className="flex justify-between">
                                                     <span className="text-slate-300">Instruct Type:</span>
                                                     <span className="text-slate-200">
-                                                      {model.architecture.instruct_type || 'N/A'}
+                                                      {model?.architecture?.instruct_type || 'N/A'}
                                                     </span>
                                                   </div>
                                                 </div>
@@ -577,6 +578,164 @@ export default function ApiDocumentation() {
                     <div className="bg-slate-900 rounded-lg p-4 font-mono text-sm">
                       <code className="text-green-400">Authorization: Bearer YOUR_API_KEY</code>
                     </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {activeEndpoint === 'model-selection' && (
+              <div className="space-y-6 sm:space-y-8">
+                <div>
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 sm:mb-3 lg:mb-4">Model Selection</h1>
+                  <p className="text-slate-300 text-sm sm:text-base lg:text-lg leading-relaxed">
+                    Nexus AI Hub provides intelligent model routing that automatically selects the best-performing model for your request. You can use automatic selection or specify a model directly.
+                  </p>
+                </div>
+
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                      <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
+                      Automatic Model Selection
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4 sm:space-y-6">
+                    <p className="text-slate-300 text-sm sm:text-base">
+                      Use these special model identifiers to let Nexus AI Hub automatically select the best model:
+                    </p>
+
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="bg-slate-900/50 rounded-lg p-3 sm:p-4 border border-slate-700">
+                        <div className="flex flex-col sm:flex-row items-start gap-3">
+                          <div className="w-8 h-8 bg-indigo-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Zap className="w-4 h-4 text-indigo-400" />
+                          </div>
+                          <div className="flex-1 w-full min-w-0">
+                            <code className="text-indigo-400 bg-slate-900 px-2 py-1 rounded font-mono text-xs sm:text-sm break-all">
+                              nexus/auto
+                            </code>
+                            <p className="text-slate-300 mt-2 text-sm sm:text-base">
+                              Model is decided automatically based on the best available model for your request.
+                            </p>
+                            <div className="bg-slate-900 rounded-lg p-2 sm:p-3 mt-3 font-mono text-[10px] sm:text-xs overflow-x-auto">
+                              <pre className="text-slate-300">
+                                {`{
+  "model": "nexus/auto",
+  "messages": [...]
+}`}
+                              </pre>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-900/50 rounded-lg p-3 sm:p-4 border border-slate-700">
+                        <div className="flex flex-col sm:flex-row items-start gap-3">
+                          <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <BookOpen className="w-4 h-4 text-purple-400" />
+                          </div>
+                          <div className="flex-1 w-full min-w-0">
+                            <code className="text-purple-400 bg-slate-900 px-2 py-1 rounded font-mono text-xs sm:text-sm break-all">
+                              nexus/auto:teacher
+                            </code>
+                            <p className="text-slate-300 mt-2 text-sm sm:text-base">
+                              Only teacher-related models will be used automatically. Perfect for educational content and tutoring applications.
+                            </p>
+                            <div className="bg-slate-900 rounded-lg p-2 sm:p-3 mt-3 font-mono text-[10px] sm:text-xs overflow-x-auto">
+                              <pre className="text-slate-300">
+                                {`{
+  "model": "nexus/auto:teacher",
+  "messages": [...]
+}`}
+                              </pre>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-900/50 rounded-lg p-3 sm:p-4 border border-slate-700">
+                        <div className="flex flex-col sm:flex-row items-start gap-3">
+                          <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Layers className="w-4 h-4 text-green-400" />
+                          </div>
+                          <div className="flex-1 w-full min-w-0">
+                            <code className="text-green-400 bg-slate-900 px-2 py-1 rounded font-mono text-xs sm:text-sm break-all">
+                              nexus/auto:intent
+                            </code>
+                            <p className="text-slate-300 mt-2 text-sm sm:text-base">
+                              Model is selected automatically based on the intent detected in the user prompt. Analyzes your query to choose the most suitable model.
+                            </p>
+                            <div className="bg-slate-900 rounded-lg p-2 sm:p-3 mt-3 font-mono text-[10px] sm:text-xs overflow-x-auto">
+                              <pre className="text-slate-300">
+                                {`{
+  "model": "nexus/auto:intent",
+  "messages": [...]
+}`}
+                              </pre>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                      <Code className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
+                      Specific Model Selection
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 sm:space-y-4">
+                    <p className="text-slate-300 text-sm sm:text-base">
+                      You can also specify a particular model directly by using its full identifier:
+                    </p>
+                    <div className="bg-slate-900 rounded-lg p-3 sm:p-4 font-mono text-[10px] sm:text-xs overflow-x-auto">
+                      <pre className="text-slate-300">
+                        {`{
+  "model": "openai/gpt-4o-mini",
+  "messages": [...]
+}
+
+// Other examples:
+// "model": "anthropic/claude-3.5-sonnet"
+// "model": "meta-llama/llama-3.3-70b-instruct"
+// "model": "google/gemini-2.0-flash-exp"`}
+                      </pre>
+                    </div>
+                    <p className="text-slate-400 text-xs sm:text-sm">
+                      Browse available models using the "LLM Details" button in the header to see all supported models and their specifications.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-indigo-500/10 border-indigo-500/30 border-slate-700">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-indigo-300 text-base sm:text-lg">
+                      <Info className="w-4 h-4 sm:w-5 sm:h-5" />
+                      Best Practices
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2 sm:space-y-3 text-slate-300 text-sm sm:text-base">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                        <span className="flex-1">Use <code className="text-indigo-400 bg-slate-900 px-1.5 py-0.5 rounded text-xs sm:text-sm break-all">nexus/auto</code> for general-purpose applications</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                        <span className="flex-1">Use <code className="text-purple-400 bg-slate-900 px-1.5 py-0.5 rounded text-xs sm:text-sm break-all">nexus/auto:teacher</code> for educational content</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                        <span className="flex-1">Use <code className="text-green-400 bg-slate-900 px-1.5 py-0.5 rounded text-xs sm:text-sm break-all">nexus/auto:intent</code> when you want the system to analyze prompt intent</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                        <span className="flex-1">Specify exact models when you need consistent behavior or specific model capabilities</span>
+                      </li>
+                    </ul>
                   </CardContent>
                 </Card>
               </div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Info, RefreshCw, X, GripVertical } from 'lucide-react';
+import { Loader2, Info, RefreshCw, X, GripVertical, Check, ChevronsUpDown } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -12,6 +12,20 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 interface ModelConfigurationProps {
     workspaceId: string;
@@ -48,6 +62,14 @@ export default function ModelConfiguration({ workspaceId }: ModelConfigurationPr
         creative: [],
         fact_checker: [],
         general: []
+    });
+    const [modelSearchOpen, setModelSearchOpen] = useState<{ [key: string]: boolean }>({
+        teacher: false,
+        coder: false,
+        summarizer: false,
+        creative: false,
+        fact_checker: false,
+        general: false
     });
     const { toast } = useToast();
     const { token } = useAuth();
@@ -152,6 +174,21 @@ export default function ModelConfiguration({ workspaceId }: ModelConfigurationPr
     });
 
     const handleSave = () => {
+        // Validate that each category has at least 2 models
+        const invalidCategories = CATEGORIES.filter(category => {
+            const models = config[category.key as keyof ModelConfig];
+            return models && models.length > 0 && models.length < 2;
+        });
+
+        if (invalidCategories.length > 0) {
+            toast({
+                title: 'Validation Error',
+                description: `Each category must have at least 2 models. Please add more models to: ${invalidCategories.map(c => c.label).join(', ')}`,
+                variant: 'destructive'
+            });
+            return;
+        }
+
         saveMutation.mutate(config);
     };
 
@@ -265,31 +302,94 @@ export default function ModelConfiguration({ workspaceId }: ModelConfigurationPr
                                         </p>
                                     </div>
                                     <div>
-                                        <Select
-                                            value=""
-                                            onValueChange={(value) => {
-                                                const currentValues = config[category.key as keyof ModelConfig];
-                                                if (!currentValues.includes(value)) {
-                                                    handleModelChange(
-                                                        category.key as keyof ModelConfig,
-                                                        [...currentValues, value]
-                                                    );
-                                                }
-                                            }}
+                                        <Popover 
+                                            open={modelSearchOpen[category.key as keyof ModelConfig]} 
+                                            onOpenChange={(open) => 
+                                                setModelSearchOpen(prev => ({ ...prev, [category.key]: open }))
+                                            }
                                         >
-                                            <SelectTrigger className="bg-slate-800 border-slate-600">
-                                                <SelectValue placeholder="Select models..." />
-                                            </SelectTrigger>
-                                            <SelectContent className="bg-slate-800 border-slate-600 max-h-80">
-                                                {availableModels.map((model: Model) => (
-                                                    <SelectItem key={model.id} value={model.id}>
-                                                        {model.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    role="combobox"
+                                                    aria-expanded={modelSearchOpen[category.key as keyof ModelConfig]}
+                                                    className="w-full justify-between bg-slate-800 border-slate-600 hover:bg-slate-700 font-normal"
+                                                >
+                                                    <span className="truncate text-slate-300">
+                                                        Select models...
+                                                    </span>
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent
+                                                className="w-[320px] p-0 bg-slate-800 border-slate-600"
+                                                align="start"
+                                                sideOffset={4}
+                                            >
+                                                <Command className="bg-slate-800" shouldFilter={true}>
+                                                    <CommandInput
+                                                        placeholder="Search models..."
+                                                        className="h-9 border-none bg-slate-800 text-white placeholder:text-slate-500"
+                                                    />
+                                                    <CommandList
+                                                        className="max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent"
+                                                        style={{
+                                                            overscrollBehavior: 'contain',
+                                                            WebkitOverflowScrolling: 'touch',
+                                                        }}
+                                                        onWheel={(e) => e.stopPropagation()}
+                                                    >
+                                                        <CommandEmpty className="py-6 text-center text-sm text-slate-400">
+                                                            No model found.
+                                                        </CommandEmpty>
+                                                        <CommandGroup className="bg-slate-800 p-1">
+                                                            {availableModels.map((model: Model) => {
+                                                                const isSelected = config[category.key as keyof ModelConfig].includes(model.id);
+                                                                return (
+                                                                    <CommandItem
+                                                                        key={model.id}
+                                                                        value={model.name}
+                                                                        onSelect={() => {
+                                                                            const currentValues = config[category.key as keyof ModelConfig];
+                                                                            if (!currentValues.includes(model.id)) {
+                                                                                handleModelChange(
+                                                                                    category.key as keyof ModelConfig,
+                                                                                    [...currentValues, model.id]
+                                                                                );
+                                                                            }
+                                                                            setModelSearchOpen(prev => ({ ...prev, [category.key]: false }));
+                                                                        }}
+                                                                        className="hover:bg-slate-700 cursor-pointer text-white aria-selected:bg-slate-700 px-2 py-1.5"
+                                                                        disabled={isSelected}
+                                                                    >
+                                                                        <Check
+                                                                            className={cn(
+                                                                                'mr-2 h-4 w-4 flex-shrink-0',
+                                                                                isSelected ? 'opacity-100 text-indigo-400' : 'opacity-0'
+                                                                            )}
+                                                                        />
+                                                                        <div className="flex flex-col flex-1 min-w-0">
+                                                                            <span className="text-sm truncate">{model.name}</span>
+                                                                            <span className="text-xs text-slate-500 truncate">{model.id}</span>
+                                                                        </div>
+                                                                    </CommandItem>
+                                                                );
+                                                            })}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
                                         {config[category.key as keyof ModelConfig]?.length > 0 && (
                                             <div className="mt-3 space-y-2">
+                                                {config[category.key as keyof ModelConfig].length === 1 && (
+                                                    <div className="px-3 py-2 rounded-md bg-yellow-500/10 border border-yellow-500/30 mb-2">
+                                                        <p className="text-xs text-yellow-400 flex items-center gap-1">
+                                                            <Info className="h-3 w-3" />
+                                                            <span>Minimum 2 models required. Please add at least one more model.</span>
+                                                        </p>
+                                                    </div>
+                                                )}
                                                 <p className="text-xs text-slate-400 font-medium">
                                                     Priority Order (drag to reorder):
                                                 </p>
@@ -318,6 +418,16 @@ export default function ModelConfiguration({ workspaceId }: ModelConfigurationPr
                                                                 </div>
                                                                 <button
                                                                     onClick={() => {
+                                                                        const currentModels = config[category.key as keyof ModelConfig];
+                                                                        // Prevent removing if only 2 models remain
+                                                                        if (currentModels.length <= 2) {
+                                                                            toast({
+                                                                                title: 'Cannot Remove',
+                                                                                description: 'Each category must have at least 2 models. Add more models before removing this one.',
+                                                                                variant: 'destructive'
+                                                                            });
+                                                                            return;
+                                                                        }
                                                                         handleModelChange(
                                                                             category.key as keyof ModelConfig,
                                                                             config[category.key as keyof ModelConfig].filter(id => id !== modelId)
@@ -391,6 +501,10 @@ export default function ModelConfiguration({ workspaceId }: ModelConfigurationPr
                                         nexus/auto:intent
                                     </code>
                                     <span className="ml-2">→ Model is selected automatically based on given user prompt.</span>
+                                </li>
+                                <li className="pt-2 border-t border-slate-700 mt-2">
+                                    <span className="font-semibold text-yellow-400">⚠️ Validation:</span>
+                                    <span className="ml-2">Each category must have at least 2 models for fallback support.</span>
                                 </li>
                             </ul>
                         </div>

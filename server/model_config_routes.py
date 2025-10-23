@@ -10,13 +10,32 @@ model_config_bp = Blueprint('model_config', __name__)
 
 # Default model configuration
 DEFAULT_MODEL_CONFIG = {
-    "teacher": ["anthropic/claude-3-opus"],
-    "coder": ["openai/gpt-4o"],
-    "summarizer": ["openai/gpt-4o-mini"],
-    "creative": ["google/gemini-2.5-flash"],
-    "fact_checker": ["x-ai/grok-code-fast-1"],
-    "general": ["openai/gpt-4o-mini"]
+    "teacher": [
+        "anthropic/claude-3-opus",
+        "openai/gpt-4o"
+    ],
+    "coder": [
+        "openai/gpt-4o",
+        "anthropic/claude-sonnet-4.5"
+    ],
+    "summarizer": [
+        "openai/gpt-4o-mini",
+        "anthropic/claude-3.5-sonnet"
+    ],
+    "creative": [
+        "google/gemini-2.5-flash",
+        "openai/gpt-4o"
+    ],
+    "fact_checker": [
+        "x-ai/grok-code-fast-1",
+        "anthropic/claude-3.5-sonnet"
+    ],
+    "general": [
+        "openai/gpt-4o-mini",
+        "google/gemini-2.5-pro"
+    ]
 }
+
 
 @model_config_bp.route('/workspace/model-config', methods=['GET'])
 @require_auth

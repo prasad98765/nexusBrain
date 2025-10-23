@@ -495,7 +495,7 @@ export default function APIIntegrationsPage() {
                 <Alert className="border-red-200 bg-red-50 dark:bg-red-900/20">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription className="text-red-700 dark:text-red-400">
-                        Failed to load token information. Please refresh the page or contact support if the problem persists.
+                        Failed to load token information. Please refresh the page or Please log in again or contact support if the problem persists.
                     </AlertDescription>
                 </Alert>
             </div>

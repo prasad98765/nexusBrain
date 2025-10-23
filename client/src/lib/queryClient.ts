@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { api } from "@/lib/apiClient";
 
 
 async function throwIfResNotOk(res: Response) {
@@ -15,11 +16,12 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   const { user, token } = useAuth();
-  const res = await fetch(url, {
+  
+  // Use the new API client for better 401 handling
+  const res = await api.fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json", 'Authorization': `Bearer ${token}` } : {},
+    headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
   });
 
   await throwIfResNotOk(res);
@@ -32,8 +34,9 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
-      credentials: "include",
+    // Use the new API client
+    const res = await api.get(queryKey.join("/") as string, {
+      skipAuth: false,
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
