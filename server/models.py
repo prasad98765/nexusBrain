@@ -207,3 +207,16 @@ class SystemPrompt(db.Model):
     
     # Relationships
     workspace = db.relationship('Workspace', backref='system_prompts', lazy=True)
+
+class ScriptSettings(db.Model):
+    __tablename__ = 'script_settings'
+    
+    workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), primary_key=True)
+    theme_settings = db.Column(db.JSON, nullable=False)
+    quick_buttons = db.Column(db.JSON, nullable=True)  # Store quick action buttons
+    model_config = db.Column(db.JSON, nullable=True)  # Store model configuration settings
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    workspace = db.relationship('Workspace', backref='script_settings', lazy=True)

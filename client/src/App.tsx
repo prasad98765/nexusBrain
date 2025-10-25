@@ -30,6 +30,7 @@ import FlowBuilderInner from "@/pages/flow-builder";
 import APIIntegrationsPage from "@/pages/API-integrations";
 import ApiDocumentation from "@/pages/api-documentation";
 import ApiTesting from "@/pages/api-testing";
+import ScriptsPage from "@/pages/scripts-page";
 import { ComingSoon } from "./components/ui/coming-soon";
 
 function Router() {
@@ -123,6 +124,7 @@ function Router() {
             }} />} /> */}
           <Route path="flow-builder" element={<ComingSoon title="Flow Builder (ComingSoon) " />} />
           <Route path="API-integrations" element={<APIIntegrationsPage />} />
+          <Route path="scripts" element={<ScriptsPage />} />
         </Route>
         <Route path="/business-info" Component={BusinessInfoPage} />
         <Route path="/settings/contact-properties" Component={ContactPropertiesPage} />

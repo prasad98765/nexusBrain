@@ -86,10 +86,31 @@ interface ModelConfig {
     use_rag: boolean
 }
 
+interface ThemeSettings {
+    primary_color: string;
+    secondary_color: string;
+    background_color: string;
+    font_style: string;
+    button_style: string;
+    logo_url: string;
+    ai_search_engine_name: string;
+    theme_preset: string;
+    welcome_message: string;
+}
+
+interface QuickButton {
+    id: string;
+    label: string;
+    text: string;
+    emoji?: string;
+}
+
 export default function ChatPlayground() {
     const isMobile = useIsMobile()
     const [searchParams] = useSearchParams();
     const token = searchParams.get('token');
+    const clientId = searchParams.get('client_id');
+    const siteId = searchParams.get('site_id');
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -101,6 +122,8 @@ export default function ChatPlayground() {
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [abortController, setAbortController] = useState<AbortController | null>(null);
     const [modelSearchOpen, setModelSearchOpen] = useState(false);
+    const [themeSettings, setThemeSettings] = useState<ThemeSettings | null>(null);
+    const [quickButtons, setQuickButtons] = useState<QuickButton[]>([]);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const { toast } = useToast();
@@ -134,6 +157,42 @@ export default function ChatPlayground() {
         enabled: !!token,
         staleTime: 10 * 60 * 1000,
     });
+
+    // Fetch theme settings and model config if client_id is provided
+    useEffect(() => {
+        const fetchTheme = async () => {
+            if (clientId) {
+                try {
+                    const response = await fetch(`/api/script/${clientId}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setThemeSettings(data.theme_settings);
+                        setQuickButtons(data.quick_buttons || []);
+                        // Use model config from API if available
+                        if (data.model_config) {
+                            setConfig(data.model_config);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch theme settings:', error);
+                }
+            }
+        };
+        fetchTheme();
+    }, [clientId]);
+
+    // Apply theme to document
+    useEffect(() => {
+        if (themeSettings) {
+            document.documentElement.style.setProperty('--theme-primary', themeSettings.primary_color);
+            document.documentElement.style.setProperty('--theme-secondary', themeSettings.secondary_color);
+            document.documentElement.style.setProperty('--theme-background', themeSettings.background_color);
+            document.documentElement.style.setProperty('--theme-font', themeSettings.font_style);
+
+            // Apply font to body
+            document.body.style.fontFamily = `'${themeSettings.font_style}', sans-serif`;
+        }
+    }, [themeSettings]);
 
     // useEffect(() => {
     //     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -458,20 +517,47 @@ export default function ChatPlayground() {
     }
 
     return (
-        <div className="flex h-screen bg-[#212121] text-white overflow-hidden">
+        <div
+            className="flex h-screen text-white overflow-hidden"
+            style={{
+                backgroundColor: themeSettings?.background_color || '#212121',
+                color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff'
+            }}
+        >
             {/* Left Sidebar */}
-            <div className={cn(
-                "flex flex-col bg-[#171717] border-r border-[#2f2f2f] transition-all duration-300",
-                sidebarOpen ? "w-64" : "w-0"
-            )}>
+            {!siteId ? <div
+                className={cn(
+                    "flex flex-col border-r transition-all duration-300",
+                    sidebarOpen ? "w-64" : "w-0"
+                )}
+                style={{
+                    backgroundColor: themeSettings?.theme_preset === 'light' ? '#f3f4f6' : '#171717',
+                    borderColor: themeSettings?.theme_preset === 'light' ? '#e5e7eb' : '#2f2f2f'
+                }}
+            >
                 {sidebarOpen && (
                     <>
-                        <div className="flex items-center justify-between p-3 border-b border-[#2f2f2f]">
+                        <div
+                            className="flex items-center justify-between p-3 border-b"
+                            style={{ borderColor: themeSettings?.theme_preset === 'light' ? '#e5e7eb' : '#2f2f2f' }}
+                        >
                             <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-sm bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                                    <Sparkles className="w-4 h-4 text-white" />
-                                </div>
-                                <span className="font-semibold text-sm">Nexus</span>
+                                {themeSettings?.logo_url ? (
+                                    <img src={themeSettings.logo_url} alt="Logo" className="w-7 h-7 rounded-sm object-cover" />
+                                ) : (
+                                    <div
+                                        className="w-7 h-7 rounded-sm flex items-center justify-center"
+                                        style={{ background: `linear-gradient(to bottom right, ${themeSettings?.primary_color || '#6366f1'}, ${themeSettings?.secondary_color || '#8b5cf6'})` }}
+                                    >
+                                        <Sparkles className="w-4 h-4 text-white" />
+                                    </div>
+                                )}
+                                <span
+                                    className="font-semibold text-sm"
+                                    style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }}
+                                >
+                                    {themeSettings?.ai_search_engine_name || 'Nexus'}
+                                </span>
                             </div>
                             <Button
                                 variant="ghost"
@@ -486,8 +572,17 @@ export default function ChatPlayground() {
                         <div className="p-2">
                             <Button
                                 onClick={newChat}
-                                className="w-full justify-start bg-transparent hover:bg-[#2f2f2f] text-white border border-[#2f2f2f] h-10"
+                                className={cn(
+                                    "w-full justify-start h-10",
+                                    themeSettings?.button_style === 'rounded' && 'rounded-full',
+                                    themeSettings?.button_style === 'square' && 'rounded-none'
+                                )}
                                 variant="outline"
+                                style={{
+                                    backgroundColor: 'transparent',
+                                    borderColor: themeSettings?.secondary_color || '#2f2f2f',
+                                    color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff'
+                                }}
                             >
                                 <Edit2 className="w-4 h-4 mr-2" />
                                 New chat
@@ -512,11 +607,15 @@ export default function ChatPlayground() {
                             </div>
                         </ScrollArea>
 
-                        <div className="border-t border-[#2f2f2f] p-2 space-y-1">
+                        <div
+                            className="border-t p-2 space-y-1"
+                            style={{ borderColor: themeSettings?.theme_preset === 'light' ? '#e5e7eb' : '#2f2f2f' }}
+                        >
                             <Button
                                 variant="ghost"
-                                className="w-full justify-start h-10 text-slate-300 hover:bg-[#2f2f2f]"
+                                className="w-full justify-start h-10"
                                 onClick={() => setSettingsOpen(true)}
+                                style={{ color: themeSettings?.theme_preset === 'light' ? '#4b5563' : '#d1d5db' }}
                             >
                                 <Settings2 className="w-4 h-4 mr-2" />
                                 Settings
@@ -524,31 +623,39 @@ export default function ChatPlayground() {
                         </div>
                     </>
                 )}
-            </div>
+            </div> : null}
 
             {/* Main Chat Area */}
             <div className="flex-1 flex flex-col relative">
                 {/* Top Bar */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-[#2f2f2f]">
+                <div
+                    className="flex items-center justify-between px-4 py-3 border-b"
+                    style={{ borderColor: themeSettings?.theme_preset === 'light' ? '#e5e7eb' : '#2f2f2f' }}
+                >
                     <div className="flex items-center gap-2">
-                        <Button
+                        {!siteId ? <Button
                             variant="ghost"
                             size="icon"
                             className="h-9 w-9 hover:bg-[#2f2f2f]"
                             onClick={() => setSidebarOpen(!sidebarOpen)}
                         >
                             {sidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}
-                        </Button>
-                        <span className="text-sm font-medium text-slate-300">Nexus Chat</span>
+                        </Button> : null}
+                        <span
+                            className="text-sm font-medium"
+                            style={{ color: themeSettings?.theme_preset === 'light' ? '#374151' : '#d1d5db' }}
+                        >
+                            {themeSettings?.ai_search_engine_name || 'Nexus Chat'}
+                        </span>
                     </div>
-                    <Button
+                    {!siteId ? <Button
                         variant="ghost"
                         size="icon"
                         className="h-9 w-9 hover:bg-[#2f2f2f] md:hidden"
                         onClick={newChat}
                     >
                         <Plus className="w-5 h-5" />
-                    </Button>
+                    </Button> : null}
                 </div>
 
                 {/* Messages Area */}
@@ -556,10 +663,22 @@ export default function ChatPlayground() {
                     <div className="max-w-3xl mx-auto relative">
                         {messages.length === 0 && (
                             <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-6">
-                                    <Sparkles className="w-6 h-6 text-white" />
-                                </div>
-                                <h2 className="text-3xl font-semibold text-white mb-2">How can I help you today?</h2>
+                                {themeSettings?.logo_url ? (
+                                    <img src={themeSettings.logo_url} alt="Logo" className="w-16 h-16 rounded-full object-cover mb-6" />
+                                ) : (
+                                    <div
+                                        className="w-12 h-12 rounded-full flex items-center justify-center mb-6"
+                                        style={{ background: `linear-gradient(to bottom right, ${themeSettings?.primary_color || '#6366f1'}, ${themeSettings?.secondary_color || '#8b5cf6'})` }}
+                                    >
+                                        <Sparkles className="w-6 h-6 text-white" />
+                                    </div>
+                                )}
+                                <h2
+                                    className="text-3xl font-semibold mb-2"
+                                    style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }}
+                                >
+                                    {themeSettings?.welcome_message || 'How can I help you today?'}
+                                </h2>
                             </div>
                         )}
 
@@ -605,12 +724,17 @@ export default function ChatPlayground() {
                                     )}>
                                         {/* Avatar */}
                                         <div className="flex-shrink-0">
-                                            <div className={cn(
-                                                "w-8 h-8 rounded-full flex items-center justify-center",
-                                                message.role === 'user'
-                                                    ? 'bg-[#19c37d]'
-                                                    : 'bg-gradient-to-br from-indigo-500 to-purple-600'
-                                            )}>
+                                            <div
+                                                className="w-8 h-8 rounded-full flex items-center justify-center"
+                                                style={{
+                                                    backgroundColor: message.role === 'user'
+                                                        ? (themeSettings?.primary_color || '#19c37d')
+                                                        : 'transparent',
+                                                    background: message.role === 'assistant'
+                                                        ? `linear-gradient(to bottom right, ${themeSettings?.primary_color || '#6366f1'}, ${themeSettings?.secondary_color || '#8b5cf6'})`
+                                                        : undefined
+                                                }}
+                                            >
                                                 {message.role === 'user' ? (
                                                     <User className="w-4 h-4 text-white" />
                                                 ) : (
@@ -624,11 +748,14 @@ export default function ChatPlayground() {
                                             "flex-1 min-w-0",
                                             message.role === 'user' ? 'flex flex-col items-end' : ''
                                         )}>
-                                            <div className={cn(
-                                                "font-semibold text-sm mb-2",
-                                                message.role === 'user' ? 'text-right' : 'text-left'
-                                            )}>
-                                                {message.role === 'user' ? 'You' : 'Nexus'}
+                                            <div
+                                                className={cn(
+                                                    "font-semibold text-sm mb-2",
+                                                    message.role === 'user' ? 'text-right' : 'text-left'
+                                                )}
+                                                style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }}
+                                            >
+                                                {message.role === 'user' ? 'You' : (themeSettings?.ai_search_engine_name || 'Nexus')}
                                             </div>
 
                                             {editingMessageId === message.id ? (
@@ -682,16 +809,16 @@ export default function ChatPlayground() {
                                                         "prose-tr:border-b prose-tr:border-slate-700",
                                                         "prose-hr:border-slate-600 prose-hr:my-6"
                                                     )}>
-                                                        <ReactMarkdown 
+                                                        <ReactMarkdown
                                                             remarkPlugins={[remarkGfm]}
                                                             rehypePlugins={[rehypeRaw, rehypeSanitize]}
                                                             components={{
                                                                 // Custom image renderer with error handling and card-like styling
-                                                                img: ({node, ...props}) => {
-                                                                    const {src, alt, width, height} = props;
+                                                                img: ({ node, ...props }) => {
+                                                                    const { src, alt, width, height } = props;
                                                                     return (
                                                                         <div className="my-4">
-                                                                            <img 
+                                                                            <img
                                                                                 src={src}
                                                                                 alt={alt || 'Image'}
                                                                                 width={width}
@@ -707,13 +834,13 @@ export default function ChatPlayground() {
                                                                     );
                                                                 },
                                                                 // Custom table renderer with responsive container
-                                                                table: ({node, ...props}) => (
+                                                                table: ({ node, ...props }) => (
                                                                     <div className="overflow-x-auto my-4 rounded-lg border border-slate-700">
                                                                         <table {...props} className="min-w-full border-collapse" />
                                                                     </div>
                                                                 ),
                                                                 // Custom code block renderer with syntax highlighting support
-                                                                code: ({node, inline, className, children, ...props}: any) => {
+                                                                code: ({ node, inline, className, children, ...props }: any) => {
                                                                     const match = /language-(\w+)/.exec(className || '');
                                                                     return !inline ? (
                                                                         <pre className="bg-[#2f2f2f] p-4 rounded-lg overflow-x-auto my-4 border border-slate-700">
@@ -728,33 +855,33 @@ export default function ChatPlayground() {
                                                                     );
                                                                 },
                                                                 // Custom link renderer with external link handling
-                                                                a: ({node, ...props}) => (
+                                                                a: ({ node, ...props }) => (
                                                                     <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 hover:underline transition-colors" />
                                                                 ),
                                                                 // Custom list item renderer
-                                                                li: ({node, ...props}) => (
+                                                                li: ({ node, ...props }) => (
                                                                     <li {...props} className="my-1 text-slate-200" />
                                                                 ),
                                                                 // Custom paragraph renderer
-                                                                p: ({node, ...props}) => (
+                                                                p: ({ node, ...props }) => (
                                                                     <p {...props} className="my-2 text-slate-200 leading-relaxed" />
                                                                 ),
                                                                 // Custom heading renderers
-                                                                h1: ({node, ...props}) => (
+                                                                h1: ({ node, ...props }) => (
                                                                     <h1 {...props} className="text-2xl font-bold text-white mt-6 mb-4" />
                                                                 ),
-                                                                h2: ({node, ...props}) => (
+                                                                h2: ({ node, ...props }) => (
                                                                     <h2 {...props} className="text-xl font-bold text-white mt-5 mb-3" />
                                                                 ),
-                                                                h3: ({node, ...props}) => (
+                                                                h3: ({ node, ...props }) => (
                                                                     <h3 {...props} className="text-lg font-semibold text-white mt-4 mb-2" />
                                                                 ),
                                                                 // Custom horizontal rule
-                                                                hr: ({node, ...props}) => (
+                                                                hr: ({ node, ...props }) => (
                                                                     <hr {...props} className="border-slate-600 my-6" />
                                                                 ),
                                                                 // Custom blockquote
-                                                                blockquote: ({node, ...props}) => (
+                                                                blockquote: ({ node, ...props }) => (
                                                                     <blockquote {...props} className="border-l-4 border-indigo-500 pl-4 italic my-4 text-slate-300" />
                                                                 ),
                                                             }}
@@ -846,7 +973,13 @@ export default function ChatPlayground() {
                 </ScrollArea>
 
                 {/* Input Area */}
-                <div className="border-t border-[#2f2f2f] p-4 bg-[#212121]">
+                <div
+                    className="border-t p-4"
+                    style={{
+                        borderColor: themeSettings?.theme_preset === 'light' ? '#e5e7eb' : '#2f2f2f',
+                        backgroundColor: themeSettings?.background_color || '#212121'
+                    }}
+                >
                     <div className="max-w-3xl mx-auto">
                         {selectedText && !showAskToNexus && (
                             <div className="mb-2 p-2 bg-[#2f2f2f] rounded-lg text-sm flex items-center justify-between">
@@ -861,15 +994,83 @@ export default function ChatPlayground() {
                                 </Button>
                             </div>
                         )}
-                        <div className="relative flex items-end gap-2 bg-[#40414f] rounded-3xl px-4 py-3 border border-[#565869] focus-within:border-slate-500">
+
+                        {/* Quick Action Buttons */}
+                        {quickButtons && quickButtons.length > 0 && (
+                            <div className="flex flex-wrap gap-2 px-4 pb-2">
+                                {quickButtons.map((button) => {
+                                    const getButtonClassName = () => {
+                                        let baseClasses = "px-4 py-2 text-sm font-medium transition-all hover:opacity-80 flex items-center gap-2";
+
+                                        if (themeSettings?.button_style === 'rounded') {
+                                            baseClasses += " rounded-full";
+                                        } else if (themeSettings?.button_style === 'square') {
+                                            baseClasses += " rounded-none";
+                                        } else if (themeSettings?.button_style === 'outline') {
+                                            baseClasses += " rounded-lg border-2";
+                                        } else {
+                                            baseClasses += " rounded-lg";
+                                        }
+
+                                        return baseClasses;
+                                    };
+
+                                    const getButtonStyles = () => {
+                                        if (themeSettings?.button_style === 'outline') {
+                                            return {
+                                                backgroundColor: 'transparent',
+                                                borderColor: themeSettings?.primary_color || '#6366f1',
+                                                color: themeSettings?.primary_color || '#6366f1'
+                                            };
+                                        }
+                                        return {
+                                            backgroundColor: themeSettings?.primary_color || '#6366f1',
+                                            color: themeSettings?.theme_preset === 'light' ? '#ffffff' : '#000000'
+                                        };
+                                    };
+
+                                    return (
+                                        <button
+                                            key={button.id}
+                                            onClick={() => {
+                                                // Auto-send message on button click
+                                                sendMessage(button.text);
+                                            }}
+                                            className={getButtonClassName()}
+                                            style={getButtonStyles()}
+                                            disabled={isLoading}
+                                        >
+                                            {button.emoji && <span>{button.emoji}</span>}
+                                            <span>{button.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        <div
+                            className={cn(
+                                "relative flex items-end gap-2 px-4 py-3 border",
+                                themeSettings?.button_style === 'rounded' && 'rounded-3xl',
+                                themeSettings?.button_style === 'square' && 'rounded-none',
+                                !themeSettings?.button_style && 'rounded-3xl'
+                            )}
+                            style={{
+                                backgroundColor: themeSettings?.theme_preset === 'light' ? '#f3f4f6' : '#40414f',
+                                borderColor: themeSettings?.secondary_color || '#565869'
+                            }}
+                        >
                             <Textarea
                                 ref={textareaRef}
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={handleKeyPress}
                                 placeholder="Ask anything..."
-                                className="flex-1 bg-transparent border-none resize-none min-h-[24px] max-h-[200px] text-white placeholder:text-slate-500 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 text-[15px] leading-6 overflow-y-auto"
-                                style={{ height: '45px' }}
+                                className="flex-1 bg-transparent border-none resize-none min-h-[24px] max-h-[200px] placeholder:text-slate-500 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 text-[15px] leading-6 overflow-y-auto"
+                                style={{
+                                    color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff',
+                                    height: '45px'
+                                }}
                                 rows={1}
                                 disabled={isLoading}
                             />
@@ -877,7 +1078,16 @@ export default function ChatPlayground() {
                                 <Button
                                     onClick={handleStop}
                                     size="icon"
-                                    className="h-8 w-8 rounded-lg bg-white hover:bg-slate-200 text-black flex-shrink-0"
+                                    className={cn(
+                                        "h-8 w-8 flex-shrink-0",
+                                        themeSettings?.button_style === 'rounded' && 'rounded-full',
+                                        themeSettings?.button_style === 'square' && 'rounded-none',
+                                        !themeSettings?.button_style && 'rounded-lg'
+                                    )}
+                                    style={{
+                                        backgroundColor: themeSettings?.primary_color || '#ffffff',
+                                        color: themeSettings?.theme_preset === 'light' ? '#ffffff' : '#000000'
+                                    }}
                                 >
                                     <Square className="w-4 h-4 fill-current" />
                                 </Button>
@@ -886,14 +1096,26 @@ export default function ChatPlayground() {
                                     onClick={() => sendMessage(input)}
                                     disabled={!input.trim()}
                                     size="icon"
-                                    className="h-8 w-8 rounded-lg bg-white hover:bg-slate-200 text-black disabled:opacity-30 disabled:hover:bg-white flex-shrink-0"
+                                    className={cn(
+                                        "h-8 w-8 flex-shrink-0 disabled:opacity-30",
+                                        themeSettings?.button_style === 'rounded' && 'rounded-full',
+                                        themeSettings?.button_style === 'square' && 'rounded-none',
+                                        !themeSettings?.button_style && 'rounded-lg'
+                                    )}
+                                    style={{
+                                        backgroundColor: themeSettings?.primary_color || '#ffffff',
+                                        color: themeSettings?.theme_preset === 'light' ? '#ffffff' : '#000000'
+                                    }}
                                 >
                                     <Send className="w-4 h-4" />
                                 </Button>
                             )}
                         </div>
-                        <div className="text-xs text-center text-slate-500 mt-2">
-                            Nexus Chat can make mistakes. Check important info.
+                        <div
+                            className="text-xs text-center mt-2"
+                            style={{ color: themeSettings?.theme_preset === 'light' ? '#6b7280' : '#9ca3af' }}
+                        >
+                            {themeSettings?.ai_search_engine_name || 'Nexus Chat'} can make mistakes. Check important info.
                         </div>
                     </div>
                 </div>
@@ -901,25 +1123,50 @@ export default function ChatPlayground() {
 
             {/* Settings Sheet */}
             <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
-                <SheetContent side="right" className="bg-[#171717] border-[#2f2f2f] text-white w-80 sm:w-96">
+                <SheetContent
+                    side="right"
+                    className="w-80 sm:w-96"
+                    style={{
+                        backgroundColor: themeSettings?.theme_preset === 'light' ? '#f3f4f6' : '#171717',
+                        borderColor: themeSettings?.theme_preset === 'light' ? '#e5e7eb' : '#2f2f2f',
+                        color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff'
+                    }}
+                >
                     <SheetHeader>
-                        <SheetTitle className="text-white">Model Configuration</SheetTitle>
-                        <SheetDescription className="text-slate-400">
-                            Adjust model parameters and settings
+                        <SheetTitle
+                            style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }}
+                        >
+                            Model Configuration
+                        </SheetTitle>
+                        <SheetDescription
+                            style={{ color: themeSettings?.theme_preset === 'light' ? '#6b7280' : '#9ca3af' }}
+                        >
+                            Configure model parameters for testing only.
+                            (These settings are temporary and will not be saved.)
                         </SheetDescription>
                     </SheetHeader>
 
                     <div className="mt-6 space-y-6">
                         {/* Model Selection with Search */}
                         <div className="space-y-2">
-                            <Label className="text-sm font-medium">Model</Label>
+                            <Label
+                                className="text-sm font-medium"
+                                style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }}
+                            >
+                                Model
+                            </Label>
                             <Popover open={modelSearchOpen} onOpenChange={setModelSearchOpen}>
                                 <PopoverTrigger asChild>
                                     <Button
                                         variant="outline"
                                         role="combobox"
                                         aria-expanded={modelSearchOpen}
-                                        className="w-full justify-between bg-[#2f2f2f] border-[#565869] hover:bg-[#40414f] text-white h-10"
+                                        className="w-full justify-between h-10"
+                                        style={{
+                                            backgroundColor: themeSettings?.theme_preset === 'light' ? '#ffffff' : '#2f2f2f',
+                                            borderColor: themeSettings?.secondary_color || '#565869',
+                                            color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff'
+                                        }}
                                     >
                                         <span className="truncate text-sm">
                                             {availableModels.find((m) => m.id === config.model)?.name || config.model}
@@ -931,12 +1178,24 @@ export default function ChatPlayground() {
                                     align="start"
                                     sideOffset={4}
                                     onOpenAutoFocus={(e) => e.preventDefault()}
-                                    className="w-[320px] p-0 bg-[#2f2f2f] border-[#565869] shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out"
+                                    className="w-[320px] p-0 shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out"
+                                    style={{
+                                        backgroundColor: themeSettings?.theme_preset === 'light' ? '#ffffff' : '#2f2f2f',
+                                        borderColor: themeSettings?.secondary_color || '#565869'
+                                    }}
                                 >
-                                    <Command className="bg-[#2f2f2f]" shouldFilter={true}>
+                                    <Command
+                                        className=""
+                                        shouldFilter={true}
+                                        style={{ backgroundColor: themeSettings?.theme_preset === 'light' ? '#ffffff' : '#2f2f2f' }}
+                                    >
                                         <CommandInput
                                             placeholder="Search models..."
-                                            className="h-9 border-none bg-[#2f2f2f] text-white placeholder:text-slate-500"
+                                            className="h-9 border-none placeholder:text-slate-500"
+                                            style={{
+                                                backgroundColor: themeSettings?.theme_preset === 'light' ? '#ffffff' : '#2f2f2f',
+                                                color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff'
+                                            }}
                                         />
                                         {/* ✅ Scrollable area only for results — not wrapping entire Command */}
                                         <CommandList
@@ -947,10 +1206,16 @@ export default function ChatPlayground() {
                                             }}
                                             onWheel={(e) => e.stopPropagation()} // 🧠 still blocks Radix wheel capture
                                         >
-                                            <CommandEmpty className="py-6 text-center text-sm text-slate-400">
+                                            <CommandEmpty
+                                                className="py-6 text-center text-sm"
+                                                style={{ color: themeSettings?.theme_preset === 'light' ? '#6b7280' : '#9ca3af' }}
+                                            >
                                                 No model found.
                                             </CommandEmpty>
-                                            <CommandGroup className="bg-[#2f2f2f] p-1">
+                                            <CommandGroup
+                                                className="p-1"
+                                                style={{ backgroundColor: themeSettings?.theme_preset === 'light' ? '#ffffff' : '#2f2f2f' }}
+                                            >
                                                 {availableModels.map((model) => (
                                                     <CommandItem
                                                         key={model.id}
@@ -959,7 +1224,10 @@ export default function ChatPlayground() {
                                                             setConfig({ ...config, model: model.id });
                                                             setModelSearchOpen(false);
                                                         }}
-                                                        className="hover:bg-[#40414f] cursor-pointer text-white aria-selected:bg-[#40414f]"
+                                                        className="cursor-pointer"
+                                                        style={{
+                                                            color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff'
+                                                        }}
                                                     >
                                                         <Check
                                                             className={cn(
@@ -969,7 +1237,12 @@ export default function ChatPlayground() {
                                                         />
                                                         <div className="flex flex-col flex-1 min-w-0">
                                                             <span className="text-sm truncate">{model.name}</span>
-                                                            <span className="text-xs text-slate-500 truncate">{model.id}</span>
+                                                            <span
+                                                                className="text-xs truncate"
+                                                                style={{ color: themeSettings?.theme_preset === 'light' ? '#6b7280' : '#9ca3af' }}
+                                                            >
+                                                                {model.id}
+                                                            </span>
                                                         </div>
                                                     </CommandItem>
                                                 ))}
@@ -985,7 +1258,12 @@ export default function ChatPlayground() {
 
                         {/* Max Tokens */}
                         <div className="space-y-3">
-                            <Label className="text-sm font-medium">Max Tokens: {config.max_tokens}</Label>
+                            <Label
+                                className="text-sm font-medium"
+                                style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }}
+                            >
+                                Max Tokens: {config.max_tokens}
+                            </Label>
                             <Slider
                                 value={[config.max_tokens]}
                                 onValueChange={(v) => setConfig({ ...config, max_tokens: v[0] })}
@@ -998,7 +1276,12 @@ export default function ChatPlayground() {
 
                         {/* Temperature */}
                         <div className="space-y-3">
-                            <Label className="text-sm font-medium">Temperature: {config.temperature}</Label>
+                            <Label
+                                className="text-sm font-medium"
+                                style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }}
+                            >
+                                Temperature: {config.temperature}
+                            </Label>
                             <Slider
                                 value={[config.temperature]}
                                 onValueChange={(v) => setConfig({ ...config, temperature: v[0] })}
@@ -1011,7 +1294,12 @@ export default function ChatPlayground() {
 
                         {/* Cache Threshold */}
                         <div className="space-y-3">
-                            <Label className="text-sm font-medium">Cache Threshold: {config.cache_threshold}</Label>
+                            <Label
+                                className="text-sm font-medium"
+                                style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }}
+                            >
+                                Cache Threshold: {config.cache_threshold}
+                            </Label>
                             <Slider
                                 value={[config.cache_threshold]}
                                 onValueChange={(v) => setConfig({ ...config, cache_threshold: v[0] })}
@@ -1024,7 +1312,12 @@ export default function ChatPlayground() {
 
                         {/* Stream Toggle */}
                         <div className="flex items-center justify-between py-2">
-                            <Label className="text-sm font-medium">Stream Responses</Label>
+                            <Label
+                                className="text-sm font-medium"
+                                style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }}
+                            >
+                                Stream Responses
+                            </Label>
                             <Switch
                                 checked={config.stream}
                                 onCheckedChange={(checked) => setConfig({ ...config, stream: checked })}
@@ -1033,7 +1326,12 @@ export default function ChatPlayground() {
 
                         {/* Is Cached Toggle */}
                         <div className="flex items-center justify-between py-2">
-                            <Label className="text-sm font-medium">Use Cache</Label>
+                            <Label
+                                className="text-sm font-medium"
+                                style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }}
+                            >
+                                Use Cache
+                            </Label>
                             <Switch
                                 checked={config.is_cached}
                                 onCheckedChange={(checked) => setConfig({ ...config, is_cached: checked })}
@@ -1041,7 +1339,12 @@ export default function ChatPlayground() {
                         </div>
 
                         <div className="flex items-center justify-between py-2">
-                            <Label className="text-sm font-medium">Use Rag</Label>
+                            <Label
+                                className="text-sm font-medium"
+                                style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }}
+                            >
+                                Use Rag
+                            </Label>
                             <Switch
                                 checked={config.use_rag}
                                 onCheckedChange={(checked) => setConfig({ ...config, use_rag: checked })}

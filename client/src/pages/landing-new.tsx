@@ -13,7 +13,8 @@ import {
     Shield,
     Target,
     TrendingUp,
-    ExternalLink
+    ExternalLink,
+    Palette
 } from 'lucide-react';
 import '../styles/landing-animations.css';
 import ChatBot from '@/components/ChatBot';
@@ -56,9 +57,9 @@ const HeroSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
                 </div>
 
                 <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
-                    <span className="block mb-4 text-white">One Key. 400+ LLMs.</span>
+                    <span className="block mb-4 text-white">AI Search Engine for</span>
                     <span className="block bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                        Infinite AI Power.
+                        Your Website.
                     </span>
                 </h1>
 
@@ -67,8 +68,7 @@ const HeroSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
                 </p>
 
                 <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-                    Access OpenAI, Claude, Gemini, Mistral, and 400+ models with a single API key.
-                    Built for scalability and flexibility.
+                    Transform your website with an intelligent AI-powered search engine. Let your visitors find answers instantly using natural language — powered by 400+ LLM models and your own data.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
@@ -81,7 +81,7 @@ const HeroSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
                     </Button>
                     <Button
                         variant="outline"
-                        onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                        onClick={() => document.getElementById('what-is')?.scrollIntoView({ behavior: 'smooth' })}
                         className="border-2 border-indigo-400/50 text-indigo-300 hover:bg-indigo-500/10 px-8 py-6 text-lg font-semibold rounded-xl"
                     >
                         Explore Features
@@ -92,16 +92,16 @@ const HeroSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-8 mt-16 max-w-3xl mx-auto">
                     <div className="text-center">
-                        <div className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">400+</div>
-                        <div className="text-slate-400 text-sm mt-2">LLM Models</div>
+                        <div className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">5min</div>
+                        <div className="text-slate-400 text-sm mt-2">Setup Time</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">1</div>
-                        <div className="text-slate-400 text-sm mt-2">API Key</div>
+                        <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">99.9%</div>
+                        <div className="text-slate-400 text-sm mt-2">Uptime</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-4xl font-bold bg-gradient-to-r from-pink-400 to-cyan-400 bg-clip-text text-transparent">∞</div>
-                        <div className="text-slate-400 text-sm mt-2">Possibilities</div>
+                        <div className="text-4xl font-bold bg-gradient-to-r from-pink-400 to-cyan-400 bg-clip-text text-transparent">400+</div>
+                        <div className="text-slate-400 text-sm mt-2">AI Models</div>
                     </div>
                 </div>
 
@@ -182,6 +182,268 @@ const CachingAnimation = () => (
         </div>
     </div>
 );
+
+// What is AI Search Engine Section
+const WhatIsAISearchSection = () => (
+    <section id="what-is" className="py-20 px-4 sm:px-6 bg-slate-800/30">
+        <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                {/* Left: Text Content */}
+                <div className="space-y-6">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/30 rounded-full">
+                        <Sparkles className="h-4 w-4 text-yellow-400" />
+                        <span className="text-sm text-indigo-300">AI-Powered Search</span>
+                    </div>
+                    <h2 className="text-4xl md:text-5xl font-bold text-white">
+                        What is Our <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">AI Search Engine?</span>
+                    </h2>
+                    <p className="text-lg text-slate-300 leading-relaxed">
+                        Our AI Search Engine is a next-generation search solution that seamlessly integrates with your website, 
+                        enabling your users to search through your content, documents, FAQs, and knowledge base using natural language.
+                    </p>
+                    <div className="space-y-4">
+                        <div className="flex items-start gap-3">
+                            <CheckCircle className="h-6 w-6 text-green-400 flex-shrink-0 mt-1" />
+                            <div>
+                                <h4 className="text-white font-semibold mb-1">Context-Aware Intelligence</h4>
+                                <p className="text-slate-400">Unlike traditional search bots, our AI understands context and intent, delivering accurate, relevant answers every time.</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <CheckCircle className="h-6 w-6 text-green-400 flex-shrink-0 mt-1" />
+                            <div>
+                                <h4 className="text-white font-semibold mb-1">Powered by Your Data</h4>
+                                <p className="text-slate-400">Train the AI with your own documents, PDFs, FAQs, and content to provide precise answers specific to your business.</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <CheckCircle className="h-6 w-6 text-green-400 flex-shrink-0 mt-1" />
+                            <div>
+                                <h4 className="text-white font-semibold mb-1">Easy Integration</h4>
+                                <p className="text-slate-400">Embed our AI Search Engine on any website with a simple iframe script — no complex coding required.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right: Visual/Diagram */}
+                <div className="relative">
+                    <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 rounded-2xl p-8 backdrop-blur-sm">
+                        <div className="space-y-6">
+                            {/* Search Input Preview */}
+                            <div className="bg-slate-900/80 rounded-lg p-4 border border-slate-700">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                                        <Bot className="h-4 w-4 text-white" />
+                                    </div>
+                                    <span className="text-sm text-slate-300 font-medium">AI Search Assistant</span>
+                                </div>
+                                <div className="bg-slate-800 rounded-lg p-3 mb-3">
+                                    <p className="text-sm text-slate-400 italic">"What are your return policies?"</p>
+                                </div>
+                                <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-3">
+                                    <p className="text-sm text-slate-300">Our return policy allows you to return items within 30 days of purchase...</p>
+                                </div>
+                            </div>
+                            
+                            {/* Features Grid */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-slate-900/80 rounded-lg p-4 border border-slate-700 text-center">
+                                    <Zap className="h-6 w-6 text-yellow-400 mx-auto mb-2" />
+                                    <p className="text-xs text-slate-400">Instant Answers</p>
+                                </div>
+                                <div className="bg-slate-900/80 rounded-lg p-4 border border-slate-700 text-center">
+                                    <Database className="h-6 w-6 text-blue-400 mx-auto mb-2" />
+                                    <p className="text-xs text-slate-400">Your Data</p>
+                                </div>
+                                <div className="bg-slate-900/80 rounded-lg p-4 border border-slate-700 text-center">
+                                    <Sparkles className="h-6 w-6 text-purple-400 mx-auto mb-2" />
+                                    <p className="text-xs text-slate-400">AI-Powered</p>
+                                </div>
+                                <div className="bg-slate-900/80 rounded-lg p-4 border border-slate-700 text-center">
+                                    <Globe className="h-6 w-6 text-green-400 mx-auto mb-2" />
+                                    <p className="text-xs text-slate-400">Web Ready</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Floating Badge */}
+                    <div className="absolute -top-4 -right-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full px-6 py-3 shadow-lg">
+                        <p className="text-white font-semibold text-sm">400+ LLMs</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+);
+
+// Key Features Section
+const KeyFeaturesSection = () => {
+    const features = [
+        {
+            icon: Database,
+            title: "AI-Powered Contextual Search",
+            description: "Leverage advanced LLM technology to understand user intent and deliver precise, context-aware answers from your knowledge base.",
+            color: "from-indigo-500 to-purple-600"
+        },
+        {
+            icon: Palette,
+            title: "Customizable Themes & Branding",
+            description: "Fully customize colors, fonts, logos, and styling to match your brand identity — make the AI search engine truly yours.",
+            color: "from-purple-500 to-pink-600"
+        },
+        {
+            icon: Zap,
+            title: "Lightning-Fast with Caching",
+            description: "Dual-layer caching (semantic + exact match) ensures instant responses for frequently asked questions and common queries.",
+            color: "from-pink-500 to-red-600"
+        },
+        {
+            icon: Code2,
+            title: "Easy Embed via Iframe",
+            description: "Copy a simple iframe script and paste it anywhere on your website — no complex integration or backend changes needed.",
+            color: "from-cyan-500 to-blue-600"
+        }
+    ];
+
+    return (
+        <section id="key-features" className="py-20 px-4 sm:px-6">
+            <div className="max-w-7xl mx-auto">
+                <div className="text-center mb-16">
+                    <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                        <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                            Key Features
+                        </span>
+                    </h2>
+                    <p className="text-xl text-slate-400 max-w-3xl mx-auto">
+                        Everything you need to deliver intelligent search experiences on your website
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {features.map((feature, i) => (
+                        <Card 
+                            key={i} 
+                            className="bg-slate-800/50 border-slate-700/50 hover:border-indigo-500/50 transition-all duration-300 group"
+                            style={{ animationDelay: `${i * 100}ms` }}
+                        >
+                            <CardContent className="p-6 text-center space-y-4">
+                                <div className={`w-16 h-16 bg-gradient-to-br ${feature.color} rounded-2xl flex items-center justify-center mx-auto group-hover:scale-110 transition-transform shadow-lg`}>
+                                    <feature.icon className="h-8 w-8 text-white" />
+                                </div>
+                                <h3 className="text-lg font-bold text-white">{feature.title}</h3>
+                                <p className="text-sm text-slate-400 leading-relaxed">
+                                    {feature.description}
+                                </p>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
+};
+
+// How It Works Section
+const HowItWorksSection = () => {
+    const steps = [
+        {
+            number: 1,
+            icon: Upload,
+            title: "Upload Your Data",
+            description: "Add your documents, FAQs, PDFs, or any content you want the AI to learn from.",
+            color: "from-indigo-500 to-purple-600"
+        },
+        {
+            number: 2,
+            icon: Settings,
+            title: "Configure & Customize",
+            description: "Choose your AI model, customize the theme, colors, and branding to match your website.",
+            color: "from-purple-500 to-pink-600"
+        },
+        {
+            number: 3,
+            icon: Code2,
+            title: "Embed on Your Site",
+            description: "Copy the generated iframe script and paste it anywhere on your website. Done!",
+            color: "from-pink-500 to-cyan-600"
+        }
+    ];
+
+    return (
+        <section id="how-it-works" className="py-20 px-4 sm:px-6 bg-slate-800/30">
+            <div className="max-w-7xl mx-auto">
+                <div className="text-center mb-16">
+                    <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
+                        How It <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Works</span>
+                    </h2>
+                    <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+                        Get your AI Search Engine up and running in just 3 simple steps
+                    </p>
+                </div>
+
+                <div className="relative">
+                    {/* Connection Lines (Desktop) */}
+                    <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 -translate-y-1/2 opacity-20" />
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 relative">
+                        {steps.map((step, i) => (
+                            <div 
+                                key={i} 
+                                className="relative animate-fade-in-up"
+                                style={{ animationDelay: `${i * 200}ms` }}
+                            >
+                                <Card className="bg-slate-800/50 border-slate-700/50 hover:border-indigo-500/50 transition-all duration-300 group h-full">
+                                    <CardContent className="p-8 text-center space-y-4">
+                                        {/* Step Number Badge */}
+                                        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                                            <div className={`w-12 h-12 bg-gradient-to-br ${step.color} rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
+                                                <span className="text-white font-bold text-lg">{step.number}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Icon */}
+                                        <div className="pt-6">
+                                            <div className="w-20 h-20 bg-slate-900/50 border border-slate-700 rounded-2xl flex items-center justify-center mx-auto group-hover:border-indigo-500/50 transition-all">
+                                                <step.icon className="h-10 w-10 text-indigo-400" />
+                                            </div>
+                                        </div>
+
+                                        {/* Content */}
+                                        <h3 className="text-xl font-bold text-white">{step.title}</h3>
+                                        <p className="text-slate-400 leading-relaxed">
+                                            {step.description}
+                                        </p>
+
+                                        {/* Arrow (Desktop) */}
+                                        {i < steps.length - 1 && (
+                                            <div className="hidden md:block absolute top-1/2 -right-6 lg:-right-10 transform -translate-y-1/2">
+                                                <ArrowRight className="h-6 w-6 text-indigo-500/50" />
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* CTA */}
+                <div className="text-center mt-12">
+                    <Button
+                        onClick={() => window.location.href = '/auth'}
+                        size="lg"
+                        className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 px-8 py-6 text-lg"
+                    >
+                        <Rocket className="h-5 w-5 mr-2" />
+                        Start Building Now
+                    </Button>
+                </div>
+            </div>
+        </section>
+    );
+};
 
 // Main Landing Page Component
 export default function LandingNew() {
@@ -339,9 +601,10 @@ export default function LandingNew() {
                         </div>
 
                         <nav className="hidden md:flex items-center gap-6">
-                            <a href="#features" className="text-slate-300 hover:text-white transition-colors">Features</a>
+                            <a href="#what-is" className="text-slate-300 hover:text-white transition-colors">What Is It</a>
+                            <a href="#key-features" className="text-slate-300 hover:text-white transition-colors">Key Features</a>
+                            <a href="#how-it-works" className="text-slate-300 hover:text-white transition-colors">How It Works</a>
                             <a href="#coming-soon" className="text-slate-300 hover:text-white transition-colors">Coming Soon</a>
-                            {/* <a href="#connect" className="text-slate-300 hover:text-white transition-colors">Connect</a> */}
                             <a onClick={() => { window.location.href = '/About/AI'; }} style={{ cursor: 'pointer' }} className="text-slate-300 hover:text-slate-100 transition-colors">About AI</a>
                         </nav>
 
@@ -383,11 +646,11 @@ export default function LandingNew() {
 
                 {mobileMenuOpen && (
                     <div className="md:hidden bg-slate-800 border-t border-slate-700 px-4 py-4 space-y-3">
-                        <a href="#features" className="block text-slate-300 hover:text-white">Features</a>
+                        <a href="#what-is" className="block text-slate-300 hover:text-white">What Is It</a>
+                        <a href="#key-features" className="block text-slate-300 hover:text-white">Key Features</a>
+                        <a href="#how-it-works" className="block text-slate-300 hover:text-white">How It Works</a>
                         <a href="#coming-soon" className="block text-slate-300 hover:text-white">Coming Soon</a>
-                        {/* <a href="#connect" className="block text-slate-300 hover:text-white">Connect</a> */}
                         <a onClick={() => { window.location.href = '/About/AI'; }} style={{ cursor: 'pointer' }} className="block text-slate-300 hover:text-white">About AI</a>
-
                     </div>
                 )}
             </header>
@@ -397,6 +660,15 @@ export default function LandingNew() {
 
             {/* LLM Logos Carousel */}
             <LLMLogosCarousel />
+
+            {/* What is AI Search Engine Section */}
+            <WhatIsAISearchSection />
+
+            {/* Key Features Section */}
+            <KeyFeaturesSection />
+
+            {/* How It Works Section */}
+            <HowItWorksSection />
 
             {/* Core Features */}
             <section id="features" className="py-20 px-4 sm:px-6">
