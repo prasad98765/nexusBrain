@@ -63,6 +63,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -660,9 +662,103 @@ export default function ChatPlayground() {
                                                 <>
                                                     <div className={cn(
                                                         "prose prose-invert max-w-none text-[15px] leading-7",
-                                                        message.role === 'user' ? 'text-right' : 'text-left'
+                                                        message.role === 'user' ? 'text-right' : 'text-left',
+                                                        // Enhanced prose styles for rich content
+                                                        "prose-img:rounded-lg prose-img:shadow-lg prose-img:my-4 prose-img:max-w-full prose-img:h-auto",
+                                                        "prose-headings:font-semibold prose-headings:text-white",
+                                                        "prose-p:text-slate-200 prose-p:my-2",
+                                                        "prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline",
+                                                        "prose-strong:text-white prose-strong:font-semibold",
+                                                        "prose-ul:list-disc prose-ul:pl-6 prose-ul:my-3",
+                                                        "prose-ol:list-decimal prose-ol:pl-6 prose-ol:my-3",
+                                                        "prose-li:text-slate-200 prose-li:my-1",
+                                                        "prose-blockquote:border-l-4 prose-blockquote:border-indigo-500 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:my-4",
+                                                        "prose-code:bg-[#2f2f2f] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:text-slate-200",
+                                                        "prose-pre:bg-[#2f2f2f] prose-pre:p-4 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:my-4",
+                                                        "prose-table:border-collapse prose-table:w-full prose-table:my-4",
+                                                        "prose-thead:bg-[#2f2f2f]",
+                                                        "prose-th:border prose-th:border-slate-600 prose-th:bg-[#2f2f2f] prose-th:p-3 prose-th:text-left prose-th:font-semibold",
+                                                        "prose-td:border prose-td:border-slate-600 prose-td:p-3",
+                                                        "prose-tr:border-b prose-tr:border-slate-700",
+                                                        "prose-hr:border-slate-600 prose-hr:my-6"
                                                     )}>
-                                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                        <ReactMarkdown 
+                                                            remarkPlugins={[remarkGfm]}
+                                                            rehypePlugins={[rehypeRaw, rehypeSanitize]}
+                                                            components={{
+                                                                // Custom image renderer with error handling and card-like styling
+                                                                img: ({node, ...props}) => {
+                                                                    const {src, alt, width, height} = props;
+                                                                    return (
+                                                                        <div className="my-4">
+                                                                            <img 
+                                                                                src={src}
+                                                                                alt={alt || 'Image'}
+                                                                                width={width}
+                                                                                height={height}
+                                                                                className="rounded-lg shadow-lg max-w-full h-auto border border-slate-700"
+                                                                                loading="lazy"
+                                                                                onError={(e) => {
+                                                                                    const target = e.target as HTMLImageElement;
+                                                                                    target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="150" viewBox="0 0 200 150"%3E%3Crect fill="%23333" width="200" height="150"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" dy="75" dx="50"%3EImage not found%3C/text%3E%3C/svg%3E';
+                                                                                }}
+                                                                            />
+                                                                        </div>
+                                                                    );
+                                                                },
+                                                                // Custom table renderer with responsive container
+                                                                table: ({node, ...props}) => (
+                                                                    <div className="overflow-x-auto my-4 rounded-lg border border-slate-700">
+                                                                        <table {...props} className="min-w-full border-collapse" />
+                                                                    </div>
+                                                                ),
+                                                                // Custom code block renderer with syntax highlighting support
+                                                                code: ({node, inline, className, children, ...props}: any) => {
+                                                                    const match = /language-(\w+)/.exec(className || '');
+                                                                    return !inline ? (
+                                                                        <pre className="bg-[#2f2f2f] p-4 rounded-lg overflow-x-auto my-4 border border-slate-700">
+                                                                            <code className={className} {...props}>
+                                                                                {children}
+                                                                            </code>
+                                                                        </pre>
+                                                                    ) : (
+                                                                        <code className="bg-[#2f2f2f] px-1.5 py-0.5 rounded text-sm text-indigo-300" {...props}>
+                                                                            {children}
+                                                                        </code>
+                                                                    );
+                                                                },
+                                                                // Custom link renderer with external link handling
+                                                                a: ({node, ...props}) => (
+                                                                    <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 hover:underline transition-colors" />
+                                                                ),
+                                                                // Custom list item renderer
+                                                                li: ({node, ...props}) => (
+                                                                    <li {...props} className="my-1 text-slate-200" />
+                                                                ),
+                                                                // Custom paragraph renderer
+                                                                p: ({node, ...props}) => (
+                                                                    <p {...props} className="my-2 text-slate-200 leading-relaxed" />
+                                                                ),
+                                                                // Custom heading renderers
+                                                                h1: ({node, ...props}) => (
+                                                                    <h1 {...props} className="text-2xl font-bold text-white mt-6 mb-4" />
+                                                                ),
+                                                                h2: ({node, ...props}) => (
+                                                                    <h2 {...props} className="text-xl font-bold text-white mt-5 mb-3" />
+                                                                ),
+                                                                h3: ({node, ...props}) => (
+                                                                    <h3 {...props} className="text-lg font-semibold text-white mt-4 mb-2" />
+                                                                ),
+                                                                // Custom horizontal rule
+                                                                hr: ({node, ...props}) => (
+                                                                    <hr {...props} className="border-slate-600 my-6" />
+                                                                ),
+                                                                // Custom blockquote
+                                                                blockquote: ({node, ...props}) => (
+                                                                    <blockquote {...props} className="border-l-4 border-indigo-500 pl-4 italic my-4 text-slate-300" />
+                                                                ),
+                                                            }}
+                                                        >
                                                             {message.content}
                                                         </ReactMarkdown>
                                                     </div>

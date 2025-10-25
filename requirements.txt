@@ -40,3 +40,4 @@ certifi==2024.7.4
 aiohttp ==3.9.4
 fastapi==0.101.1
 httpx==0.26.0
+pytz==2024.2.2

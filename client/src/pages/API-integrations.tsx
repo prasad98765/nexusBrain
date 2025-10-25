@@ -58,6 +58,7 @@ import { useAuth } from '@/hooks/useAuth';
 import axios from 'axios';
 import UsageLogsPage from './usage-logs';
 import QATable from '@/components/qa/QATable';
+import AnalyticsDashboard from './analytics-dashboard';
 
 export default function APIIntegrationsPage() {
     const [cachingEnabled, setCachingEnabled] = useState(true);
@@ -510,15 +511,19 @@ export default function APIIntegrationsPage() {
                 <>
                     <TokenManagementHeader />
                     <Tabs defaultValue="logs" className="space-y-4">
-                        <TabsList className="grid w-full grid-cols-2">
+                        <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="logs" data-testid="logs-tab">Usage Logs</TabsTrigger>
                             <TabsTrigger value="qa" data-testid="qa-tab">Question & Answer</TabsTrigger>
+                            <TabsTrigger value="analytics" data-testid="analytics-tab">Analytics</TabsTrigger>
                         </TabsList>
                         <TabsContent value="logs">
                             <UsageLogsPage />
                         </TabsContent>
                         <TabsContent value="qa">
                             <QATable />
+                        </TabsContent>
+                        <TabsContent value="analytics">
+                            <AnalyticsDashboard />
                         </TabsContent>
                     </Tabs>
                 </>

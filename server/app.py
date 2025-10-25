@@ -63,7 +63,7 @@ def create_app():
         auth_bp, workspace_bp, conversation_bp, message_bp, static_bp,
         contacts_bp, agents_bp, conversations_bp, api_tokens_bp,
         api_llm_routes, qa_bp, webbot_bp, rag_bp, system_prompts_bp,
-        model_config_bp
+        model_config_bp, analytics_routes
     )
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(workspace_bp, url_prefix='/api')
@@ -79,6 +79,7 @@ def create_app():
     app.register_blueprint(rag_bp, url_prefix='/api')
     app.register_blueprint(system_prompts_bp, url_prefix='/api')
     app.register_blueprint(model_config_bp, url_prefix='/api')
+    app.register_blueprint(analytics_routes, url_prefix='/api')
     app.register_blueprint(static_bp)
     
     # Import send_file
