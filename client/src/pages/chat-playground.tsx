@@ -122,6 +122,7 @@ export default function ChatPlayground() {
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [abortController, setAbortController] = useState<AbortController | null>(null);
     const [modelSearchOpen, setModelSearchOpen] = useState(false);
+    const [modelSearchValue, setModelSearchValue] = useState('');
     const [themeSettings, setThemeSettings] = useState<ThemeSettings | null>(null);
     const [quickButtons, setQuickButtons] = useState<QuickButton[]>([]);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -1155,7 +1156,12 @@ export default function ChatPlayground() {
                             >
                                 Model
                             </Label>
-                            <Popover open={modelSearchOpen} onOpenChange={setModelSearchOpen}>
+                            <Popover open={modelSearchOpen} onOpenChange={(open) => {
+                                setModelSearchOpen(open);
+                                if (!open) {
+                                    setModelSearchValue('');
+                                }
+                            }}>
                                 <PopoverTrigger asChild>
                                     <Button
                                         variant="outline"
@@ -1169,7 +1175,7 @@ export default function ChatPlayground() {
                                         }}
                                     >
                                         <span className="truncate text-sm">
-                                            {availableModels.find((m) => m.id === config.model)?.name || config.model}
+                                            {availableModels.filter((m) => m.name === config.model)[0]?.name || config.model}
                                         </span>
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
@@ -1188,6 +1194,8 @@ export default function ChatPlayground() {
                                         className=""
                                         shouldFilter={true}
                                         style={{ backgroundColor: themeSettings?.theme_preset === 'light' ? '#ffffff' : '#2f2f2f' }}
+                                        loop={true}
+                                        defaultValue={availableModels[0]?.name}
                                     >
                                         <CommandInput
                                             placeholder="Search models..."
@@ -1196,6 +1204,8 @@ export default function ChatPlayground() {
                                                 backgroundColor: themeSettings?.theme_preset === 'light' ? '#ffffff' : '#2f2f2f',
                                                 color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff'
                                             }}
+                                            value={modelSearchValue}
+                                            onValueChange={(value) => setModelSearchValue(value)}
                                         />
                                         {/* ✅ Scrollable area only for results — not wrapping entire Command */}
                                         <CommandList
@@ -1204,7 +1214,7 @@ export default function ChatPlayground() {
                                                 overscrollBehavior: 'contain',
                                                 WebkitOverflowScrolling: 'touch',
                                             }}
-                                            onWheel={(e) => e.stopPropagation()} // 🧠 still blocks Radix wheel capture
+                                            onWheel={(e) => e.stopPropagation()}
                                         >
                                             <CommandEmpty
                                                 className="py-6 text-center text-sm"
