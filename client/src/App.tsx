@@ -31,6 +31,7 @@ import APIIntegrationsPage from "@/pages/API-integrations";
 import ApiDocumentation from "@/pages/api-documentation";
 import ApiTesting from "@/pages/api-testing";
 import ScriptsPage from "@/pages/scripts-page";
+import ModelDetails from "@/pages/model-details";
 import { ComingSoon } from "./components/ui/coming-soon";
 
 function Router() {
@@ -99,6 +100,8 @@ function Router() {
 
       {/* Chatbot Interface - Always accessible for embedded use */}
       <Route path="/chatbot" Component={ChatbotPage} />
+
+      <Route path="/models" Component={ModelDetails} />
 
       {/* Chat Playground - External testing interface */}
       <Route path="/chat-playground" Component={ChatPlayground} />

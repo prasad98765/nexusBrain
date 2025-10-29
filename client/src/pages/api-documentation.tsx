@@ -458,7 +458,16 @@ export default function ApiDocumentation() {
                   </div>
                 </PopoverContent>
               </Popover>
-
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-slate-700 text-slate-300 text-xs sm:text-sm px-2 sm:px-3"
+                data-testid="button-dashboard"
+                onClick={() => window.open('https://nexusaihub.co.in/models', '_blank')}
+              >
+                <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Models</span>
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
