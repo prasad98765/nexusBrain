@@ -1,0 +1,50 @@
+{
+    "data": [{
+            "id": "minimax/minimax-m2:free",
+            "canonical_slug": "minimax/minimax-m2",
+            "hugging_face_id": "MiniMaxAI/MiniMax-M2",
+            "name": "MiniMax: MiniMax M2 (free)",
+            "created": 1761252093,
+            "description": "MiniMax-M2 is a compact, high-efficiency large language model optimized for end-to-end coding and agentic workflows. With 10 billion activated parameters (230 billion total), it delivers near-frontier intelligence across general reasoning, tool use, and multi-step task execution while maintaining low latency and deployment efficiency.",
+            "context_length": 204800,
+            "architecture": {
+                "modality": "text->text",
+                "input_modalities": [
+                    "text"
+                ],
+                "output_modalities": [
+                    "text"
+                ],
+                "tokenizer": "Other",
+                "instruct_type": null
+            },
+            "pricing": {
+                "prompt": "0",
+                "completion": "0",
+                "request": "0",
+                "image": "0",
+                "web_search": "0",
+                "internal_reasoning": "0"
+            },
+            "top_provider": {
+                "context_length": 204800,
+                "max_completion_tokens": 131072,
+                "is_moderated": false
+            },
+            "per_request_limits": null,
+            "supported_parameters": [
+                "include_reasoning",
+                "max_tokens",
+                "reasoning",
+                "temperature",
+                "tool_choice",
+                "tools",
+                "top_p"
+            ],
+            "default_parameters": {
+                "temperature": 1,
+                "top_p": 0.95,
+                "frequency_penalty": null
+            }
+        }]
+}

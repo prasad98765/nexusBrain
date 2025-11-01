@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/copy-shared.js && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "check": "tsc",
     "db:push": "drizzle-kit push"

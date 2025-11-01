@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
-import llmData from '@shared/llm_details.json';
+import llmData from '../llm_details.json';
 
 interface Model {
     id: string;
