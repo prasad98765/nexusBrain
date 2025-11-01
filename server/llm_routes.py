@@ -12,7 +12,6 @@ import httpx
 
 from .auth_utils import require_auth, require_auth_for_expose_api
 from .redis_cache_service import get_cache_service
-from .context_aware_cache_service import get_context_aware_cache
 from .models import db, ApiToken, ApiUsageLog, Workspace, SystemPrompt
 from .rag_service import rag_service
 
@@ -1781,69 +1780,69 @@ def create_chat_completion():
     return response, status_code
 
 
-@api_llm_routes.route("/v1/cache/stats", methods=["GET"])
-@require_auth
-def get_cache_stats():
-    """Get Redis cache statistics and status."""
-    cache_service = get_cache_service()
-    stats = cache_service.get_cache_stats()
-    return jsonify(stats), 200
+# @api_llm_routes.route("/v1/cache/stats", methods=["GET"])
+# @require_auth
+# def get_cache_stats():
+#     """Get Redis cache statistics and status."""
+#     cache_service = get_cache_service()
+#     stats = cache_service.get_cache_stats()
+#     return jsonify(stats), 200
 
 
-@api_llm_routes.route("/v1/cache/clear", methods=["POST"])
-@require_auth
-def clear_cache():
-    """Clear all cached LLM responses."""
-    cache_service = get_cache_service()
-    cleared_count = cache_service.clear_cache()
-    return jsonify({
-        "message": f"Cleared {cleared_count} cache entries",
-        "cleared_count": cleared_count
-    }), 200
+# @api_llm_routes.route("/v1/cache/clear", methods=["POST"])
+# @require_auth
+# def clear_cache():
+#     """Clear all cached LLM responses."""
+#     cache_service = get_cache_service()
+#     cleared_count = cache_service.clear_cache()
+#     return jsonify({
+#         "message": f"Cleared {cleared_count} cache entries",
+#         "cleared_count": cleared_count
+#     }), 200
 
 
-@api_llm_routes.route("/v1/cache/context/stats", methods=["GET"])
-@require_auth
-def get_context_cache_stats():
-    """Get context-aware cache statistics."""
-    try:
-        # Get workspace_id from request user
-        workspace_id = request.user.get('workspace_id')
+# @api_llm_routes.route("/v1/cache/context/stats", methods=["GET"])
+# @require_auth
+# def get_context_cache_stats():
+#     """Get context-aware cache statistics."""
+#     try:
+#         # Get workspace_id from request user
+#         workspace_id = request.user.get('workspace_id')
         
-        context_cache = get_context_aware_cache()
-        stats = context_cache.get_stats(workspace_id=str(workspace_id) if workspace_id else None)
+#         context_cache = get_context_aware_cache()
+#         stats = context_cache.get_stats(workspace_id=str(workspace_id) if workspace_id else None)
         
-        return jsonify(stats), 200
-    except Exception as e:
-        logger.error(f"Failed to get context cache stats: {e}")
-        return jsonify({"error": str(e)}), 500
+#         return jsonify(stats), 200
+#     except Exception as e:
+#         logger.error(f"Failed to get context cache stats: {e}")
+#         return jsonify({"error": str(e)}), 500
 
 
-@api_llm_routes.route("/v1/cache/context/history/<context_id>", methods=["GET"])
-@require_auth
-def get_context_history(context_id: str):
-    """Get conversation history for a specific context."""
-    try:
-        workspace_id = request.user.get('workspace_id')
-        if not workspace_id:
-            return jsonify({"error": "Workspace ID required"}), 401
+# @api_llm_routes.route("/v1/cache/context/history/<context_id>", methods=["GET"])
+# @require_auth
+# def get_context_history(context_id: str):
+#     """Get conversation history for a specific context."""
+#     try:
+#         workspace_id = request.user.get('workspace_id')
+#         if not workspace_id:
+#             return jsonify({"error": "Workspace ID required"}), 401
         
-        context_cache = get_context_aware_cache()
-        context = context_cache.get_context_history(context_id, str(workspace_id))
+#         context_cache = get_context_aware_cache()
+#         context = context_cache.get_context_history(context_id, str(workspace_id))
         
-        if not context:
-            return jsonify({"error": "Context not found"}), 404
+#         if not context:
+#             return jsonify({"error": "Context not found"}), 404
         
-        return jsonify({
-            "context_id": context.context_id,
-            "workspace_id": context.workspace_id,
-            "topic_summary": context.topic_summary,
-            "qa_pairs": context.qa_pairs,
-            "created_at": context.created_at,
-            "updated_at": context.updated_at,
-            "total_turns": len(context.qa_pairs)
-        }), 200
+#         return jsonify({
+#             "context_id": context.context_id,
+#             "workspace_id": context.workspace_id,
+#             "topic_summary": context.topic_summary,
+#             "qa_pairs": context.qa_pairs,
+#             "created_at": context.created_at,
+#             "updated_at": context.updated_at,
+#             "total_turns": len(context.qa_pairs)
+#         }), 200
         
-    except Exception as e:
-        logger.error(f"Failed to get context history: {e}")
-        return jsonify({"error": str(e)}), 500
+#     except Exception as e:
+#         logger.error(f"Failed to get context history: {e}")
+#         return jsonify({"error": str(e)}), 500
