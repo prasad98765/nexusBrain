@@ -80,6 +80,7 @@ interface Message {
     content: string;
     timestamp: Date;
     isStreaming?: boolean;
+    relatedQuestions?: string[];
 }
 
 interface ModelConfig {
@@ -252,6 +253,11 @@ export default function ChatPlayground() {
     const sendMessage = async (content: string, isRetry = false, parentMessages?: Message[]) => {
         if (!content.trim() || !token) return;
 
+        // Scroll to bottom when sending a new message
+        setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+
         const userMessage: Message = {
             id: `user-${Date.now()}`,
             role: 'user',
@@ -357,11 +363,16 @@ export default function ChatPlayground() {
                         }
                     }
 
-                    // Mark streaming as complete
+                    // Extract related questions after streaming completes
+                    const { content: cleanContent, relatedQuestions } = extractRelatedQuestions(accumulatedContent);
+
+                    // Mark streaming as complete and update with cleaned content
                     setMessages(prev => {
                         const updated = [...prev];
                         const lastMsg = updated[updated.length - 1];
                         if (lastMsg.role === 'assistant') {
+                            lastMsg.content = cleanContent;
+                            lastMsg.relatedQuestions = relatedQuestions;
                             lastMsg.isStreaming = false;
                         }
                         return updated;
@@ -369,15 +380,19 @@ export default function ChatPlayground() {
                 } else {
                     // Cached response returned as JSON even though stream was requested
                     const data = await response.json();
-                    const content = data.choices?.[0]?.message?.content || 'No response Please try again.';
+                    const fullContent = data.choices?.[0]?.message?.content || 'No response Please try again.';
                     const isCached = data.cached || data.cache_hit || false;
                     const cacheType = data.cache_type;
+
+                    // Extract related questions if present
+                    const { content, relatedQuestions } = extractRelatedQuestions(fullContent);
 
                     setMessages(prev => {
                         const updated = [...prev];
                         const lastMsg = updated[updated.length - 1];
                         if (lastMsg.role === 'assistant') {
                             lastMsg.content = content;
+                            lastMsg.relatedQuestions = relatedQuestions;
                             lastMsg.isStreaming = false;
                         }
                         return updated;
@@ -395,15 +410,19 @@ export default function ChatPlayground() {
             } else {
                 // Non-streaming response handling
                 const data = await response.json();
-                const content = data.choices?.[0]?.message?.content || 'No response Please try again.';
+                const fullContent = data.choices?.[0]?.message?.content || 'No response Please try again.';
                 const isCached = data.cached || data.cache_hit || false;
                 const cacheType = data.cache_type;
+
+                // Extract related questions if present
+                const { content, relatedQuestions } = extractRelatedQuestions(fullContent);
 
                 setMessages(prev => {
                     const updated = [...prev];
                     const lastMsg = updated[updated.length - 1];
                     if (lastMsg.role === 'assistant') {
                         lastMsg.content = content;
+                        lastMsg.relatedQuestions = relatedQuestions;
                         lastMsg.isStreaming = false;
                     }
                     return updated;
@@ -506,6 +525,57 @@ export default function ChatPlayground() {
             e.preventDefault();
             sendMessage(input);
         }
+    };
+
+    const extractRelatedQuestions = (content: string): { content: string; relatedQuestions: string[] } => {
+        const relatedQuestionsPattern = /Related Questions?:\s*([\s\S]*?)(?=\n\n|$)/i;
+        const match = content.match(relatedQuestionsPattern);
+
+        if (!match) {
+            return { content, relatedQuestions: [] };
+        }
+
+        // Extract the related questions section
+        const relatedSection = match[1];
+
+        // Parse individual questions (handles various formats)
+        const questions: string[] = [];
+
+        // Try to match numbered/bulleted questions
+        const numberedPattern = /(?:^|\n)\s*(?:\d+\.|-|\*|•)\s*(.+?)(?=(?:\n\s*(?:\d+\.|-|\*|•)|$))/g;
+        let questionMatch;
+
+        while ((questionMatch = numberedPattern.exec(relatedSection)) !== null) {
+            const question = questionMatch[1].trim();
+            if (question) {
+                questions.push(question);
+            }
+        }
+
+        // If no numbered questions found, try splitting by newlines or sentences
+        if (questions.length === 0) {
+            const parts = relatedSection.split(/\n|\?\s+/).filter(q => q.trim());
+            parts.forEach(part => {
+                const cleaned = part.trim();
+                if (cleaned && !cleaned.match(/^Related Questions?:/i)) {
+                    // Add back question mark if it was split by it
+                    questions.push(cleaned.endsWith('?') ? cleaned : cleaned + '?');
+                }
+            });
+        }
+
+        // Remove the related questions section from the main content
+        const cleanContent = content.replace(relatedQuestionsPattern, '').trim();
+
+        return {
+            content: cleanContent,
+            relatedQuestions: questions.filter(q => q.length > 0)
+        };
+    };
+
+    const handleRelatedQuestionClick = (question: string) => {
+        setInput(question);
+        sendMessage(question);
     };
 
     const newChat = () => {
@@ -796,28 +866,30 @@ export default function ChatPlayground() {
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <div style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }} className={cn(
+                                                    <div className={cn(
                                                         "prose prose-invert max-w-none text-sm sm:text-[15px] leading-6 sm:leading-7",
                                                         message.role === 'user' ? 'text-right' : 'text-left',
                                                         // Enhanced prose styles for rich content
                                                         "prose-img:rounded-lg prose-img:shadow-lg prose-img:my-3 sm:prose-img:my-4 prose-img:max-w-full prose-img:h-auto",
-                                                        "prose-headings:font-semibold prose-headings:text-white",
-                                                        "prose-p:text-slate-200 prose-p:my-1.5 sm:prose-p:my-2",
-                                                        "prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline",
-                                                        "prose-strong:text-white prose-strong:font-semibold",
+                                                        "prose-headings:font-semibold",
+                                                        "prose-p:my-1.5 sm:prose-p:my-2",
+                                                        "prose-a:no-underline hover:prose-a:underline",
+                                                        "prose-strong:font-semibold",
                                                         "prose-ul:list-disc prose-ul:pl-5 sm:prose-ul:pl-6 prose-ul:my-2 sm:prose-ul:my-3",
                                                         "prose-ol:list-decimal prose-ol:pl-5 sm:prose-ol:pl-6 prose-ol:my-2 sm:prose-ol:my-3",
-                                                        "prose-li:text-slate-200 prose-li:my-0.5 sm:prose-li:my-1",
-                                                        "prose-blockquote:border-l-4 prose-blockquote:border-indigo-500 prose-blockquote:pl-3 sm:prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:my-3 sm:prose-blockquote:my-4",
-                                                        "prose-code:bg-[#2f2f2f] prose-code:px-1 sm:prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs sm:prose-code:text-sm prose-code:text-slate-200",
-                                                        "prose-pre:bg-[#2f2f2f] prose-pre:p-3 sm:prose-pre:p-4 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:my-3 sm:prose-pre:my-4",
+                                                        "prose-li:my-0.5 sm:prose-li:my-1",
+                                                        "prose-blockquote:border-l-4 prose-blockquote:pl-3 sm:prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:my-3 sm:prose-blockquote:my-4",
+                                                        "prose-code:px-1 sm:prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs sm:prose-code:text-sm",
+                                                        "prose-pre:p-3 sm:prose-pre:p-4 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:my-3 sm:prose-pre:my-4",
                                                         "prose-table:border-collapse prose-table:w-full prose-table:my-3 sm:prose-table:my-4 prose-table:text-xs sm:prose-table:text-sm",
-                                                        "prose-thead:bg-[#2f2f2f]",
-                                                        "prose-th:border prose-th:border-slate-600 prose-th:bg-[#2f2f2f] prose-th:p-2 sm:prose-th:p-3 prose-th:text-left prose-th:font-semibold",
-                                                        "prose-td:border prose-td:border-slate-600 prose-td:p-2 sm:prose-td:p-3",
-                                                        "prose-tr:border-b prose-tr:border-slate-700",
-                                                        "prose-hr:border-slate-600 prose-hr:my-4 sm:prose-hr:my-6"
-                                                    )}>
+                                                        "prose-th:border prose-th:p-2 sm:prose-th:p-3 prose-th:text-left prose-th:font-semibold",
+                                                        "prose-td:border prose-td:p-2 sm:prose-td:p-3",
+                                                        "prose-tr:border-b",
+                                                        "prose-hr:my-4 sm:prose-hr:my-6"
+                                                    )}
+                                                        style={{
+                                                            color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff'
+                                                        }}>
                                                         <ReactMarkdown
                                                             remarkPlugins={[remarkGfm]}
                                                             rehypePlugins={[rehypeRaw, rehypeSanitize]}
@@ -867,31 +939,38 @@ export default function ChatPlayground() {
                                                                 a: ({ node, ...props }) => (
                                                                     <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 hover:underline transition-colors" style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }} />
                                                                 ),
-                                                                // Custom list item renderer
-                                                                li: ({ node, ...props }) => (
-                                                                    <li {...props} className="my-1 text-slate-200" style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }} />
-                                                                ),
                                                                 // Custom paragraph renderer
                                                                 p: ({ node, ...props }) => (
-                                                                    <p {...props} className="my-2 text-slate-200 leading-relaxed" style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }} />
+                                                                    <p {...props} className="my-2 leading-relaxed" style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#e5e7eb' }} />
                                                                 ),
                                                                 // Custom heading renderers
                                                                 h1: ({ node, ...props }) => (
-                                                                    <h1 {...props} className="text-2xl font-bold text-white mt-6 mb-4" style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }} />
+                                                                    <h1 {...props} className="text-2xl font-bold mt-6 mb-4" style={{ color: themeSettings?.theme_preset === 'light' ? '#111827' : '#f9fafb' }} />
                                                                 ),
                                                                 h2: ({ node, ...props }) => (
-                                                                    <h2 {...props} className="text-xl font-bold text-white mt-5 mb-3" style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }} />
+                                                                    <h2 {...props} className="text-xl font-bold mt-5 mb-3" style={{ color: themeSettings?.theme_preset === 'light' ? '#111827' : '#f3f4f6' }} />
                                                                 ),
                                                                 h3: ({ node, ...props }) => (
-                                                                    <h3 {...props} className="text-lg font-semibold text-white mt-4 mb-2" style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }} />
+                                                                    <h3 {...props} className="text-lg font-semibold mt-4 mb-2" style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#f3f4f6' }} />
                                                                 ),
                                                                 // Custom horizontal rule
                                                                 hr: ({ node, ...props }) => (
-                                                                    <hr {...props} className="border-slate-600 my-6" style={{ borderColor: themeSettings?.theme_preset === 'light' ? '#e5e7eb' : '#374151' }} />
+                                                                    <hr {...props} className="my-6" style={{ borderColor: themeSettings?.theme_preset === 'light' ? '#e5e7eb' : '#4b5563' }} />
                                                                 ),
                                                                 // Custom blockquote
                                                                 blockquote: ({ node, ...props }) => (
-                                                                    <blockquote {...props} className="border-l-4 border-indigo-500 pl-4 italic my-4 text-slate-300" style={{ borderColor: themeSettings?.theme_preset === 'light' ? '#cbd5e1' : '#4f46e5' }} />
+                                                                    <blockquote {...props} className="border-l-4 pl-4 italic my-4" style={{
+                                                                        borderColor: themeSettings?.theme_preset === 'light' ? '#cbd5e1' : (themeSettings?.primary_color || '#6366f1'),
+                                                                        color: themeSettings?.theme_preset === 'light' ? '#4b5563' : '#d1d5db'
+                                                                    }} />
+                                                                ),
+                                                                // Custom list item
+                                                                li: ({ node, ...props }) => (
+                                                                    <li {...props} className="my-1" style={{ color: themeSettings?.theme_preset === 'light' ? '#374151' : '#d1d5db' }} />
+                                                                ),
+                                                                // Custom strong
+                                                                strong: ({ node, ...props }) => (
+                                                                    <strong {...props} className="font-semibold" style={{ color: themeSettings?.theme_preset === 'light' ? '#111827' : '#f9fafb' }} />
                                                                 ),
                                                             }}
                                                         >
@@ -903,6 +982,51 @@ export default function ChatPlayground() {
                                                             <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                                                             <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                                                             <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                                        </div>
+                                                    )}
+
+                                                    {/* Related Questions */}
+                                                    {!message.isStreaming && message.relatedQuestions && message.relatedQuestions.length > 0 && (
+                                                        <div className="mt-4 space-y-2">
+                                                            <div className="flex items-center gap-2 mb-3">
+                                                                <Lightbulb
+                                                                    className="w-4 h-4"
+                                                                    style={{ color: themeSettings?.primary_color || '#6366f1' }}
+                                                                />
+                                                                <span
+                                                                    className="text-xs font-medium"
+                                                                    style={{ color: themeSettings?.theme_preset === 'light' ? '#6b7280' : '#9ca3af' }}
+                                                                >
+                                                                    Related Questions
+                                                                </span>
+                                                            </div>
+                                                            <div className="grid gap-2">
+                                                                {message.relatedQuestions.map((question, idx) => (
+                                                                    <button
+                                                                        key={idx}
+                                                                        onClick={() => handleRelatedQuestionClick(question)}
+                                                                        disabled={isLoading}
+                                                                        className={cn(
+                                                                            "w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg transition-all text-sm",
+                                                                            "hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed",
+                                                                            "border group"
+                                                                        )}
+                                                                        style={{
+                                                                            backgroundColor: themeSettings?.theme_preset === 'light' ? '#f9fafb' : '#2f2f2f',
+                                                                            borderColor: themeSettings?.theme_preset === 'light' ? '#e5e7eb' : '#404040',
+                                                                            color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#e5e7eb'
+                                                                        }}
+                                                                    >
+                                                                        <div className="flex items-start gap-2">
+                                                                            <MessageSquare
+                                                                                className="w-4 h-4 mt-0.5 flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity"
+                                                                                style={{ color: themeSettings?.primary_color || '#6366f1' }}
+                                                                            />
+                                                                            <span className="flex-1">{question}</span>
+                                                                        </div>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
                                                         </div>
                                                     )}
 
@@ -983,13 +1107,13 @@ export default function ChatPlayground() {
 
                 {/* Input Area */}
                 <div
-                    className="border-t p-2 sm:p-3 md:p-4 w-full"
+                    className="border-t p-2 sm:p-3 md:p-4"
                     style={{
                         borderColor: themeSettings?.theme_preset === 'light' ? '#e5e7eb' : '#2f2f2f',
                         backgroundColor: themeSettings?.background_color || '#212121'
                     }}
                 >
-                    <div className="w-full max-w-3xl mx-auto">
+                    <div className="max-w-3xl mx-auto">
                         {selectedText && !showAskToNexus && (
                             <div className="mb-2 p-2 bg-[#2f2f2f] rounded-lg text-sm flex items-center justify-between">
                                 <span className="text-slate-400 truncate">Selected: {selectedText.slice(0, 50)}...</span>
@@ -1007,7 +1131,7 @@ export default function ChatPlayground() {
                         {/* Quick Action Buttons */}
                         {quickButtons && quickButtons.length > 0 && (
                             <TooltipProvider>
-                                <div className="w-full pb-3">
+                                <div className="px-2 sm:px-4 pb-3">
                                     <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide pb-2" style={{ scrollBehavior: 'smooth' }}>
                                         {quickButtons.map((button) => (
                                             <Tooltip key={button.id}>
@@ -1081,7 +1205,7 @@ export default function ChatPlayground() {
 
                         <div
                             className={cn(
-                                "relative flex items-end gap-2 px-3 sm:px-4 py-2 sm:py-3 border w-full",
+                                "relative flex items-end gap-2 px-3 sm:px-4 py-2 sm:py-3 border mx-2 sm:mx-0",
                                 themeSettings?.button_style === 'rounded' && 'rounded-2xl sm:rounded-3xl',
                                 themeSettings?.button_style === 'square' && 'rounded-none',
                                 !themeSettings?.button_style && 'rounded-2xl sm:rounded-3xl'

@@ -33,10 +33,14 @@ import ApiTesting from "@/pages/api-testing";
 import ScriptsPage from "@/pages/scripts-page";
 import ModelDetails from "@/pages/model-details";
 import { ComingSoon } from "./components/ui/coming-soon";
+import { SessionHandler } from "./components/SessionHandler";
+import { SessionExpiredDialog } from "@/components/SessionExpiredDialog";
+
 
 function Router() {
   const { isAuthenticated, isLoading, token } = useAuth();
   const [businessInfoRequired, setBusinessInfoRequired] = useState<boolean | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Check if business info is required for authenticated users
   // useEffect(() => {
@@ -112,26 +116,29 @@ function Router() {
       <Route path="/forgot-password" Component={ForgotPasswordPage} />
       <Route path="/" Component={LandingNew} />
 
-      <>
-        <Route path="/nexus" element={<Layout />} >
-          <Route index element={<Home />} />
-          {/* <Route path="agents" element={<AgentsPage />} /> */}
-          <Route path="agents" element={<ComingSoon title="Agents (Coming Soon)" />} />
+      {/* ✅ Protected `/nexus` routes wrapped with SessionExpiredDialog */}
+      <Route
+        path="/nexus/*"
+        element={
+          <>
+            <SessionHandler setIsOpen={setIsDialogOpen} />
+            <Layout />
+            <SessionExpiredDialog
+              isOpen={isDialogOpen}
+              onClose={() => setIsDialogOpen(false)}
+            />
+          </>
+        }
+      >
+        <Route index element={<Home />} />
+        <Route path="agents" element={<ComingSoon title="Agents (Coming Soon)" />} />
+        <Route path="contacts" element={<ComingSoon title="Contacts (Coming Soon)" />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="flow-builder" element={<ComingSoon title="Flow Builder (Coming Soon)" />} />
+        <Route path="API-integrations" element={<APIIntegrationsPage />} />
+        <Route path="scripts" element={<ScriptsPage />} />
+      </Route>
 
-          {/* <Route path="contacts" element={<ContactsPage workspaceId={""} />} /> */}
-          <Route path="contacts" element={<ComingSoon title="Contacts (Coming Soon)" />} />
-
-          <Route path="settings" element={<SettingsPage />} />
-          {/* <Route path="flow-builder" element={<FlowBuilderInner agentId={""} onBackClick={function (): void {
-              throw new Error("Function not implemented.");
-            }} />} /> */}
-          <Route path="flow-builder" element={<ComingSoon title="Flow Builder (ComingSoon) " />} />
-          <Route path="API-integrations" element={<APIIntegrationsPage />} />
-          <Route path="scripts" element={<ScriptsPage />} />
-        </Route>
-        <Route path="/business-info" Component={BusinessInfoPage} />
-        <Route path="/settings/contact-properties" Component={ContactPropertiesPage} />
-      </>
       <Route Component={Home} />
     </Routes>
   );
@@ -143,6 +150,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
+          {/* <SessionExpiredDialog /> */}
           <BrowserRouter>
             <Router />
           </BrowserRouter>

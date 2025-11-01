@@ -2,8 +2,15 @@ import { toast } from '@/hooks/use-toast';
 
 /**
  * Global API client with automatic 401 (Unauthorized) handling
- * Redirects to login page when token is invalid or expired
+ * Shows session expired dialog and redirects to login page when token is invalid or expired
  */
+
+// Function to show session expired dialog
+let showSessionExpiredDialog: (() => void) | null = null;
+
+export const setSessionExpiredDialogHandler = (handler: () => void) => {
+  showSessionExpiredDialog = handler;
+};
 
 interface FetchOptions extends RequestInit {
   skipAuth?: boolean;
@@ -44,7 +51,19 @@ class ApiClient {
 
       // Handle 401 Unauthorized
       if (response.status === 401) {
-        this.handleUnauthorized();
+        // Try to parse response to check for "Token is invalid" message
+        try {
+          const clonedResponse = response.clone();
+          const data = await clonedResponse.json();
+          if (data.message === 'Token is invalid') {
+            this.handleUnauthorized('Your token is invalid. Please log in again.');
+          } else {
+            this.handleUnauthorized();
+          }
+        } catch {
+          // If JSON parsing fails, use default message
+          this.handleUnauthorized();
+        }
         throw new Error('Unauthorized - Session expired');
       }
 
@@ -57,27 +76,32 @@ class ApiClient {
 
   /**
    * Handle unauthorized access
-   * Clears authentication data and redirects to login
+   * Clears authentication data and shows session expired dialog
    */
-  private handleUnauthorized() {
+  private handleUnauthorized(customMessage?: string) {
     // Clear authentication data
     localStorage.removeItem('auth_token');
     
-    // Show toast notification
-    toast({
-      title: 'Session Expired',
-      description: 'Your session has expired. Please log in again.',
-      variant: 'destructive',
-      duration: 5000,
-    });
+    // Show session expired dialog if handler is set
+    if (showSessionExpiredDialog) {
+      showSessionExpiredDialog();
+    } else {
+      // Fallback to toast if dialog is not available
+      toast({
+        title: 'Session Expired',
+        description: customMessage || 'Your session has expired. Please log in again.',
+        variant: 'destructive',
+        duration: 5000,
+      });
 
-    // Redirect to login page after a short delay
-    setTimeout(() => {
-      // Check if we're not already on the auth page
-      if (!window.location.pathname.includes('/auth')) {
-        window.location.href = '/auth';
-      }
-    }, 1000);
+      // Redirect to login page after a short delay
+      setTimeout(() => {
+        // Check if we're not already on the auth page
+        if (!window.location.pathname.includes('/auth')) {
+          window.location.href = '/auth';
+        }
+      }, 1500);
+    }
   }
 
   /**
