@@ -40,6 +40,8 @@ interface QuickButton {
   label: string;
   text: string;
   emoji?: string;
+  image_url?: string;
+  description?: string;
 }
 
 interface ThemeSettings {
@@ -80,9 +82,13 @@ export default function ScriptsPage() {
   const [newButtonLabel, setNewButtonLabel] = useState('');
   const [newButtonText, setNewButtonText] = useState('');
   const [newButtonEmoji, setNewButtonEmoji] = useState('');
+  const [newButtonImage, setNewButtonImage] = useState('');
+  const [newButtonDescription, setNewButtonDescription] = useState('');
   const [editingButtonId, setEditingButtonId] = useState<string | null>(null);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [uploadingButtonImage, setUploadingButtonImage] = useState(false);
+  const buttonImageInputRef = useRef<HTMLInputElement>(null);
 
   // Unsaved Changes Detection
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -331,7 +337,9 @@ export default function ScriptsPage() {
             ...btn,
             label: newButtonLabel.trim(),
             text: newButtonText.trim(),
-            emoji: newButtonEmoji.trim() || undefined
+            emoji: newButtonEmoji.trim() || undefined,
+            image_url: newButtonImage.trim() || undefined,
+            description: newButtonDescription.trim() || undefined
           }
           : btn
       ));
@@ -346,7 +354,9 @@ export default function ScriptsPage() {
         id: Date.now().toString(),
         label: newButtonLabel.trim(),
         text: newButtonText.trim(),
-        emoji: newButtonEmoji.trim() || undefined
+        emoji: newButtonEmoji.trim() || undefined,
+        image_url: newButtonImage.trim() || undefined,
+        description: newButtonDescription.trim() || undefined
       };
       setQuickButtons([...quickButtons, newButton]);
       toast({
@@ -359,6 +369,8 @@ export default function ScriptsPage() {
     setNewButtonLabel('');
     setNewButtonText('');
     setNewButtonEmoji('');
+    setNewButtonImage('');
+    setNewButtonDescription('');
   };
 
   const handleEditQuickButton = (button: QuickButton) => {
@@ -366,6 +378,8 @@ export default function ScriptsPage() {
     setNewButtonLabel(button.label);
     setNewButtonText(button.text);
     setNewButtonEmoji(button.emoji || '');
+    setNewButtonImage(button.image_url || '');
+    setNewButtonDescription(button.description || '');
     // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -375,6 +389,8 @@ export default function ScriptsPage() {
     setNewButtonLabel('');
     setNewButtonText('');
     setNewButtonEmoji('');
+    setNewButtonImage('');
+    setNewButtonDescription('');
   };
 
   const handleRemoveQuickButton = (id: string) => {
@@ -391,6 +407,64 @@ export default function ScriptsPage() {
   const handleEmojiSelect = (emojiData: EmojiClickData) => {
     setNewButtonEmoji(emojiData.emoji);
     setEmojiPickerOpen(false);
+  };
+
+  const handleButtonImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: 'Invalid File Type',
+        description: 'Please upload a PNG, JPG, SVG, or WebP image.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Validate file size (max 1MB for button images)
+    const maxSize = 1 * 1024 * 1024; // 1MB
+    if (file.size > maxSize) {
+      toast({
+        title: 'File Too Large',
+        description: 'Button image must be smaller than 1MB.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setUploadingButtonImage(true);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        setNewButtonImage(dataUrl);
+        toast({
+          title: 'Image Uploaded',
+          description: 'Button image has been uploaded successfully.',
+        });
+        setUploadingButtonImage(false);
+      };
+      reader.onerror = () => {
+        toast({
+          title: 'Upload Failed',
+          description: 'Failed to read the image file.',
+          variant: 'destructive'
+        });
+        setUploadingButtonImage(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      toast({
+        title: 'Upload Failed',
+        description: 'An error occurred while uploading the image.',
+        variant: 'destructive'
+      });
+      setUploadingButtonImage(false);
+    }
   };
 
   // Drag and Drop Functions
@@ -848,6 +922,91 @@ export default function ScriptsPage() {
                       </div>
                     </div>
 
+                    {/* Button Image Upload */}
+                    <div className="space-y-2">
+                      <Label htmlFor="button-image" className="text-slate-200">Button Icon/Image (Optional)</Label>
+                      <div className="space-y-3">
+                        {/* Image Preview */}
+                        {newButtonImage && (
+                          <div className="relative inline-block">
+                            <div className="w-16 h-16 rounded-lg border-2 border-slate-600 bg-slate-700 flex items-center justify-center overflow-hidden">
+                              <img
+                                src={newButtonImage}
+                                alt="Button image preview"
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setNewButtonImage('')}
+                              className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* URL Input */}
+                        <div className="flex gap-2">
+                          <Input
+                            id="button-image"
+                            type="text"
+                            value={newButtonImage}
+                            onChange={(e) => setNewButtonImage(e.target.value)}
+                            className="flex-1 bg-slate-700 border-slate-600 text-slate-100"
+                            placeholder="https://example.com/icon.png or upload below"
+                          />
+                        </div>
+
+                        {/* File Upload */}
+                        <div className="flex gap-2">
+                          <input
+                            ref={buttonImageInputRef}
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                            onChange={handleButtonImageUpload}
+                            className="hidden"
+                          />
+                          <Button
+                            variant="outline"
+                            onClick={() => buttonImageInputRef.current?.click()}
+                            disabled={uploadingButtonImage}
+                            className="border-slate-600 hover:bg-slate-700 flex-1"
+                          >
+                            {uploadingButtonImage ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-4 h-4 mr-2" />
+                                Upload Icon (PNG, JPG, SVG - Max 1MB)
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          Upload an icon or image to display on the button (shown instead of emoji if provided)
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="button-description" className="text-slate-200">Description (Optional)</Label>
+                      <Textarea
+                        id="button-description"
+                        value={newButtonDescription}
+                        onChange={(e) => setNewButtonDescription(e.target.value)}
+                        className="bg-slate-700 border-slate-600 text-slate-100"
+                        placeholder="e.g., Develop a business expansion..."
+                        rows={2}
+                        maxLength={200}
+                      />
+                      <p className="text-xs text-slate-500">Short description shown on hover (max 200 characters)</p>
+                    </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="button-text" className="text-slate-200">Button Action Text *</Label>
                       <Textarea
@@ -908,10 +1067,17 @@ export default function ScriptsPage() {
                             <GripVertical className="w-5 h-5 text-slate-500 flex-shrink-0 mt-0.5" />
                             <div className="flex-1 space-y-1">
                               <div className="flex items-center gap-2">
-                                {button.emoji && <span className="text-xl">{button.emoji}</span>}
+                                {button.image_url ? (
+                                  <img src={button.image_url} alt={button.label} className="w-6 h-6 object-contain rounded" />
+                                ) : button.emoji ? (
+                                  <span className="text-xl">{button.emoji}</span>
+                                ) : null}
                                 <span className="font-semibold text-slate-100">{button.label}</span>
                               </div>
                               <p className="text-sm text-slate-400">{button.text}</p>
+                              {button.description && (
+                                <p className="text-xs text-slate-500 italic">Description: {button.description}</p>
+                              )}
                             </div>
                             <div className="flex gap-1 flex-shrink-0">
                               <Button

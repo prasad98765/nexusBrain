@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,6 +19,12 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
     Sheet,
     SheetContent,
@@ -103,6 +109,8 @@ interface QuickButton {
     label: string;
     text: string;
     emoji?: string;
+    image_url?: string;
+    description?: string;
 }
 
 export default function ChatPlayground() {
@@ -519,7 +527,7 @@ export default function ChatPlayground() {
 
     return (
         <div
-            className="flex h-screen text-white overflow-hidden"
+            className="flex h-screen w-full text-white overflow-hidden"
             style={{
                 backgroundColor: themeSettings?.background_color || '#212121',
                 color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff'
@@ -627,23 +635,23 @@ export default function ChatPlayground() {
             </div> : null}
 
             {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col relative">
+            <div className="flex-1 flex flex-col relative min-w-0 w-full">
                 {/* Top Bar */}
                 <div
-                    className="flex items-center justify-between px-4 py-3 border-b"
+                    className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b"
                     style={{ borderColor: themeSettings?.theme_preset === 'light' ? '#e5e7eb' : '#2f2f2f' }}
                 >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
                         {!siteId ? <Button
                             variant="ghost"
                             size="icon"
-                            className="h-9 w-9 hover:bg-[#2f2f2f]"
+                            className="h-8 w-8 sm:h-9 sm:w-9 hover:bg-[#2f2f2f]"
                             onClick={() => setSidebarOpen(!sidebarOpen)}
                         >
-                            {sidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}
+                            {sidebarOpen ? <PanelLeftClose className="w-4 h-4 sm:w-5 sm:h-5" /> : <PanelLeft className="w-4 h-4 sm:w-5 sm:h-5" />}
                         </Button> : null}
                         <span
-                            className="text-sm font-medium"
+                            className="text-xs sm:text-sm font-medium truncate max-w-[200px] sm:max-w-none"
                             style={{ color: themeSettings?.theme_preset === 'light' ? '#374151' : '#d1d5db' }}
                         >
                             {themeSettings?.ai_search_engine_name || 'Nexus Chat'}
@@ -652,30 +660,30 @@ export default function ChatPlayground() {
                     {!siteId ? <Button
                         variant="ghost"
                         size="icon"
-                        className="h-9 w-9 hover:bg-[#2f2f2f] md:hidden"
+                        className="h-8 w-8 sm:h-9 sm:w-9 hover:bg-[#2f2f2f] md:hidden"
                         onClick={newChat}
                     >
-                        <Plus className="w-5 h-5" />
+                        <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                     </Button> : null}
                 </div>
 
                 {/* Messages Area */}
-                <ScrollArea className="flex-1" onMouseUp={handleTextSelection}>
-                    <div className="max-w-3xl mx-auto relative">
+                <ScrollArea className="flex-1 w-full" onMouseUp={handleTextSelection}>
+                    <div className="w-full max-w-3xl mx-auto px-0 sm:px-4">
                         {messages.length === 0 && (
-                            <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+                            <div className="flex flex-col items-center justify-center min-h-[50vh] sm:min-h-[60vh] px-4 w-full">
                                 {themeSettings?.logo_url ? (
-                                    <img src={themeSettings.logo_url} alt="Logo" className="w-16 h-16 rounded-full object-cover mb-6" />
+                                    <img src={themeSettings.logo_url} alt="Logo" className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover mb-4 sm:mb-6" />
                                 ) : (
                                     <div
-                                        className="w-12 h-12 rounded-full flex items-center justify-center mb-6"
+                                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center mb-4 sm:mb-6"
                                         style={{ background: `linear-gradient(to bottom right, ${themeSettings?.primary_color || '#6366f1'}, ${themeSettings?.secondary_color || '#8b5cf6'})` }}
                                     >
-                                        <Sparkles className="w-6 h-6 text-white" />
+                                        <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                                     </div>
                                 )}
                                 <h2
-                                    className="text-3xl font-semibold mb-2"
+                                    className="text-xl sm:text-2xl md:text-3xl font-semibold mb-2 text-center max-w-full px-2"
                                     style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }}
                                 >
                                     {themeSettings?.welcome_message || 'How can I help you today?'}
@@ -715,18 +723,18 @@ export default function ChatPlayground() {
                             <div
                                 key={message.id}
                                 className={cn(
-                                    "group py-6 px-4 md:px-6 bg-transparent"
+                                    "group py-4 sm:py-6 px-3 sm:px-4 md:px-6 bg-transparent w-full"
                                 )}
                             >
-                                <div className="max-w-3xl mx-auto">
+                                <div className="w-full max-w-full">
                                     <div className={cn(
-                                        "flex gap-4",
+                                        "flex gap-3 sm:gap-4",
                                         message.role === 'user' ? 'flex-row-reverse' : ''
                                     )}>
                                         {/* Avatar */}
                                         <div className="flex-shrink-0">
                                             <div
-                                                className="w-8 h-8 rounded-full flex items-center justify-center"
+                                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center"
                                                 style={{
                                                     backgroundColor: message.role === 'user'
                                                         ? (themeSettings?.primary_color || '#19c37d')
@@ -737,9 +745,9 @@ export default function ChatPlayground() {
                                                 }}
                                             >
                                                 {message.role === 'user' ? (
-                                                    <User className="w-4 h-4 text-white" />
+                                                    <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                                                 ) : (
-                                                    <Sparkles className="w-4 h-4 text-white" />
+                                                    <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                                                 )}
                                             </div>
                                         </div>
@@ -751,7 +759,7 @@ export default function ChatPlayground() {
                                         )}>
                                             <div
                                                 className={cn(
-                                                    "font-semibold text-sm mb-2",
+                                                    "font-semibold text-xs sm:text-sm mb-1.5 sm:mb-2",
                                                     message.role === 'user' ? 'text-right' : 'text-left'
                                                 )}
                                                 style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }}
@@ -788,27 +796,27 @@ export default function ChatPlayground() {
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <div className={cn(
-                                                        "prose prose-invert max-w-none text-[15px] leading-7",
+                                                    <div style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }} className={cn(
+                                                        "prose prose-invert max-w-none text-sm sm:text-[15px] leading-6 sm:leading-7",
                                                         message.role === 'user' ? 'text-right' : 'text-left',
                                                         // Enhanced prose styles for rich content
-                                                        "prose-img:rounded-lg prose-img:shadow-lg prose-img:my-4 prose-img:max-w-full prose-img:h-auto",
+                                                        "prose-img:rounded-lg prose-img:shadow-lg prose-img:my-3 sm:prose-img:my-4 prose-img:max-w-full prose-img:h-auto",
                                                         "prose-headings:font-semibold prose-headings:text-white",
-                                                        "prose-p:text-slate-200 prose-p:my-2",
+                                                        "prose-p:text-slate-200 prose-p:my-1.5 sm:prose-p:my-2",
                                                         "prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline",
                                                         "prose-strong:text-white prose-strong:font-semibold",
-                                                        "prose-ul:list-disc prose-ul:pl-6 prose-ul:my-3",
-                                                        "prose-ol:list-decimal prose-ol:pl-6 prose-ol:my-3",
-                                                        "prose-li:text-slate-200 prose-li:my-1",
-                                                        "prose-blockquote:border-l-4 prose-blockquote:border-indigo-500 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:my-4",
-                                                        "prose-code:bg-[#2f2f2f] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:text-slate-200",
-                                                        "prose-pre:bg-[#2f2f2f] prose-pre:p-4 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:my-4",
-                                                        "prose-table:border-collapse prose-table:w-full prose-table:my-4",
+                                                        "prose-ul:list-disc prose-ul:pl-5 sm:prose-ul:pl-6 prose-ul:my-2 sm:prose-ul:my-3",
+                                                        "prose-ol:list-decimal prose-ol:pl-5 sm:prose-ol:pl-6 prose-ol:my-2 sm:prose-ol:my-3",
+                                                        "prose-li:text-slate-200 prose-li:my-0.5 sm:prose-li:my-1",
+                                                        "prose-blockquote:border-l-4 prose-blockquote:border-indigo-500 prose-blockquote:pl-3 sm:prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:my-3 sm:prose-blockquote:my-4",
+                                                        "prose-code:bg-[#2f2f2f] prose-code:px-1 sm:prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs sm:prose-code:text-sm prose-code:text-slate-200",
+                                                        "prose-pre:bg-[#2f2f2f] prose-pre:p-3 sm:prose-pre:p-4 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:my-3 sm:prose-pre:my-4",
+                                                        "prose-table:border-collapse prose-table:w-full prose-table:my-3 sm:prose-table:my-4 prose-table:text-xs sm:prose-table:text-sm",
                                                         "prose-thead:bg-[#2f2f2f]",
-                                                        "prose-th:border prose-th:border-slate-600 prose-th:bg-[#2f2f2f] prose-th:p-3 prose-th:text-left prose-th:font-semibold",
-                                                        "prose-td:border prose-td:border-slate-600 prose-td:p-3",
+                                                        "prose-th:border prose-th:border-slate-600 prose-th:bg-[#2f2f2f] prose-th:p-2 sm:prose-th:p-3 prose-th:text-left prose-th:font-semibold",
+                                                        "prose-td:border prose-td:border-slate-600 prose-td:p-2 sm:prose-td:p-3",
                                                         "prose-tr:border-b prose-tr:border-slate-700",
-                                                        "prose-hr:border-slate-600 prose-hr:my-6"
+                                                        "prose-hr:border-slate-600 prose-hr:my-4 sm:prose-hr:my-6"
                                                     )}>
                                                         <ReactMarkdown
                                                             remarkPlugins={[remarkGfm]}
@@ -857,33 +865,33 @@ export default function ChatPlayground() {
                                                                 },
                                                                 // Custom link renderer with external link handling
                                                                 a: ({ node, ...props }) => (
-                                                                    <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 hover:underline transition-colors" />
+                                                                    <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 hover:underline transition-colors" style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }} />
                                                                 ),
                                                                 // Custom list item renderer
                                                                 li: ({ node, ...props }) => (
-                                                                    <li {...props} className="my-1 text-slate-200" />
+                                                                    <li {...props} className="my-1 text-slate-200" style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }} />
                                                                 ),
                                                                 // Custom paragraph renderer
                                                                 p: ({ node, ...props }) => (
-                                                                    <p {...props} className="my-2 text-slate-200 leading-relaxed" />
+                                                                    <p {...props} className="my-2 text-slate-200 leading-relaxed" style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }} />
                                                                 ),
                                                                 // Custom heading renderers
                                                                 h1: ({ node, ...props }) => (
-                                                                    <h1 {...props} className="text-2xl font-bold text-white mt-6 mb-4" />
+                                                                    <h1 {...props} className="text-2xl font-bold text-white mt-6 mb-4" style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }} />
                                                                 ),
                                                                 h2: ({ node, ...props }) => (
-                                                                    <h2 {...props} className="text-xl font-bold text-white mt-5 mb-3" />
+                                                                    <h2 {...props} className="text-xl font-bold text-white mt-5 mb-3" style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }} />
                                                                 ),
                                                                 h3: ({ node, ...props }) => (
-                                                                    <h3 {...props} className="text-lg font-semibold text-white mt-4 mb-2" />
+                                                                    <h3 {...props} className="text-lg font-semibold text-white mt-4 mb-2" style={{ color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff' }} />
                                                                 ),
                                                                 // Custom horizontal rule
                                                                 hr: ({ node, ...props }) => (
-                                                                    <hr {...props} className="border-slate-600 my-6" />
+                                                                    <hr {...props} className="border-slate-600 my-6" style={{ borderColor: themeSettings?.theme_preset === 'light' ? '#e5e7eb' : '#374151' }} />
                                                                 ),
                                                                 // Custom blockquote
                                                                 blockquote: ({ node, ...props }) => (
-                                                                    <blockquote {...props} className="border-l-4 border-indigo-500 pl-4 italic my-4 text-slate-300" />
+                                                                    <blockquote {...props} className="border-l-4 border-indigo-500 pl-4 italic my-4 text-slate-300" style={{ borderColor: themeSettings?.theme_preset === 'light' ? '#cbd5e1' : '#4f46e5' }} />
                                                                 ),
                                                             }}
                                                         >
@@ -901,25 +909,25 @@ export default function ChatPlayground() {
                                                     {/* Message Actions */}
                                                     {!message.isStreaming && (
                                                         <div className={cn(
-                                                            "flex items-center gap-1 mt-3 opacity-0 group-hover:opacity-100 transition-opacity",
+                                                            "flex items-center gap-0.5 sm:gap-1 mt-2 sm:mt-3 opacity-0 group-hover:opacity-100 transition-opacity",
                                                             message.role === 'user' ? 'justify-end' : 'justify-start'
                                                         )}>
                                                             <Button
                                                                 size="sm"
                                                                 variant="ghost"
                                                                 onClick={() => handleCopy(message.content)}
-                                                                className="h-7 px-2 hover:bg-[#40414f] text-slate-400 hover:text-white"
+                                                                className="h-6 sm:h-7 px-1.5 sm:px-2 hover:bg-[#40414f] text-slate-400 hover:text-white"
                                                             >
-                                                                <Copy className="w-3.5 h-3.5" />
+                                                                <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                                             </Button>
                                                             {message.role === 'user' && (
                                                                 <Button
                                                                     size="sm"
                                                                     variant="ghost"
                                                                     onClick={() => handleEdit(message.id, message.content)}
-                                                                    className="h-7 px-2 hover:bg-[#40414f] text-slate-400 hover:text-white"
+                                                                    className="h-6 sm:h-7 px-1.5 sm:px-2 hover:bg-[#40414f] text-slate-400 hover:text-white"
                                                                 >
-                                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                                    <Edit2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                                                 </Button>
                                                             )}
                                                             {message.role === 'assistant' && (
@@ -928,18 +936,18 @@ export default function ChatPlayground() {
                                                                         size="sm"
                                                                         variant="ghost"
                                                                         onClick={() => handleRetry(index)}
-                                                                        className="h-7 px-2 hover:bg-[#40414f] text-slate-400 hover:text-white"
+                                                                        className="h-6 sm:h-7 px-1.5 sm:px-2 hover:bg-[#40414f] text-slate-400 hover:text-white"
                                                                     >
-                                                                        <RotateCcw className="w-3.5 h-3.5" />
+                                                                        <RotateCcw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                                                     </Button>
                                                                     <DropdownMenu>
                                                                         <DropdownMenuTrigger asChild>
                                                                             <Button
                                                                                 size="sm"
                                                                                 variant="ghost"
-                                                                                className="h-7 px-2 hover:bg-[#40414f] text-slate-400 hover:text-white"
+                                                                                className="h-6 sm:h-7 px-1.5 sm:px-2 hover:bg-[#40414f] text-slate-400 hover:text-white"
                                                                             >
-                                                                                <MoreVertical className="w-3.5 h-3.5" />
+                                                                                <MoreVertical className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                                                             </Button>
                                                                         </DropdownMenuTrigger>
                                                                         <DropdownMenuContent className="bg-[#2f2f2f] border-[#565869]">
@@ -975,13 +983,13 @@ export default function ChatPlayground() {
 
                 {/* Input Area */}
                 <div
-                    className="border-t p-4"
+                    className="border-t p-2 sm:p-3 md:p-4 w-full"
                     style={{
                         borderColor: themeSettings?.theme_preset === 'light' ? '#e5e7eb' : '#2f2f2f',
                         backgroundColor: themeSettings?.background_color || '#212121'
                     }}
                 >
-                    <div className="max-w-3xl mx-auto">
+                    <div className="w-full max-w-3xl mx-auto">
                         {selectedText && !showAskToNexus && (
                             <div className="mb-2 p-2 bg-[#2f2f2f] rounded-lg text-sm flex items-center justify-between">
                                 <span className="text-slate-400 truncate">Selected: {selectedText.slice(0, 50)}...</span>
@@ -998,63 +1006,85 @@ export default function ChatPlayground() {
 
                         {/* Quick Action Buttons */}
                         {quickButtons && quickButtons.length > 0 && (
-                            <div className="flex flex-wrap gap-2 px-4 pb-2">
-                                {quickButtons.map((button) => {
-                                    const getButtonClassName = () => {
-                                        let baseClasses = "px-4 py-2 text-sm font-medium transition-all hover:opacity-80 flex items-center gap-2";
-
-                                        if (themeSettings?.button_style === 'rounded') {
-                                            baseClasses += " rounded-full";
-                                        } else if (themeSettings?.button_style === 'square') {
-                                            baseClasses += " rounded-none";
-                                        } else if (themeSettings?.button_style === 'outline') {
-                                            baseClasses += " rounded-lg border-2";
-                                        } else {
-                                            baseClasses += " rounded-lg";
-                                        }
-
-                                        return baseClasses;
-                                    };
-
-                                    const getButtonStyles = () => {
-                                        if (themeSettings?.button_style === 'outline') {
-                                            return {
-                                                backgroundColor: 'transparent',
-                                                borderColor: themeSettings?.primary_color || '#6366f1',
-                                                color: themeSettings?.primary_color || '#6366f1'
-                                            };
-                                        }
-                                        return {
-                                            backgroundColor: themeSettings?.primary_color || '#6366f1',
-                                            color: themeSettings?.theme_preset === 'light' ? '#ffffff' : '#000000'
-                                        };
-                                    };
-
-                                    return (
-                                        <button
-                                            key={button.id}
-                                            onClick={() => {
-                                                // Auto-send message on button click
-                                                sendMessage(button.text);
-                                            }}
-                                            className={getButtonClassName()}
-                                            style={getButtonStyles()}
-                                            disabled={isLoading}
-                                        >
-                                            {button.emoji && <span>{button.emoji}</span>}
-                                            <span>{button.label}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                            <TooltipProvider>
+                                <div className="w-full pb-3">
+                                    <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide pb-2" style={{ scrollBehavior: 'smooth' }}>
+                                        {quickButtons.map((button) => (
+                                            <Tooltip key={button.id}>
+                                                <TooltipTrigger asChild>
+                                                    <button
+                                                        onClick={() => {
+                                                            // Auto-send message on button click
+                                                            sendMessage(button.text);
+                                                        }}
+                                                        disabled={isLoading}
+                                                        className="flex-shrink-0 group relative w-[140px] sm:w-[160px] h-[70px] sm:h-[80px]"
+                                                    >
+                                                        <div
+                                                            className="w-full h-full rounded-lg sm:rounded-xl p-2 sm:p-3 flex flex-col justify-between transition-all hover:shadow-lg active:scale-95"
+                                                            style={{
+                                                                backgroundColor: themeSettings?.theme_preset === 'light' ? '#f3f4f6' : '#2f2f2f',
+                                                                border: `1px solid ${themeSettings?.theme_preset === 'light' ? '#e5e7eb' : '#404040'}`,
+                                                            }}
+                                                        >
+                                                            <div className="flex items-start gap-1.5 sm:gap-2">
+                                                                {button.image_url ? (
+                                                                    <img
+                                                                        src={button.image_url}
+                                                                        alt={button.label}
+                                                                        className="w-4 h-4 sm:w-5 sm:h-5 object-contain flex-shrink-0"
+                                                                    />
+                                                                ) : button.emoji ? (
+                                                                    <span className="text-base sm:text-lg flex-shrink-0">{button.emoji}</span>
+                                                                ) : null}
+                                                                <h3
+                                                                    className="text-[10px] sm:text-xs font-medium line-clamp-2 text-left"
+                                                                    style={{
+                                                                        color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff'
+                                                                    }}
+                                                                >
+                                                                    {button.label}
+                                                                </h3>
+                                                            </div>
+                                                            {button.description && (
+                                                                <p
+                                                                    className="text-[9px] sm:text-[10px] line-clamp-2 text-left mt-1"
+                                                                    style={{
+                                                                        color: themeSettings?.theme_preset === 'light' ? '#6b7280' : '#9ca3af'
+                                                                    }}
+                                                                >
+                                                                    {button.description}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </button>
+                                                </TooltipTrigger>
+                                                {button.description && (
+                                                    <TooltipContent
+                                                        side="top"
+                                                        className="max-w-[250px] sm:max-w-xs hidden sm:block"
+                                                        style={{
+                                                            backgroundColor: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#f3f4f6',
+                                                            color: themeSettings?.theme_preset === 'light' ? '#ffffff' : '#1f2937',
+                                                            border: `1px solid ${themeSettings?.theme_preset === 'light' ? '#374151' : '#e5e7eb'}`,
+                                                        }}
+                                                    >
+                                                        <p className="text-xs">{button.description}</p>
+                                                    </TooltipContent>
+                                                )}
+                                            </Tooltip>
+                                        ))}
+                                    </div>
+                                </div>
+                            </TooltipProvider>
                         )}
 
                         <div
                             className={cn(
-                                "relative flex items-end gap-2 px-4 py-3 border",
-                                themeSettings?.button_style === 'rounded' && 'rounded-3xl',
+                                "relative flex items-end gap-2 px-3 sm:px-4 py-2 sm:py-3 border w-full",
+                                themeSettings?.button_style === 'rounded' && 'rounded-2xl sm:rounded-3xl',
                                 themeSettings?.button_style === 'square' && 'rounded-none',
-                                !themeSettings?.button_style && 'rounded-3xl'
+                                !themeSettings?.button_style && 'rounded-2xl sm:rounded-3xl'
                             )}
                             style={{
                                 backgroundColor: themeSettings?.theme_preset === 'light' ? '#f3f4f6' : '#40414f',
@@ -1067,10 +1097,10 @@ export default function ChatPlayground() {
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={handleKeyPress}
                                 placeholder="Ask anything..."
-                                className="flex-1 bg-transparent border-none resize-none min-h-[24px] max-h-[200px] placeholder:text-slate-500 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 text-[15px] leading-6 overflow-y-auto"
+                                className="flex-1 bg-transparent border-none resize-none min-h-[20px] sm:min-h-[24px] max-h-[150px] sm:max-h-[200px] placeholder:text-slate-500 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 text-sm sm:text-[15px] leading-5 sm:leading-6 overflow-y-auto"
                                 style={{
                                     color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#ffffff',
-                                    height: '45px'
+                                    height: isMobile ? '40px' : '45px'
                                 }}
                                 rows={1}
                                 disabled={isLoading}
@@ -1080,7 +1110,7 @@ export default function ChatPlayground() {
                                     onClick={handleStop}
                                     size="icon"
                                     className={cn(
-                                        "h-8 w-8 flex-shrink-0",
+                                        "h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0",
                                         themeSettings?.button_style === 'rounded' && 'rounded-full',
                                         themeSettings?.button_style === 'square' && 'rounded-none',
                                         !themeSettings?.button_style && 'rounded-lg'
@@ -1090,7 +1120,7 @@ export default function ChatPlayground() {
                                         color: themeSettings?.theme_preset === 'light' ? '#ffffff' : '#000000'
                                     }}
                                 >
-                                    <Square className="w-4 h-4 fill-current" />
+                                    <Square className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
                                 </Button>
                             ) : (
                                 <Button
@@ -1098,7 +1128,7 @@ export default function ChatPlayground() {
                                     disabled={!input.trim()}
                                     size="icon"
                                     className={cn(
-                                        "h-8 w-8 flex-shrink-0 disabled:opacity-30",
+                                        "h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 disabled:opacity-30",
                                         themeSettings?.button_style === 'rounded' && 'rounded-full',
                                         themeSettings?.button_style === 'square' && 'rounded-none',
                                         !themeSettings?.button_style && 'rounded-lg'
@@ -1108,12 +1138,12 @@ export default function ChatPlayground() {
                                         color: themeSettings?.theme_preset === 'light' ? '#ffffff' : '#000000'
                                     }}
                                 >
-                                    <Send className="w-4 h-4" />
+                                    <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                 </Button>
                             )}
                         </div>
                         <div
-                            className="text-xs text-center mt-2"
+                            className="text-[10px] sm:text-xs text-center mt-1.5 sm:mt-2 px-2"
                             style={{ color: themeSettings?.theme_preset === 'light' ? '#6b7280' : '#9ca3af' }}
                         >
                             {themeSettings?.ai_search_engine_name || 'Nexus Chat'} can make mistakes. Check important info.
@@ -1315,7 +1345,7 @@ export default function ChatPlayground() {
                                 onValueChange={(v) => setConfig({ ...config, cache_threshold: v[0] })}
                                 min={0}
                                 max={1}
-                                step={0.1}
+                                step={0.01}
                                 className="py-2"
                             />
                         </div>

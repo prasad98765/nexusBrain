@@ -12,6 +12,7 @@ import httpx
 
 from .auth_utils import require_auth, require_auth_for_expose_api
 from .redis_cache_service import get_cache_service
+from .context_aware_cache_service import get_context_aware_cache
 from .models import db, ApiToken, ApiUsageLog, Workspace, SystemPrompt
 from .rag_service import rag_service
 
@@ -845,21 +846,42 @@ def augment_with_rag_context(messages, workspace_id, use_rag=False, top_k=5, thr
     if not use_rag or not messages:
         return messages, [], messages
     
-    # Get the last user message as query
-    last_user_msg = None
+    # Build a comprehensive query from conversation history
+    # Include last few user messages for context
+    conversation_parts = []
+    user_message_count = 0
+    max_context_messages = 3  # Include last 3 user messages for context
+    
+    # Iterate through messages in reverse to get recent context
     for msg in reversed(messages):
         if msg.get('role') == 'user':
-            last_user_msg = msg.get('content', '')
-            break
+            conversation_parts.insert(0, msg.get('content', ''))
+            user_message_count += 1
+            if user_message_count >= max_context_messages:
+                break
+        elif msg.get('role') == 'assistant' and user_message_count > 0:
+            # Include assistant responses for better context understanding
+            conversation_parts.insert(0, f"Previous answer: {msg.get('content', '')[:200]}...")
     
-    logger.info(f"RAG augmentation enabled (mode={mode}). Last user message: {last_user_msg}")
-    if not last_user_msg:
+    # Build the RAG query with conversation context
+    if len(conversation_parts) > 1:
+        # Multiple messages - combine with context markers
+        rag_query = "\n".join(conversation_parts)
+        logger.info(f"RAG query built from {len(conversation_parts)} conversation turns")
+    else:
+        # Single message - use as is
+        rag_query = conversation_parts[0] if conversation_parts else ""
+        logger.info(f"RAG query built from single message")
+    
+    if not rag_query:
         return messages, [], messages
+    
+    logger.info(f"RAG augmentation enabled (mode={mode}). Query with context: {rag_query[:200]}...")
     
     # Retrieve relevant contexts from RAG
     try:
         contexts = rag_service.retrieve_context(
-            query=last_user_msg,
+            query=rag_query,
             workspace_id=workspace_id,
             top_k=top_k,
             similarity_threshold=threshold
@@ -1065,7 +1087,7 @@ def create_completion():
     cache_type = None
 
     if data.get("is_cached"):
-        cache_service = get_cache_service(data.get("cache_threshold", 0.50))
+        cache_service = get_cache_service(data.get("cache_threshold", 0.70))
         # Pass the semantic cache threshold and workspace_id from the API token
         cached_response, cache_type = cache_service.get_cached_response(
             original_payload, "completion", 
@@ -1207,6 +1229,26 @@ def create_completion():
                         logger.info(f"Stored combined streaming response in cache for model: {original_payload['model']}")
                     except Exception as e:
                         logger.error(f"Failed to store streaming response in cache: {e}")
+
+                # Context-aware caching for streaming responses
+                # try:
+                #     use_context_cache = data.get("use_context_cache", True)
+                #     if use_context_cache:
+                #         context_cache = get_context_aware_cache()
+                        
+                #         # Extract question and answer
+                #         prompt_content = original_payload.get("prompt", "")
+                #         assistant_answer = combined_text
+                        
+                #         if prompt_content and assistant_answer:
+                #             cache_result = context_cache.cache_response(
+                #                 question=prompt_content,
+                #                 answer=assistant_answer,
+                #                 workspace_id=str(api_token.workspace_id)
+                #             )
+                #             logger.info(f"Context cache result for streaming: {cache_result}")
+                # except Exception as ctx_err:
+                #     logger.error(f"Context-aware caching failed for streaming (non-critical): {ctx_err}")
 
                 # Log API usage
                 response_time_ms = int((time.time() - start_stream_time) * 1000)
@@ -1606,6 +1648,32 @@ def create_chat_completion():
                     except Exception as e:
                         logger.error(f"Failed to store streaming chat response in cache: {e}")
 
+                # Context-aware caching for streaming chat responses
+                # try:
+                #     use_context_cache = data.get("use_context_cache", True)
+                #     if use_context_cache:
+                #         context_cache = get_context_aware_cache()
+                        
+                #         # Extract question and answer
+                #         last_user_question = ""
+                #         for msg in reversed(payload.get("messages", [])):
+                #             if msg.get('role') == 'user':
+                #                 last_user_question = msg.get('content', '')
+                #                 break
+                        
+                #         assistant_answer = combined_content
+                        
+                #         if last_user_question and assistant_answer:
+                #             cache_result = context_cache.cache_response(
+                #                 question=last_user_question,
+                #                 answer=assistant_answer,
+                #                 workspace_id=str(api_token.workspace_id),
+                #                 conversation_history=payload.get("messages", [])
+                #             )
+                #             logger.info(f"Context cache result for streaming chat: {cache_result}")
+                # except Exception as ctx_err:
+                #     logger.error(f"Context-aware caching failed for streaming chat (non-critical): {ctx_err}")
+
                 # Log API usage
                 response_time_ms = int((time.time() - start_stream_time) * 1000)
                 async_log_api_usage(
@@ -1646,6 +1714,35 @@ def create_chat_completion():
     if status_code == 200:
         try:
             response_data = response.get_json() if hasattr(response, 'get_json') else response.json
+            
+            # Context-aware caching (runs in parallel with traditional cache)
+            # try:
+            #     use_context_cache = data.get("use_context_cache", True)  # Enabled by default
+            #     if use_context_cache:
+            #         context_cache = get_context_aware_cache()
+                    
+            #         # Extract question and answer
+            #         last_user_question = ""
+            #         for msg in reversed(payload.get("messages", [])):
+            #             if msg.get('role') == 'user':
+            #                 last_user_question = msg.get('content', '')
+            #                 break
+                    
+            #         assistant_answer = ""
+            #         if response_data and 'choices' in response_data and response_data['choices']:
+            #             assistant_answer = response_data['choices'][0].get('message', {}).get('content', '')
+                    
+            #         if last_user_question and assistant_answer:
+            #             cache_result = context_cache.cache_response(
+            #                 question=last_user_question,
+            #                 answer=assistant_answer,
+            #                 workspace_id=str(api_token.workspace_id),
+            #                 conversation_history=payload.get("messages", [])
+            #             )
+            #             logger.info(f"Context cache result: {cache_result}")
+            # except Exception as ctx_err:
+            #     logger.error(f"Context-aware caching failed (non-critical): {ctx_err}")
+            
             # Store in cache if enabled (reuse the cache_payload from earlier)
             # This ensures cache lookup and storage use the same key format
             if data.get("is_cached") and not skip_cache and cache_payload and response_data:
@@ -1703,3 +1800,50 @@ def clear_cache():
         "message": f"Cleared {cleared_count} cache entries",
         "cleared_count": cleared_count
     }), 200
+
+
+@api_llm_routes.route("/v1/cache/context/stats", methods=["GET"])
+@require_auth
+def get_context_cache_stats():
+    """Get context-aware cache statistics."""
+    try:
+        # Get workspace_id from request user
+        workspace_id = request.user.get('workspace_id')
+        
+        context_cache = get_context_aware_cache()
+        stats = context_cache.get_stats(workspace_id=str(workspace_id) if workspace_id else None)
+        
+        return jsonify(stats), 200
+    except Exception as e:
+        logger.error(f"Failed to get context cache stats: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@api_llm_routes.route("/v1/cache/context/history/<context_id>", methods=["GET"])
+@require_auth
+def get_context_history(context_id: str):
+    """Get conversation history for a specific context."""
+    try:
+        workspace_id = request.user.get('workspace_id')
+        if not workspace_id:
+            return jsonify({"error": "Workspace ID required"}), 401
+        
+        context_cache = get_context_aware_cache()
+        context = context_cache.get_context_history(context_id, str(workspace_id))
+        
+        if not context:
+            return jsonify({"error": "Context not found"}), 404
+        
+        return jsonify({
+            "context_id": context.context_id,
+            "workspace_id": context.workspace_id,
+            "topic_summary": context.topic_summary,
+            "qa_pairs": context.qa_pairs,
+            "created_at": context.created_at,
+            "updated_at": context.updated_at,
+            "total_turns": len(context.qa_pairs)
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Failed to get context history: {e}")
+        return jsonify({"error": str(e)}), 500

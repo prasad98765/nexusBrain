@@ -58,7 +58,7 @@ export default function KnowledgeBasePage() {
     }>({ type: null, message: '' });
 
     // File upload state
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
     // Text upload state
     const [rawText, setRawText] = useState('');
@@ -71,9 +71,9 @@ export default function KnowledgeBasePage() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deletingEntry, setDeletingEntry] = useState<any>(null);
 
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-    const ALLOWED_TYPES = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
-    const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'txt', 'pptx'];
+    const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30 MB total
+    const ALLOWED_TYPES = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'text/csv'];
+    const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'txt', 'pptx', 'csv'];
 
     // Load documents on mount
     useEffect(() => {
@@ -103,42 +103,59 @@ export default function KnowledgeBasePage() {
     };
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+        const files = Array.from(event.target.files || []);
+        if (files.length === 0) return;
 
-        // Check file size
-        if (file.size > MAX_FILE_SIZE) {
+        const validFiles: File[] = [];
+        const errors: string[] = [];
+        let totalSize = 0;
+
+        files.forEach(file => {
+            // Check file type
+            const extension = file.name.split('.').pop()?.toLowerCase();
+            if (!extension || !ALLOWED_EXTENSIONS.includes(extension)) {
+                errors.push(`${file.name}: Invalid file type`);
+                return;
+            }
+
+            totalSize += file.size;
+            validFiles.push(file);
+        });
+
+        // Check total size
+        if (totalSize > MAX_FILE_SIZE) {
             toast({
-                title: "File too large",
-                description: `Maximum file size is 10 MB. Your file is ${(file.size / (1024 * 1024)).toFixed(2)} MB.`,
+                title: "Files too large",
+                description: `Total file size is ${(totalSize / (1024 * 1024)).toFixed(2)} MB. Maximum is 30 MB.`,
                 variant: "destructive",
             });
             return;
         }
 
-        // Check file type
-        const extension = file.name.split('.').pop()?.toLowerCase();
-        if (!extension || !ALLOWED_EXTENSIONS.includes(extension)) {
+        if (errors.length > 0) {
             toast({
-                title: "Invalid file type",
-                description: `Allowed types: ${ALLOWED_EXTENSIONS.join(', ').toUpperCase()}`,
+                title: "Some files were rejected",
+                description: errors.join(', '),
                 variant: "destructive",
             });
-            return;
         }
 
-        setSelectedFile(file);
-        setUploadProgress({ type: null, message: '' });
+        if (validFiles.length > 0) {
+            setSelectedFiles(validFiles);
+            setUploadProgress({ type: null, message: '' });
+        }
     };
 
     const handleFileUpload = async () => {
-        if (!selectedFile || !token) return;
+        if (selectedFiles.length === 0 || !token) return;
 
         setUploading(true);
         setUploadProgress({ type: null, message: '' });
 
         const formData = new FormData();
-        formData.append('file', selectedFile);
+        selectedFiles.forEach(file => {
+            formData.append('files', file);
+        });
 
         try {
             const response = await fetch('/api/rag/upload', {
@@ -152,20 +169,25 @@ export default function KnowledgeBasePage() {
             const data = await response.json();
 
             if (response.ok) {
+                const uploadedCount = data.uploaded_files?.length || 1;
+                const failedCount = data.failed_files?.length || 0;
+                
                 setUploadProgress({
-                    type: 'success',
-                    message: `Successfully uploaded "${data.filename}"`,
-                    chunks: data.chunks,
+                    type: failedCount > 0 ? 'error' : 'success',
+                    message: data.message || `Successfully uploaded ${uploadedCount} file(s)`,
+                    chunks: data.total_chunks || data.chunks,
                 });
+                
                 toast({
-                    title: "✅ Upload Successful",
-                    description: `Document indexed into ${data.chunks} chunks`,
+                    title: failedCount > 0 ? "⚠️ Partial Upload" : "✅ Upload Successful",
+                    description: `${uploadedCount} file(s) indexed into ${data.total_chunks || data.chunks} chunks${failedCount > 0 ? `, ${failedCount} failed` : ''}`,
+                    variant: failedCount > 0 ? "destructive" : "default",
                 });
-                setSelectedFile(null);
+                
+                setSelectedFiles([]);
                 if (fileInputRef.current) {
                     fileInputRef.current.value = '';
                 }
-                // Refresh document list
                 fetchDocuments();
             } else {
                 setUploadProgress({
@@ -174,7 +196,7 @@ export default function KnowledgeBasePage() {
                 });
                 toast({
                     title: "Upload Failed",
-                    description: data.error || 'Failed to upload document',
+                    description: data.error || 'Failed to upload documents',
                     variant: "destructive",
                 });
             }
@@ -263,6 +285,8 @@ export default function KnowledgeBasePage() {
                 return <FileText className="h-8 w-8 text-blue-500" />;
             case 'pptx':
                 return <FileText className="h-8 w-8 text-orange-500" />;
+            case 'csv':
+                return <FileText className="h-8 w-8 text-green-500" />;
             default:
                 return <File className="h-8 w-8 text-gray-500" />;
         }
@@ -381,7 +405,7 @@ export default function KnowledgeBasePage() {
                             <CardHeader>
                                 <CardTitle className="text-slate-100">Upload Document</CardTitle>
                                 <CardDescription className="text-slate-400">
-                                    Upload PDF, DOCX, TXT, or PPTX files (Max 10 MB)
+                                    Upload PDF, DOCX, TXT, PPTX, or CSV files (Max 30 MB total)
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -389,46 +413,67 @@ export default function KnowledgeBasePage() {
                                     <input
                                         ref={fileInputRef}
                                         type="file"
-                                        accept=".pdf,.docx,.txt,.pptx"
+                                        accept=".pdf,.docx,.txt,.pptx,.xlsx,.csv"
                                         onChange={handleFileSelect}
                                         className="hidden"
                                         id="file-upload"
+                                        multiple
                                     />
                                     <label htmlFor="file-upload" className="cursor-pointer">
                                         <Upload className="h-12 w-12 mx-auto text-slate-400 mb-4" />
                                         <p className="text-slate-300 mb-2">Click to upload or drag and drop</p>
                                         <p className="text-sm text-slate-500">
-                                            PDF, DOCX, TXT, PPTX (max 10 MB)
+                                            PDF, DOCX, TXT, PPTX, CSV (max 30 MB total)
                                         </p>
                                     </label>
                                 </div>
 
-                                {selectedFile && (
-                                    <div className="flex items-center gap-3 p-4 bg-slate-900/50 rounded-lg">
-                                        {getFileIcon(selectedFile)}
-                                        <div className="flex-1">
-                                            <p className="text-slate-200 font-medium">{selectedFile.name}</p>
-                                            <p className="text-sm text-slate-400">
-                                                {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                                {selectedFiles.length > 0 && (
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
+                                            <p className="text-sm text-slate-300">
+                                                {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} selected ({(selectedFiles.reduce((sum, f) => sum + f.size, 0) / (1024 * 1024)).toFixed(2)} MB / 30 MB)
                                             </p>
+                                            <Button
+                                                onClick={handleFileUpload}
+                                                disabled={uploading}
+                                                className="bg-indigo-600 hover:bg-indigo-700"
+                                            >
+                                                {uploading ? (
+                                                    <>
+                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                        Uploading...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Upload className="mr-2 h-4 w-4" />
+                                                        Upload All
+                                                    </>
+                                                )}
+                                            </Button>
                                         </div>
-                                        <Button
-                                            onClick={handleFileUpload}
-                                            disabled={uploading}
-                                            className="bg-indigo-600 hover:bg-indigo-700"
-                                        >
-                                            {uploading ? (
-                                                <>
-                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                    Uploading...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Upload className="mr-2 h-4 w-4" />
-                                                    Upload
-                                                </>
-                                            )}
-                                        </Button>
+                                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                                            {selectedFiles.map((file, index) => (
+                                                <div key={index} className="flex items-center gap-3 p-3 bg-slate-900/50 rounded-lg">
+                                                    {getFileIcon(file)}
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-slate-200 font-medium truncate">{file.name}</p>
+                                                        <p className="text-sm text-slate-400">
+                                                            {(file.size / (1024 * 1024)).toFixed(2)} MB
+                                                        </p>
+                                                    </div>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => setSelectedFiles(selectedFiles.filter((_, i) => i !== index))}
+                                                        disabled={uploading}
+                                                        className="text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
 

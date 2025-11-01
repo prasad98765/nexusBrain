@@ -285,6 +285,69 @@ class RAGService:
             logger.error(f"Failed to read TXT file: {e}")
             return ""
     
+    def extract_text_from_csv(self, file_path: str) -> str:
+        """Extract text from CSV file"""
+        try:
+            import csv
+            text_parts = []
+            
+            with open(file_path, 'r', encoding='utf-8') as file:
+                csv_reader = csv.reader(file)
+                headers = next(csv_reader, None)  # Get headers
+                
+                if headers:
+                    text_parts.append("Headers: " + ", ".join(headers))
+                
+                # Process rows
+                for row_idx, row in enumerate(csv_reader):
+                    if row:  # Skip empty rows
+                        # Create a readable format: "Column: value, Column: value"
+                        if headers and len(headers) == len(row):
+                            row_text = ", ".join([f"{headers[i]}: {row[i]}" for i in range(len(row)) if row[i].strip()])
+                        else:
+                            row_text = ", ".join([val for val in row if val.strip()])
+                        
+                        if row_text:
+                            text_parts.append(row_text)
+                    
+                    # Limit to prevent extremely large files
+                    if row_idx >= 10000:
+                        text_parts.append("[CSV truncated - too many rows]")
+                        break
+            
+            return "\n".join(text_parts)
+            
+        except UnicodeDecodeError:
+            # Try with different encoding
+            try:
+                import csv
+                text_parts = []
+                
+                with open(file_path, 'r', encoding='latin-1') as file:
+                    csv_reader = csv.reader(file)
+                    headers = next(csv_reader, None)
+                    
+                    if headers:
+                        text_parts.append("Headers: " + ", ".join(headers))
+                    
+                    for row_idx, row in enumerate(csv_reader):
+                        if row:
+                            row_text = ", ".join([val for val in row if val.strip()])
+                            if row_text:
+                                text_parts.append(row_text)
+                        
+                        if row_idx >= 10000:
+                            text_parts.append("[CSV truncated - too many rows]")
+                            break
+                
+                return "\n".join(text_parts)
+            except Exception as e:
+                logger.error(f"Failed to read CSV file with latin-1 encoding: {e}")
+                return ""
+        except Exception as e:
+            logger.error(f"Failed to read CSV file: {e}")
+            return ""
+    
     def process_document(
         self,
         file_path: str,
@@ -311,6 +374,8 @@ class RAGService:
             text = self.extract_text_from_pptx(file_path)
         elif file_type == 'txt':
             text = self.extract_text_from_txt(file_path)
+        elif file_type == 'csv':
+            text = self.extract_text_from_csv(file_path)
         else:
             return 0, f"Unsupported file type: {file_type}"
         

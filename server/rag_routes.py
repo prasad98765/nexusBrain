@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 rag_bp = Blueprint('rag', __name__)
 
 # Configuration
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
-ALLOWED_EXTENSIONS = {'pdf', 'docx', 'txt', 'pptx'}
+MAX_FILE_SIZE = 30 * 1024 * 1024  # 30 MB total for all files
+ALLOWED_EXTENSIONS = {'pdf', 'docx', 'txt', 'pptx', 'csv'}
 UPLOAD_FOLDER = tempfile.gettempdir()
 
 def allowed_file(filename):
@@ -31,8 +31,8 @@ def get_file_extension(filename):
 def upload_document():
     """
     Upload and index documents
-    Accepts: PDF, DOCX, TXT, PPTX files or raw text
-    Max size: 10 MB
+    Accepts: PDF, DOCX, TXT, PPTX, CSV files (single or multiple) or raw text
+    Max size: 30 MB total for all files
     """
     try:
         workspace_id = request.user.get('workspace_id')
@@ -40,71 +40,108 @@ def upload_document():
         if not workspace_id:
             return jsonify({'error': 'Workspace ID required'}), 401
         
-        # Check if request contains file or text
-        has_file = 'file' in request.files
+        # Check if request contains files or text
+        has_files = 'file' in request.files or len(request.files.getlist('files')) > 0
         has_text = 'text' in request.form or (request.is_json and 'text' in request.get_json())
         
-        if not has_file and not has_text:
+        if not has_files and not has_text:
             return jsonify({
-                'error': 'Either file or text content is required'
+                'error': 'Either file(s) or text content is required'
             }), 400
         
-        # Handle file upload
-        if has_file:
-            file = request.files['file']
+        # Handle file upload (single or multiple)
+        if has_files:
+            # Support both 'file' (single) and 'files' (multiple) form field names
+            files = request.files.getlist('files') if 'files' in request.files else [request.files.get('file')]
+            files = [f for f in files if f and f.filename]  # Filter out None and empty filenames
             
-            if file.filename == '':
-                return jsonify({'error': 'No file selected'}), 400
+            if not files:
+                return jsonify({'error': 'No files selected'}), 400
             
-            if not allowed_file(file.filename):
+            # Calculate total size
+            total_size = sum(f.content_length or 0 for f in files)
+            # If content_length is not available, read file size
+            if total_size == 0:
+                for f in files:
+                    f.seek(0, os.SEEK_END)
+                    total_size += f.tell()
+                    f.seek(0)  # Reset
+            
+            if total_size > MAX_FILE_SIZE:
+                size_mb = total_size / (1024 * 1024)
                 return jsonify({
-                    'error': f'Invalid file type. Allowed types: {", ".join(ALLOWED_EXTENSIONS)}'
-                }), 400
-            
-            # Check file size
-            file.seek(0, os.SEEK_END)
-            file_size = file.tell()
-            file.seek(0)  # Reset file pointer
-            
-            if file_size > MAX_FILE_SIZE:
-                size_mb = file_size / (1024 * 1024)
-                return jsonify({
-                    'error': f'File size ({size_mb:.2f} MB) exceeds maximum allowed size (10 MB)'
+                    'error': f'Total file size ({size_mb:.2f} MB) exceeds maximum allowed size (30 MB)'
                 }), 413
             
-            # Save file temporarily
-            filename = secure_filename(file.filename)
-            file_extension = get_file_extension(filename)
-            temp_path = os.path.join(UPLOAD_FOLDER, f"temp_{workspace_id}_{filename}")
+            uploaded_files = []
+            failed_files = []
+            total_chunks = 0
             
-            try:
-                file.save(temp_path)
+            for file in files:
+                if not allowed_file(file.filename):
+                    failed_files.append({
+                        'filename': file.filename,
+                        'error': f'Invalid file type. Allowed: {", ".join(ALLOWED_EXTENSIONS)}'
+                    })
+                    continue
                 
-                # Process document
-                chunks_count, error = rag_service.process_document(
-                    file_path=temp_path,
-                    filename=filename,
-                    workspace_id=workspace_id,
-                    file_type=file_extension
-                )
+                # Save file temporarily
+                filename = secure_filename(file.filename)
+                file_extension = get_file_extension(filename)
+                temp_path = os.path.join(UPLOAD_FOLDER, f"temp_{workspace_id}_{filename}")
                 
-                if error:
-                    return jsonify({'error': error}), 500
+                try:
+                    file.save(temp_path)
+                    
+                    # Process document
+                    chunks_count, error = rag_service.process_document(
+                        file_path=temp_path,
+                        filename=filename,
+                        workspace_id=workspace_id,
+                        file_type=file_extension
+                    )
+                    
+                    if error:
+                        failed_files.append({'filename': filename, 'error': error})
+                    else:
+                        uploaded_files.append({
+                            'filename': filename,
+                            'chunks': chunks_count
+                        })
+                        total_chunks += chunks_count
+                    
+                finally:
+                    # Clean up temporary file
+                    if os.path.exists(temp_path):
+                        try:
+                            os.remove(temp_path)
+                        except Exception as e:
+                            logger.warning(f"Failed to remove temp file: {e}")
+            
+            # Prepare response
+            if uploaded_files:
+                response_data = {
+                    'message': f'Successfully uploaded {len(uploaded_files)} file(s)',
+                    'uploaded_files': uploaded_files,
+                    'total_chunks': total_chunks,
+                    'total_size_mb': round(total_size / (1024 * 1024), 2)
+                }
                 
+                if failed_files:
+                    response_data['failed_files'] = failed_files
+                    response_data['message'] += f' ({len(failed_files)} failed)'
+                
+                # For backward compatibility with single file uploads
+                if len(uploaded_files) == 1 and not failed_files:
+                    response_data['filename'] = uploaded_files[0]['filename']
+                    response_data['chunks'] = uploaded_files[0]['chunks']
+                
+                return jsonify(response_data), 200
+            else:
                 return jsonify({
-                    'message': 'Document stored successfully',
-                    'filename': filename,
-                    'chunks': chunks_count,
-                    'file_size_mb': round(file_size / (1024 * 1024), 2)
-                }), 200
-                
-            finally:
-                # Clean up temporary file
-                if os.path.exists(temp_path):
-                    try:
-                        os.remove(temp_path)
-                    except Exception as e:
-                        logger.warning(f"Failed to remove temp file: {e}")
+                    'error': 'All file uploads failed',
+                    'failed_files': failed_files
+                }), 500
         
         # Handle raw text upload
         elif has_text:
@@ -119,12 +156,12 @@ def upload_document():
             if not text.strip():
                 return jsonify({'error': 'Text content is empty'}), 400
             
-            # Check text size (approximate 10 MB limit)
+            # Check text size (approximate 30 MB limit)
             text_size = len(text.encode('utf-8'))
             if text_size > MAX_FILE_SIZE:
                 size_mb = text_size / (1024 * 1024)
                 return jsonify({
-                    'error': f'Text size ({size_mb:.2f} MB) exceeds maximum allowed size (10 MB)'
+                    'error': f'Text size ({size_mb:.2f} MB) exceeds maximum allowed size (30 MB)'
                 }), 413
             
             # Process text

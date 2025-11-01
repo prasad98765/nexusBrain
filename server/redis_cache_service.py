@@ -243,7 +243,7 @@ class RedisCacheService:
             return None, None
         
         # Use custom threshold if provided
-        effective_threshold = threshold if threshold is not None else self.similarity_threshold
+        effective_threshold = self.similarity_threshold
         
         # Try exact match first (with workspace isolation)
         cache_key = self._generate_cache_key(request_data, endpoint_type, workspace_id)
