@@ -329,6 +329,7 @@ export default function ChatPlayground() {
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
                     let accumulatedContent = '';
+                    let relatedQuestions: string[] = [];
 
                     while (true) {
                         const { done, value } = await reader.read();
@@ -344,17 +345,24 @@ export default function ChatPlayground() {
 
                                 try {
                                     const parsed = JSON.parse(data);
-                                    const content = parsed.choices?.[0]?.delta?.content || '';
-                                    if (content) {
-                                        accumulatedContent += content;
-                                        setMessages(prev => {
-                                            const updated = [...prev];
-                                            const lastMsg = updated[updated.length - 1];
-                                            if (lastMsg.role === 'assistant') {
-                                                lastMsg.content = accumulatedContent;
-                                            }
-                                            return updated;
-                                        });
+                                    
+                                    // Check if this is a related questions event
+                                    if (parsed.related_questions && Array.isArray(parsed.related_questions)) {
+                                        relatedQuestions = parsed.related_questions;
+                                    } else {
+                                        // Regular content chunk
+                                        const content = parsed.choices?.[0]?.delta?.content || '';
+                                        if (content) {
+                                            accumulatedContent += content;
+                                            setMessages(prev => {
+                                                const updated = [...prev];
+                                                const lastMsg = updated[updated.length - 1];
+                                                if (lastMsg.role === 'assistant') {
+                                                    lastMsg.content = accumulatedContent;
+                                                }
+                                                return updated;
+                                            });
+                                        }
                                     }
                                 } catch (e) {
                                     console.error('Parse error:', e);
@@ -363,15 +371,12 @@ export default function ChatPlayground() {
                         }
                     }
 
-                    // Extract related questions after streaming completes
-                    const { content: cleanContent, relatedQuestions } = extractRelatedQuestions(accumulatedContent);
-
-                    // Mark streaming as complete and update with cleaned content
+                    // Mark streaming as complete and add related questions
                     setMessages(prev => {
                         const updated = [...prev];
                         const lastMsg = updated[updated.length - 1];
                         if (lastMsg.role === 'assistant') {
-                            lastMsg.content = cleanContent;
+                            lastMsg.content = accumulatedContent;
                             lastMsg.relatedQuestions = relatedQuestions;
                             lastMsg.isStreaming = false;
                         }
@@ -383,15 +388,13 @@ export default function ChatPlayground() {
                     const fullContent = data.choices?.[0]?.message?.content || 'No response Please try again.';
                     const isCached = data.cached || data.cache_hit || false;
                     const cacheType = data.cache_type;
-
-                    // Extract related questions if present
-                    const { content, relatedQuestions } = extractRelatedQuestions(fullContent);
+                    const relatedQuestions = data.related_questions || [];
 
                     setMessages(prev => {
                         const updated = [...prev];
                         const lastMsg = updated[updated.length - 1];
                         if (lastMsg.role === 'assistant') {
-                            lastMsg.content = content;
+                            lastMsg.content = fullContent;
                             lastMsg.relatedQuestions = relatedQuestions;
                             lastMsg.isStreaming = false;
                         }
@@ -413,15 +416,13 @@ export default function ChatPlayground() {
                 const fullContent = data.choices?.[0]?.message?.content || 'No response Please try again.';
                 const isCached = data.cached || data.cache_hit || false;
                 const cacheType = data.cache_type;
-
-                // Extract related questions if present
-                const { content, relatedQuestions } = extractRelatedQuestions(fullContent);
+                const relatedQuestions = data.related_questions || [];
 
                 setMessages(prev => {
                     const updated = [...prev];
                     const lastMsg = updated[updated.length - 1];
                     if (lastMsg.role === 'assistant') {
-                        lastMsg.content = content;
+                        lastMsg.content = fullContent;
                         lastMsg.relatedQuestions = relatedQuestions;
                         lastMsg.isStreaming = false;
                     }
@@ -525,52 +526,6 @@ export default function ChatPlayground() {
             e.preventDefault();
             sendMessage(input);
         }
-    };
-
-    const extractRelatedQuestions = (content: string): { content: string; relatedQuestions: string[] } => {
-        const relatedQuestionsPattern = /Related Questions?:\s*([\s\S]*?)(?=\n\n|$)/i;
-        const match = content.match(relatedQuestionsPattern);
-
-        if (!match) {
-            return { content, relatedQuestions: [] };
-        }
-
-        // Extract the related questions section
-        const relatedSection = match[1];
-
-        // Parse individual questions (handles various formats)
-        const questions: string[] = [];
-
-        // Try to match numbered/bulleted questions
-        const numberedPattern = /(?:^|\n)\s*(?:\d+\.|-|\*|•)\s*(.+?)(?=(?:\n\s*(?:\d+\.|-|\*|•)|$))/g;
-        let questionMatch;
-
-        while ((questionMatch = numberedPattern.exec(relatedSection)) !== null) {
-            const question = questionMatch[1].trim();
-            if (question) {
-                questions.push(question);
-            }
-        }
-
-        // If no numbered questions found, try splitting by newlines or sentences
-        if (questions.length === 0) {
-            const parts = relatedSection.split(/\n|\?\s+/).filter(q => q.trim());
-            parts.forEach(part => {
-                const cleaned = part.trim();
-                if (cleaned && !cleaned.match(/^Related Questions?:/i)) {
-                    // Add back question mark if it was split by it
-                    questions.push(cleaned.endsWith('?') ? cleaned : cleaned + '?');
-                }
-            });
-        }
-
-        // Remove the related questions section from the main content
-        const cleanContent = content.replace(relatedQuestionsPattern, '').trim();
-
-        return {
-            content: cleanContent,
-            relatedQuestions: questions.filter(q => q.length > 0)
-        };
     };
 
     const handleRelatedQuestionClick = (question: string) => {

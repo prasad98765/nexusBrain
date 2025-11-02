@@ -244,8 +244,8 @@ class QARedisService:
         
         try:
             # Try both completion and chat cache keys
-            completion_key = f"llm_cache:completion:{qa_id}"
-            chat_key = f"llm_cache:chat:{qa_id}"
+            completion_key = f"llm_cache:ws:{workspace_id}:completion:{qa_id}"
+            chat_key = f"llm_cache:ws:{workspace_id}:chat:{qa_id}"
             
             data = self.redis_client.get(completion_key)
             if data is None:

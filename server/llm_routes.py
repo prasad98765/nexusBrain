@@ -14,6 +14,9 @@ from .auth_utils import require_auth, require_auth_for_expose_api
 from .redis_cache_service import get_cache_service
 from .models import db, ApiToken, ApiUsageLog, Workspace, SystemPrompt
 from .rag_service import rag_service
+from sentence_transformers import SentenceTransformer
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 
 # Async logging to prevent blocking
 def async_log_api_usage(api_token_id, workspace_id, endpoint, method, payload, response_data, status_code,
@@ -852,6 +855,7 @@ def augment_with_rag_context(messages, workspace_id, use_rag=False, top_k=5, thr
     max_context_messages = 3  # Include last 3 user messages for context
     
     # Iterate through messages in reverse to get recent context
+    # Add System message also
     for msg in reversed(messages):
         if msg.get('role') == 'user':
             conversation_parts.insert(0, msg.get('content', ''))
@@ -861,6 +865,10 @@ def augment_with_rag_context(messages, workspace_id, use_rag=False, top_k=5, thr
         elif msg.get('role') == 'assistant' and user_message_count > 0:
             # Include assistant responses for better context understanding
             conversation_parts.insert(0, f"Previous answer: {msg.get('content', '')[:200]}...")
+        
+        if msg.get('role')  == 'system' and not any("System:" in part for part in conversation_parts):
+            # Optional: You can limit this to the latest system message only
+            conversation_parts.insert(0, f"System: {msg.get('content', '')[:300]}...")
     
     # Build the RAG query with conversation context
     if len(conversation_parts) > 1:
@@ -1220,7 +1228,7 @@ def create_completion():
                 # Store in cache if enabled (use original payload, not augmented)
                 if data.get("is_cached") and combined_response:
                     try:
-                        cache_service = get_cache_service()
+                        cache_service = get_cache_service(data.get("cache_threshold", 0.70))
                         cache_service.store_response(
                             original_payload, combined_response, "completion",
                             workspace_id=str(api_token.workspace_id)
@@ -1329,6 +1337,213 @@ def create_completion():
     return response, status_code
 
 
+# Initialize embedding model for follow-up detection
+embedding_model = None
+try:
+    embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+    logger.info("Loaded embedding model for follow-up detection")
+except Exception as e:
+    logger.warning(f"Failed to load embedding model for follow-up detection: {e}")
+
+
+def is_follow_up_question(current_question: str, conversation_history: list) -> bool:
+    """
+    Detect if the current question is a follow-up based on conversation history.
+    Uses semantic similarity and linguistic patterns.
+    
+    Args:
+        current_question: The current user message
+        conversation_history: List of previous messages [{"role": "user/assistant", "content": "..."}]
+    
+    Returns:
+        True if it's likely a follow-up question, False otherwise
+    """
+    if not current_question or not conversation_history:
+        return False
+    
+    # Pattern-based detection for obvious follow-ups
+    follow_up_patterns = [
+        r'^(and|but|also|what about|how about|tell me (more )?about)\s',
+        r'\b(it|that|this|them|they|those|these|its|his|her|their)\b',
+        r'^(why|how|when|where|who|what)\s+(is|are|was|were|does|did)\s+(it|that|this|they|them)',
+        r'\b(more|else|another|other|similar)\b(?!\w)',  # Word boundary to prevent false matches
+        r'^(yes|no|ok|okay|sure|right|exactly)',
+    ]
+    
+    current_lower = current_question.lower().strip()
+    for pattern in follow_up_patterns:
+        if re.search(pattern, current_lower):
+            logger.info(f"Follow-up detected via pattern: '{pattern}'")
+            return True
+    
+    # Short questions are often follow-ups
+    word_count = len(current_question.split())
+    if word_count < 5 and len(conversation_history) > 0:
+        logger.info(f"Follow-up detected: short question ({word_count} words) with conversation history")
+        return True
+    
+    # Semantic similarity check using embeddings
+    if embedding_model and len(conversation_history) >= 2:
+        try:
+            # Get the last user question from history
+            last_user_question = None
+            for msg in reversed(conversation_history):
+                if msg.get('role') == 'user':
+                    last_user_question = msg.get('content', '')
+                    break
+            
+            if last_user_question:
+                # Generate embeddings
+                current_embedding = embedding_model.encode(current_question)
+                previous_embedding = embedding_model.encode(last_user_question)
+                
+                # Calculate cosine similarity
+                similarity = cosine_similarity(
+                    current_embedding.reshape(1, -1),
+                    previous_embedding.reshape(1, -1)
+                )[0][0]
+                
+                # High similarity suggests related topics (follow-up)
+                if similarity > 0.85:
+                    logger.info(f"Follow-up detected via semantic similarity: {similarity:.2f}")
+                    return True
+        except Exception as e:
+            logger.error(f"Error in semantic follow-up detection: {e}")
+    
+    return False
+
+
+def generate_related_questions(user_message: str, assistant_response: str, conversation_context: str = "") -> list:
+    """
+    Generate 3 related follow-up questions based on the conversation.
+    Questions are generated as standalone, complete questions without pronouns or follow-up indicators.
+    
+    Args:
+        user_message: The user's question
+        assistant_response: The assistant's response
+        conversation_context: Optional context from previous messages
+    
+    Returns:
+        List of 3 standalone question strings
+    """
+        # Pattern-based detection for obvious follow-ups
+    follow_up_patterns = [
+        r'^(and|but|also|what about|how about|tell me (more )?about)\s',
+        r'\b(it|that|this|them|they|those|these|its|his|her|their)\b',
+        r'^(why|how|when|where|who|what)\s+(is|are|was|were|does|did)\s+(it|that|this|they|them)',
+        r'\b(more|else|another|other|similar)\b(?!\w)',  # Word boundary to prevent false matches
+        r'^(yes|no|ok|okay|sure|right|exactly)',
+    ]
+
+    def is_followup_like_question(q: str) -> bool:
+        """Check if the question matches any follow-up or pronoun pattern."""
+        q_lower = q.lower().strip()
+        for pat in follow_up_patterns:
+            if re.search(pat, q_lower):
+                return True
+        return False
+    try:
+        # Prepare a concise prompt for generating follow-up questions
+        prompt = f"""Based on this conversation, generate exactly 3 relevant follow-up questions that expand on the topic.
+
+IMPORTANT RULES:
+1. Each question must be a complete, standalone question
+- NOT use pronouns (it, that, this, they, etc.)
+- NOT start with continuation words (and, but, also, what about, how about, etc.)
+4. DO NOT use vague references - be specific and explicit
+5. Each question should be self-contained and make sense on its own
+
+User asked: {user_message}
+
+Assistant replied: {assistant_response[:500]}...
+
+Generate 3 specific, standalone questions (one per line, no numbering or bullets):"""
+        
+        # Use a fast, efficient model for question generation
+        question_gen_payload = {
+            "model": "meta-llama/llama-3.3-8b-instruct:free",
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant that generates standalone, specific questions. Never use pronouns or vague references. Always be explicit and complete. Respond with exactly 3 questions, one per line, without numbering or formatting."},
+                {"role": "user", "content": prompt}
+            ],
+            "max_tokens": 150,
+            "temperature": 0.7
+        }
+        
+        # Call OpenRouter to generate questions
+        url = f"{OPENROUTER_BASE_URL}/chat/completions"
+        resp = httpx_client.post(url, headers=get_openrouter_headers(), json=question_gen_payload, timeout=10.0)
+        
+        if resp.status_code == 200:
+            response_data = resp.json()
+            generated_text = response_data.get('choices', [{}])[0].get('message', {}).get('content', '')
+            
+            # Parse the questions
+            questions = []
+            for line in generated_text.strip().split('\n'):
+                line = line.strip()
+                # Remove numbering, bullets, and formatting
+                line = re.sub(r'^[\d\.\-\*\•]\s*', '', line)
+                if line and len(line) > 10:  # Valid question
+                    # Ensure it ends with a question mark
+                    if not line.endswith('?'):
+                        line += '?'
+
+                    # Filter: skip any that look like follow-ups
+                    if is_followup_like_question(line):
+                        logger.warning(f"Skipped follow-up style question: {line}")
+                        continue
+                    
+                    # Validate: Check if it's truly standalone (no pronouns at start)
+                    # Convert to lowercase for checking
+                    line_lower = line.lower()
+                    
+                    # Skip questions that start with follow-up indicators
+                    follow_up_starts = ['and ', 'but ', 'also ', 'what about ', 'how about ', 'tell me more']
+                    if any(line_lower.startswith(indicator) for indicator in follow_up_starts):
+                        logger.warning(f"Skipping follow-up style question: {line}")
+                        continue
+                    
+                    # Skip questions with pronouns in first few words (likely context-dependent)
+                    first_words = ' '.join(line_lower.split()[:5])
+                    pronouns = ['it ', 'that ', 'this ', 'them ', 'they ', 'those ', 'these ']
+                    has_pronoun = any(pronoun in first_words for pronoun in pronouns)
+                    if has_pronoun:
+                        logger.warning(f"Skipping question with pronoun: {line}")
+                        continue
+                    
+                    questions.append(line)
+            
+            # Return exactly 3 questions
+            if len(questions) >= 3:
+                return questions[:3]
+            elif len(questions) > 0:
+                # Pad with generic standalone questions if needed
+                while len(questions) < 3:
+                    generic = [
+                        "What are the key concepts to understand about this topic?",
+                        "How can this be applied in practice?",
+                        "What are common misconceptions about this subject?"
+                    ]
+                    for q in generic:
+                        if q not in questions:
+                            questions.append(q)
+                            if len(questions) >= 3:
+                                break
+                return questions[:3]
+        
+        logger.warning(f"Failed to generate related questions: status {resp.status_code}")
+    except Exception as e:
+        logger.error(f"Error generating related questions: {e}")
+    
+    # Fallback generic standalone questions (no pronouns or follow-up words)
+    return [
+        "What are the main benefits of this approach?",
+        "How does this concept work in real-world applications?",
+        "What are some common challenges related to this topic?"
+    ]
+
+
 @api_llm_routes.route("/v1/chat/create", methods=["POST"])
 @require_auth_for_expose_api
 def create_chat_completion():
@@ -1432,6 +1647,7 @@ def create_chat_completion():
     cache_payload = None
     skip_cache = False
     last_user_content = ""
+    is_follow_up = False
     
     if data.get("is_cached"):
         # Extract last user message content
@@ -1440,56 +1656,69 @@ def create_chat_completion():
                 last_user_content = msg.get("content", "")
                 break
         
-        # Check word count - skip cache if less than 3 words
-        word_count = len(last_user_content.split())
-        if word_count < 3:
+        # Check if this is a follow-up question
+        # Extract conversation history (all messages except the last user message)
+        conversation_history = []
+        for i, msg in enumerate(payload.get("messages", [])):
+            if i < len(payload.get("messages", [])) - 1:  # Exclude last message
+                conversation_history.append(msg)
+        
+        is_follow_up = is_follow_up_question(last_user_content, conversation_history)
+        
+        if is_follow_up:
             skip_cache = True
-            logger.info(f"Skipping cache for short question (word count: {word_count}): '{last_user_content}'")
+            logger.info(f"Skipping cache for follow-up question: '{last_user_content[:50]}...'")
         else:
-            # Extract system message content if exists
-            system_content = ""
-            for msg in payload.get("messages", []):
-                if msg.get("role") == "system":
-                    system_content = msg.get("content", "")
-                    break
-            
-            # Create simplified payload with only last user message and system message
-            cache_payload = {
-                "messages": []
-            }
-            
-            # Copy model or models field from payload
-            if "models" in payload:
-                cache_payload["models"] = payload["models"]
-            elif "model" in payload:
-                cache_payload["model"] = payload["model"]
-            
-            # Copy request parameters for cache key generation
-            for param in ["temperature", "max_tokens", "top_p", "frequency_penalty", "presence_penalty"]:
-                if param in payload:
-                    cache_payload[param] = payload[param]
-            
-            # Add system message if exists
-            if system_content:
+            # Check word count - skip cache if less than 3 words
+            word_count = len(last_user_content.split())
+            if word_count < 3:
+                skip_cache = True
+                logger.info(f"Skipping cache for short question (word count: {word_count}): '{last_user_content}'")
+            else:
+                # Extract system message content if exists
+                system_content = ""
+                for msg in payload.get("messages", []):
+                    if msg.get("role") == "system":
+                        system_content = msg.get("content", "")
+                        break
+                
+                # Create simplified payload with only last user message and system message
+                cache_payload = {
+                    "messages": []
+                }
+                
+                # Copy model or models field from payload
+                if "models" in payload:
+                    cache_payload["models"] = payload["models"]
+                elif "model" in payload:
+                    cache_payload["model"] = payload["model"]
+                
+                # Copy request parameters for cache key generation
+                for param in ["temperature", "max_tokens", "top_p", "frequency_penalty", "presence_penalty"]:
+                    if param in payload:
+                        cache_payload[param] = payload[param]
+                
+                # Add system message if exists
+                if system_content:
+                    cache_payload["messages"].append({
+                        "role": "system",
+                        "content": system_content
+                    })
+                
+                # Add last user message
                 cache_payload["messages"].append({
-                    "role": "system",
-                    "content": system_content
+                    "role": "user",
+                    "content": last_user_content
                 })
-            
-            # Add last user message
-            cache_payload["messages"].append({
-                "role": "user",
-                "content": last_user_content
-            })
-            
-            logger.info(f"Created cache payload with last user message ({word_count} words) + system message for cache lookup")
+                
+                logger.info(f"Created cache payload with last user message ({word_count} words) + system message for cache lookup")
 
     # Check cache if caching is enabled and not skipped (use simplified cache payload)
     cached_response = None
     cache_type = None
 
     if data.get("is_cached") and not skip_cache and cache_payload:
-        cache_service = get_cache_service()
+        cache_service = get_cache_service(data.get("cache_threshold", 0.70))
         # Pass the semantic cache threshold and workspace_id from the API token
         # This checks exact match first, then semantic match with workspace isolation
         cached_response, cache_type = cache_service.get_cached_response(
@@ -1507,6 +1736,20 @@ def create_chat_completion():
 
     if cached_response:
         logger.info(f"Returning cached response ({cache_type} match) for chat model: {payload['model']}, workspace: {api_token.workspace_id}")
+
+        # Generate related questions for cached response
+        try:
+            assistant_content = cached_response.get('choices', [{}])[0].get('message', {}).get('content', '')
+            related_questions = generate_related_questions(
+                user_message=last_user_content,
+                assistant_response=assistant_content
+            )
+            # Add related questions to response
+            cached_response['related_questions'] = related_questions
+            logger.info(f"Added {len(related_questions)} related questions to cached response")
+        except Exception as e:
+            logger.error(f"Failed to generate related questions for cached response: {e}")
+            cached_response['related_questions'] = []
 
         # Log cache hit
         async_log_api_usage(
@@ -1634,11 +1877,23 @@ def create_chat_completion():
                 }]
                 combined_response["model"] = last_chunk_data['model']
 
+                # Generate related questions for streaming response
+                try:
+                    related_questions = generate_related_questions(
+                        user_message=last_user_content,
+                        assistant_response=combined_content
+                    )
+                    combined_response['related_questions'] = related_questions
+                    logger.info(f"Added {len(related_questions)} related questions to streaming response")
+                except Exception as e:
+                    logger.error(f"Failed to generate related questions for streaming response: {e}")
+                    combined_response['related_questions'] = []
+
                 # Store in cache if enabled (reuse the cache_payload from earlier)
                 # This ensures cache lookup and storage use the same key format
                 if data.get("is_cached") and not skip_cache and cache_payload and combined_response["choices"]:
                     try:
-                        cache_service = get_cache_service()
+                        cache_service = get_cache_service(data.get("cache_threshold", 0.70))
                         cache_service.store_response(
                             cache_payload, combined_response, "chat",
                             workspace_id=str(api_token.workspace_id)
@@ -1688,6 +1943,13 @@ def create_chat_completion():
                     cache_type=None,
                     document_contexts=document_contexts
                 )
+                
+                # Send related questions as a final SSE event
+                if 'related_questions' in combined_response:
+                    related_questions_event = {
+                        "related_questions": combined_response['related_questions']
+                    }
+                    yield f"data: {json.dumps(related_questions_event)}\n\n"
 
             # Return a new Response with our wrapped generator
             return Response(
@@ -1713,6 +1975,20 @@ def create_chat_completion():
     if status_code == 200:
         try:
             response_data = response.get_json() if hasattr(response, 'get_json') else response.json
+            
+            # Generate related questions for non-streaming response
+            try:
+                assistant_content = response_data.get('choices', [{}])[0].get('message', {}).get('content', '')
+                related_questions = generate_related_questions(
+                    user_message=last_user_content,
+                    assistant_response=assistant_content
+                )
+                # Add related questions to response
+                response_data['related_questions'] = related_questions
+                logger.info(f"Added {len(related_questions)} related questions to non-streaming response")
+            except Exception as e:
+                logger.error(f"Failed to generate related questions: {e}")
+                response_data['related_questions'] = []
             
             # Context-aware caching (runs in parallel with traditional cache)
             # try:
