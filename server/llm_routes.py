@@ -856,6 +856,8 @@ def augment_with_rag_context(messages, workspace_id, use_rag=False, top_k=5, thr
     
     # Iterate through messages in reverse to get recent context
     # Add System message also
+    # system_context = next((m.get("content") for m in reversed(messages) if m.get("role") == "system"), "")
+
     for msg in reversed(messages):
         if msg.get('role') == 'user':
             conversation_parts.insert(0, msg.get('content', ''))
@@ -865,11 +867,9 @@ def augment_with_rag_context(messages, workspace_id, use_rag=False, top_k=5, thr
         elif msg.get('role') == 'assistant' and user_message_count > 0:
             # Include assistant responses for better context understanding
             conversation_parts.insert(0, f"Previous answer: {msg.get('content', '')[:200]}...")
-        
-        if msg.get('role')  == 'system' and not any("System:" in part for part in conversation_parts):
-            # Optional: You can limit this to the latest system message only
-            conversation_parts.insert(0, f"System: {msg.get('content', '')[:300]}...")
-    
+    # if system_context:
+    #     conversation_parts.insert(0, f"System: {system_context[:300]}...")
+
     # Build the RAG query with conversation context
     if len(conversation_parts) > 1:
         # Multiple messages - combine with context markers
@@ -1461,7 +1461,7 @@ Generate 3 specific, standalone questions (one per line, no numbering or bullets
         
         # Use a fast, efficient model for question generation
         question_gen_payload = {
-            "model": "meta-llama/llama-3.3-8b-instruct:free",
+            "model": "google/gemini-2.5-flash-lite",
             "messages": [
                 {"role": "system", "content": "You are a helpful assistant that generates standalone, specific questions. Never use pronouns or vague references. Always be explicit and complete. Respond with exactly 3 questions, one per line, without numbering or formatting."},
                 {"role": "user", "content": prompt}
