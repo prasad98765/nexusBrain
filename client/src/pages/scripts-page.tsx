@@ -54,6 +54,7 @@ interface ThemeSettings {
   ai_search_engine_name: string;
   theme_preset: string;
   welcome_message: string;
+  quick_start_questions?: string[];
 }
 
 interface ScriptSettings {
@@ -90,6 +91,9 @@ export default function ScriptsPage() {
   const [uploadingButtonImage, setUploadingButtonImage] = useState(false);
   const buttonImageInputRef = useRef<HTMLInputElement>(null);
 
+  // Quick Start Questions State
+  const [newQuickStartQuestion, setNewQuickStartQuestion] = useState('');
+
   // Unsaved Changes Detection
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [savedThemeSettings, setSavedThemeSettings] = useState<ThemeSettings | null>(null);
@@ -117,7 +121,8 @@ export default function ScriptsPage() {
     logo_url: '',
     ai_search_engine_name: 'AI Search Engine',
     theme_preset: 'light',
-    welcome_message: 'Hello! How can I help you today?'
+    welcome_message: 'Hello! How can I help you today?',
+    quick_start_questions: []
   });
 
   // Fetch API token
@@ -731,6 +736,94 @@ export default function ScriptsPage() {
                       placeholder="e.g., Hello! How can I help you today?"
                       rows={3}
                     />
+                  </div>
+
+                  {/* Quick Start Questions */}
+                  <div className="space-y-3">
+                    <Label className="text-slate-200">Quick Start Questions</Label>
+                    <p className="text-xs text-slate-500">Add suggested questions that appear below the welcome message</p>
+
+                    {/* Add Question Input */}
+                    <div className="flex gap-2">
+                      <Input
+                        value={newQuickStartQuestion}
+                        onChange={(e) => setNewQuickStartQuestion(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && newQuickStartQuestion.trim()) {
+                            e.preventDefault();
+                            const currentQuestions = themeSettings.quick_start_questions || [];
+                            if (currentQuestions.length < 6) {
+                              setThemeSettings({
+                                ...themeSettings,
+                                quick_start_questions: [...currentQuestions, newQuickStartQuestion.trim()]
+                              });
+                              setNewQuickStartQuestion('');
+                            } else {
+                              toast({
+                                title: 'Limit Reached',
+                                description: 'Maximum 6 quick start questions allowed.',
+                                variant: 'destructive'
+                              });
+                            }
+                          }
+                        }}
+                        className="flex-1 bg-slate-700 border-slate-600 text-slate-100"
+                        placeholder="e.g., What services do you offer?"
+                        maxLength={200}
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          if (newQuickStartQuestion.trim()) {
+                            const currentQuestions = themeSettings.quick_start_questions || [];
+                            if (currentQuestions.length < 6) {
+                              setThemeSettings({
+                                ...themeSettings,
+                                quick_start_questions: [...currentQuestions, newQuickStartQuestion.trim()]
+                              });
+                              setNewQuickStartQuestion('');
+                            } else {
+                              toast({
+                                title: 'Limit Reached',
+                                description: 'Maximum 6 quick start questions allowed.',
+                                variant: 'destructive'
+                              });
+                            }
+                          }
+                        }}
+                        disabled={!newQuickStartQuestion.trim() || (themeSettings.quick_start_questions || []).length >= 6}
+                        className="bg-indigo-600 hover:bg-indigo-700"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    {/* Questions List */}
+                    {themeSettings.quick_start_questions && themeSettings.quick_start_questions.length > 0 && (
+                      <div className="space-y-2">
+                        {themeSettings.quick_start_questions.map((question, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-2 p-3 bg-slate-900 border border-slate-700 rounded-lg"
+                          >
+                            <span className="flex-1 text-sm text-slate-200">{question}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const newQuestions = themeSettings.quick_start_questions?.filter((_, i) => i !== index) || [];
+                                setThemeSettings({ ...themeSettings, quick_start_questions: newQuestions });
+                              }}
+                              className="h-8 w-8 p-0 hover:bg-red-900/50"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-400" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <p className="text-xs text-slate-500">Maximum 6 questions. Press Enter or click + to add.</p>
                   </div>
 
                   {/* Logo Upload */}

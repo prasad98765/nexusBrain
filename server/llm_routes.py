@@ -1426,22 +1426,7 @@ def generate_related_questions(user_message: str, assistant_response: str, conve
     Returns:
         List of 3 standalone question strings
     """
-        # Pattern-based detection for obvious follow-ups
-    follow_up_patterns = [
-        r'^(and|but|also|what about|how about|tell me (more )?about)\s',
-        r'\b(it|that|this|them|they|those|these|its|his|her|their)\b',
-        r'^(why|how|when|where|who|what)\s+(is|are|was|were|does|did)\s+(it|that|this|they|them)',
-        r'\b(more|else|another|other|similar)\b(?!\w)',  # Word boundary to prevent false matches
-        r'^(yes|no|ok|okay|sure|right|exactly)',
-    ]
 
-    def is_followup_like_question(q: str) -> bool:
-        """Check if the question matches any follow-up or pronoun pattern."""
-        q_lower = q.lower().strip()
-        for pat in follow_up_patterns:
-            if re.search(pat, q_lower):
-                return True
-        return False
     try:
         # Prepare a concise prompt for generating follow-up questions
         prompt = f"""Based on this conversation, generate exactly 3 relevant follow-up questions that expand on the topic.
@@ -1488,11 +1473,6 @@ Generate 3 specific, standalone questions (one per line, no numbering or bullets
                     # Ensure it ends with a question mark
                     if not line.endswith('?'):
                         line += '?'
-
-                    # Filter: skip any that look like follow-ups
-                    if is_followup_like_question(line):
-                        logger.warning(f"Skipped follow-up style question: {line}")
-                        continue
                     
                     # Validate: Check if it's truly standalone (no pronouns at start)
                     # Convert to lowercase for checking
@@ -1628,16 +1608,26 @@ def create_chat_completion():
         
         if has_system_message:
             # Prepend to existing system message
+            final_system_prompt = f"""
+                You are an AI assistant following custom instructions provided below.
+                Always treat these instructions as your top priority.
+
+                --- USER SYSTEM PROMPT START ---
+                {active_system_prompt}
+                --- USER SYSTEM PROMPT END ---
+
+                Follow them exactly.
+                """
             for msg in payload['messages']:
                 if msg.get('role') == 'system':
-                    msg['content'] = f"{active_system_prompt}\n\n{msg['content']}"
+                    msg['content'] = f"{final_system_prompt}\n\n{msg['content']}"
                     logger.info(f"Prepended active system prompt to existing system message")
                     break
         else:
             # Add new system message at the beginning
             system_message = {
                 "role": "system",
-                "content": active_system_prompt
+                "content": final_system_prompt
             }
             payload['messages'].insert(0, system_message)
             logger.info(f"Added active system prompt as new system message")

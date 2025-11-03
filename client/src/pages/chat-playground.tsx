@@ -103,6 +103,7 @@ interface ThemeSettings {
     ai_search_engine_name: string;
     theme_preset: string;
     welcome_message: string;
+    quick_start_questions?: string[];
 }
 
 interface QuickButton {
@@ -345,7 +346,7 @@ export default function ChatPlayground() {
 
                                 try {
                                     const parsed = JSON.parse(data);
-                                    
+
                                     // Check if this is a related questions event
                                     if (parsed.related_questions && Array.isArray(parsed.related_questions)) {
                                         relatedQuestions = parsed.related_questions;
@@ -713,6 +714,42 @@ export default function ChatPlayground() {
                                 >
                                     {themeSettings?.welcome_message || 'How can I help you today?'}
                                 </h2>
+
+                                {/* Quick Start Questions */}
+                                {themeSettings?.quick_start_questions && themeSettings.quick_start_questions.length > 0 && (
+                                    <div className="w-full max-w-2xl mt-6 sm:mt-8 space-y-3">
+                                        <div className="grid grid-cols-1 gap-2 sm:gap-3">
+                                            {themeSettings.quick_start_questions.map((question, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => {
+                                                        setInput(question);
+                                                        sendMessage(question);
+                                                    }}
+                                                    disabled={isLoading}
+                                                    className={cn(
+                                                        "w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg transition-all text-sm",
+                                                        "hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed",
+                                                        "border group"
+                                                    )}
+                                                    style={{
+                                                        backgroundColor: themeSettings?.theme_preset === 'light' ? '#f9fafb' : '#2f2f2f',
+                                                        borderColor: themeSettings?.theme_preset === 'light' ? '#e5e7eb' : '#404040',
+                                                        color: themeSettings?.theme_preset === 'light' ? '#1f2937' : '#e5e7eb'
+                                                    }}
+                                                >
+                                                    <div className="flex items-start gap-2">
+                                                        <MessageSquare
+                                                            className="w-4 h-4 mt-0.5 flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity"
+                                                            style={{ color: themeSettings?.primary_color || '#6366f1' }}
+                                                        />
+                                                        <span className="flex-1">{question}</span>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -772,7 +809,8 @@ export default function ChatPlayground() {
                                                 {message.role === 'user' ? (
                                                     <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                                                 ) : (
-                                                    <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                                                    themeSettings?.logo_url ? <img src={themeSettings.logo_url} alt="Logo" className="w-12 h-8 sm:w-16 sm:h-8 rounded-full object-cover mb-0 sm:mb-0" />
+                                                        : <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                                                 )}
                                             </div>
                                         </div>
