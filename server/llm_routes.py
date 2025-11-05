@@ -15,6 +15,7 @@ from .redis_cache_service import get_cache_service
 from .models import db, ApiToken, ApiUsageLog, Workspace, SystemPrompt
 from .rag_service import rag_service
 from sentence_transformers import SentenceTransformer
+from .langchain_memory_service import get_langchain_memory_service
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -1656,8 +1657,10 @@ def create_chat_completion():
         is_follow_up = is_follow_up_question(last_user_content, conversation_history)
         
         if is_follow_up:
+            # IMPORTANT: Skip semantic cache for follow-up questions
+            # Follow-ups need fresh responses with full conversation context
             skip_cache = True
-            logger.info(f"Skipping cache for follow-up question: '{last_user_content[:50]}...'")
+            logger.info(f"Skipping semantic cache for follow-up question (will use LangChain context): '{last_user_content[:50]}...'")
         else:
             # Check word count - skip cache if less than 3 words
             word_count = len(last_user_content.split())
@@ -1701,7 +1704,7 @@ def create_chat_completion():
                     "content": last_user_content
                 })
                 
-                logger.info(f"Created cache payload with last user message ({word_count} words) + system message for cache lookup")
+                logger.info(f"Created cache payload for standalone question (word count: {word_count})")
 
     # Check cache if caching is enabled and not skipped (use simplified cache payload)
     cached_response = None
@@ -1941,6 +1944,35 @@ def create_chat_completion():
                     }
                     yield f"data: {json.dumps(related_questions_event)}\n\n"
 
+                # ========== DUAL STORAGE STRATEGY ==========
+                # 1. LangChain Memory: ALL conversations (for context tracking)
+                # 2. Semantic Cache: ONLY standalone questions (for fast retrieval)
+                # 
+                # Why this approach?
+                # - LangChain provides conversation context for follow-ups
+                # - Semantic cache provides instant answers for repeated standalone questions
+                # - Follow-ups are NOT cached to ensure they always get fresh contextual responses
+                # ==========================================
+                
+                # Save successful responses to LangChain memory (for future context-aware caching)
+                if combined_content:  # If we have content, the response was successful
+                    try:
+                        memory_service = get_langchain_memory_service()
+                        assistant_response = combined_content
+                        
+                        if last_user_content and assistant_response:
+                            memory_service.save_conversation_turn(
+                                workspace_id=str(api_token.workspace_id),
+                                user_message=last_user_content,
+                                assistant_response=assistant_response,
+                                use_summary=True,
+                                window_size=5
+                            )
+                            logger.info(f"Saved conversation to LangChain memory for workspace {api_token.workspace_id}")
+                    except Exception as mem_err:
+                        logger.warning(f"Failed to save to LangChain memory (non-critical): {mem_err}")
+
+
             # Return a new Response with our wrapped generator
             return Response(
                 stream_with_context(wrapped_generator()),
@@ -2016,7 +2048,26 @@ def create_chat_completion():
                     cache_payload, response_data, "chat",
                     workspace_id=str(api_token.workspace_id)
                 )
-                logger.info(f"Stored chat response in cache for workspace {api_token.workspace_id}, model: {payload['model']}")
+                logger.info(f"Stored standalone question in semantic cache for workspace {api_token.workspace_id}")
+            
+            # ========== DUAL STORAGE STRATEGY (Non-Streaming) ==========
+            # Save to LangChain memory for non-streaming responses
+            # (Streaming responses save inside the generator)
+            try:
+                memory_service = get_langchain_memory_service()
+                assistant_response = response_data.get('choices', [{}])[0].get('message', {}).get('content', '')
+                
+                if last_user_content and assistant_response:
+                    memory_service.save_conversation_turn(
+                        workspace_id=str(api_token.workspace_id),
+                        user_message=last_user_content,
+                        assistant_response=assistant_response,
+                        use_summary=True,
+                        window_size=5
+                    )
+                    logger.info(f"Saved non-streaming conversation to LangChain memory for workspace {api_token.workspace_id}")
+            except Exception as mem_err:
+                logger.warning(f"Failed to save to LangChain memory (non-critical): {mem_err}")
 
         except Exception as e:
             logger.error(f"Failed to store chat response in cache: {e}")
@@ -2027,6 +2078,8 @@ def create_chat_completion():
             error_message = response_data.get('error', 'Unknown error') if response_data else 'Unknown error'
         except:
             error_message = 'Failed to parse error response'
+
+
 
     # Log API usage
     async_log_api_usage(
