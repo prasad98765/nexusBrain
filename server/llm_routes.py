@@ -1709,6 +1709,17 @@ def create_chat_completion():
     # Check cache if caching is enabled and not skipped (use simplified cache payload)
     cached_response = None
     cache_type = None
+    
+    # Generate conversation context identifier from message history
+    # This ensures usage counter resets for each new conversation
+    conversation_context = None
+    if data.get("is_cached") and payload.get("messages"):
+        # Use hash of first few messages to identify unique conversations
+        # This resets when user starts a new conversation
+        context_messages = payload.get("messages", [])[:3]  # First 3 messages as context
+        context_str = json.dumps([{"role": m.get("role"), "content": m.get("content", "")[:50]} for m in context_messages], sort_keys=True)
+        conversation_context = hashlib.sha256(context_str.encode()).hexdigest()[:16]
+        logger.debug(f"Generated conversation context: {conversation_context}")
 
     if data.get("is_cached") and not skip_cache and cache_payload:
         cache_service = get_cache_service(data.get("cache_threshold", 0.70))
@@ -1717,7 +1728,8 @@ def create_chat_completion():
         cached_response, cache_type = cache_service.get_cached_response(
             cache_payload, "chat", 
             workspace_id=str(api_token.workspace_id),
-            threshold=api_token.semantic_cache_threshold
+            threshold=api_token.semantic_cache_threshold,
+            conversation_context=conversation_context
         )
         
         if cached_response:

@@ -36,6 +36,7 @@ class CacheEntry:
     timestamp: float
     embedding: Optional[List[float]] = None
     workspace_id: Optional[str] = None
+    usage_count: int = 0  # Track how many times this cache entry has been returned
 
 class RedisCacheService:
     def __init__(self, 
@@ -176,23 +177,25 @@ class RedisCacheService:
                     response=data["response"],
                     timestamp=data["timestamp"],
                     embedding=data.get("embedding"),
-                    workspace_id=data.get("workspace_id")
+                    workspace_id=data.get("workspace_id"),
+                    usage_count=data.get("usage_count", 0)
                 )
         except Exception as e:
             logger.error(f"Failed to get exact match from Redis: {e}")
         
         return None
     
-    def _find_semantic_match(self, query_embedding: List[float], model: str, endpoint_type: str, workspace_id: str = None) -> Tuple[Optional[CacheEntry], float]:
-        """Return best semantic match and similarity %."""
+    def _find_semantic_match(self, query_embedding: List[float], model: str, endpoint_type: str, workspace_id: str = None, conversation_context: str = None) -> Tuple[Optional[CacheEntry], float, Optional[str]]:
+        """Return best semantic match, similarity %, and cache key."""
         if not self.redis_client or not self.embedding_model:
-            return None, 0.0
+            return None, 0.0, None
         try:
             # Include workspace filter in key pattern
             workspace_prefix = f"ws:{workspace_id}:" if workspace_id else ""
             keys = self.redis_client.keys(f"llm_cache:{workspace_prefix}{endpoint_type}:*")
             best_match = None
             best_similarity = 0.0
+            best_key = None
             query_np = np.array(query_embedding).reshape(1, -1)
 
             for key in keys:
@@ -206,34 +209,53 @@ class RedisCacheService:
                     # Additional workspace check from stored data
                     if workspace_id and entry.get("workspace_id") != workspace_id:
                         continue
+                    
+                    # Check conversation-scoped usage count (if conversation_context provided)
+                    if conversation_context:
+                        usage_key = f"{conversation_context}"
+                        conversation_usage = entry.get("conversation_usage", {})
+                        usage_count = conversation_usage.get(usage_key, 0)
+                        
+                        if usage_count >= 2:
+                            logger.debug(f"Skipping cache entry {key[:50]}... for conversation {usage_key[:20]}... (usage_count={usage_count}, max=2)")
+                            continue
+                    
                     cached_np = np.array(entry["embedding"]).reshape(1, -1)
                     similarity = cosine_similarity(query_np, cached_np)[0][0]
                     if similarity > best_similarity:
                         best_similarity = similarity
+                        best_key = key
+                        usage_count_for_entry = 0
+                        if conversation_context:
+                            conversation_usage = entry.get("conversation_usage", {})
+                            usage_count_for_entry = conversation_usage.get(conversation_context, 0)
                         best_match = CacheEntry(
                             request=entry["request"],
                             response=entry["response"],
                             timestamp=entry["timestamp"],
                             embedding=entry.get("embedding"),
-                            workspace_id=entry.get("workspace_id")
+                            workspace_id=entry.get("workspace_id"),
+                            usage_count=usage_count_for_entry
                         )
                 except Exception as e:
                     logger.error(f"Error processing key {key}: {e}")
 
-            return best_match, best_similarity * 100  # return % similarity
+            return best_match, best_similarity * 100, best_key  # return % similarity and key
         except Exception as e:
             logger.error(f"Semantic search failed: {e}")
-            return None, 0.0
+            return None, 0.0, None
     
-    def get_cached_response(self, request_data: Dict[str, Any], endpoint_type: str, workspace_id: str = None, threshold: float = None) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    def get_cached_response(self, request_data: Dict[str, Any], endpoint_type: str, workspace_id: str = None, threshold: float = None, conversation_context: str = None) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
         """
         Get cached response with exact match first, then semantic search.
+        Optionally tracks usage per conversation when conversation_context is provided.
         
         Args:
             request_data: The request payload (simplified - only last user + system messages)
             endpoint_type: "completion" or "chat"
             workspace_id: Workspace identifier for cache isolation
             threshold: Custom semantic similarity threshold (overrides default)
+            conversation_context: Optional unique conversation identifier (for scoped usage tracking)
         
         Returns:
             Tuple of (cached response data, cache type) or (None, None) if no match found
@@ -267,15 +289,41 @@ class RedisCacheService:
             logger.debug(f"Attempting semantic search for workspace {workspace_id}, text: {text_content[:50]}...")
             query_embedding = self._generate_embedding(text_content)
             if query_embedding:
-                semantic_match, similarity = self._find_semantic_match(
+                semantic_match, similarity, matched_key = self._find_semantic_match(
                     query_embedding, 
                     request_data.get("model"), 
                     endpoint_type,
-                    workspace_id
+                    workspace_id,
+                    conversation_context
                 )
                 logger.debug(f"Semantic search result for workspace {workspace_id}: similarity={similarity:.2f}%, threshold={effective_threshold * 100:.2f}%")
                 if semantic_match and similarity >= effective_threshold * 100:
-                    logger.info(f"Cache HIT (semantic match) for workspace {workspace_id}, similarity={similarity:.2f}%")
+                    # Increment conversation-scoped usage counter (only if conversation_context provided)
+                    if conversation_context:
+                        try:
+                            cached_data = self.redis_client.get(matched_key)
+                            if cached_data:
+                                entry = json.loads(cached_data)
+                                
+                                # Use conversation context as key for usage tracking
+                                usage_key = f"{conversation_context}"
+                                conversation_usage = entry.get("conversation_usage", {})
+                                conversation_usage[usage_key] = conversation_usage.get(usage_key, 0) + 1
+                                entry["conversation_usage"] = conversation_usage
+                                
+                                # Get TTL and preserve it
+                                ttl = self.redis_client.ttl(matched_key)
+                                if ttl > 0:
+                                    self.redis_client.setex(matched_key, ttl, json.dumps(entry))
+                                else:
+                                    self.redis_client.setex(matched_key, 2592000, json.dumps(entry))  # 30 days default
+                                
+                                logger.info(f"Cache HIT (semantic match) for workspace {workspace_id}, conversation {usage_key[:20]}..., similarity={similarity:.2f}%, usage_count={conversation_usage[usage_key]}")
+                        except Exception as e:
+                            logger.error(f"Failed to increment conversation usage counter: {e}")
+                    else:
+                        logger.info(f"Cache HIT (semantic match) for workspace {workspace_id}, similarity={similarity:.2f}%")
+                    
                     return semantic_match.response, "semantic"
                 else:
                     logger.debug(f"Semantic match below threshold for workspace {workspace_id}")
@@ -285,9 +333,6 @@ class RedisCacheService:
             logger.debug("Embedding model not available, skipping semantic search")
         
         logger.info(f"Cache MISS for workspace {workspace_id}, will proceed to LLM call")
-        return None, None
-        
-        logger.info(f"Cache MISS: {cache_key}")
         return None, None
     
     def store_response(self, request_data: Dict[str, Any], response_data: Dict[str, Any], endpoint_type: str, workspace_id: str = None) -> bool:
@@ -322,13 +367,14 @@ class RedisCacheService:
             else:
                 logger.warning(f"Failed to generate embedding for workspace {workspace_id}, semantic search will not work for this entry")
             
-            # Prepare cache entry with workspace_id
+            # Prepare cache entry with workspace_id and conversation usage tracker
             cache_entry = {
                 "request": request_data,
                 "response": response_data,
                 "timestamp": time.time(),
                 "embedding": embedding,
-                "workspace_id": workspace_id
+                "workspace_id": workspace_id,
+                "conversation_usage": {}  # Tracks usage per conversation
             }
             
             # Store in Redis with TTL (30 days = 2592000 seconds)
