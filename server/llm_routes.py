@@ -1598,115 +1598,86 @@ def is_follow_up_question(current_question: str, conversation_history: list) -> 
     return False
 
 
-def generate_related_questions(user_message: str, assistant_response: str, conversation_context: str = "") -> list:
+def generate_related_questions(user_message: str, assistant_response: str, conversation_context: str = "", active_system_prompt: str = "") -> list:
     """
-    Generate 3 related follow-up questions based on the conversation.
-    Questions are generated as standalone, complete questions without pronouns or follow-up indicators.
-    
-    Args:
-        user_message: The user's question
-        assistant_response: The assistant's response
-        conversation_context: Optional context from previous messages
-    
-    Returns:
-        List of 3 standalone question strings
+    Generate 3 related follow-up questions ONLY if the user message and assistant response 
+    are contextually aligned with the active system prompt.
+
+    Ensures questions are standalone, explicit, and not pronoun-based.
+    Uses a single LLM call.
     """
 
     try:
-        # Prepare a concise prompt for generating follow-up questions
-        prompt = f"""Based on this conversation, generate exactly 3 relevant follow-up questions that expand on the topic.
+        if not active_system_prompt.strip():
+            logger.warning("No active system prompt provided — skipping question generation.")
+            return []
 
-IMPORTANT RULES:
-1. Each question must be a complete, standalone question
-- NOT use pronouns (it, that, this, they, etc.)
-- NOT start with continuation words (and, but, also, what about, how about, etc.)
-4. DO NOT use vague references - be specific and explicit
-5. Each question should be self-contained and make sense on its own
+        # Build a unified LLM prompt that handles relevance + generation
+        prompt = f"""
+You are an intelligent assistant specialized in generating topic-specific follow-up questions.
 
-User asked: {user_message}
+System Prompt Context:
+{active_system_prompt}
 
-Assistant replied: {assistant_response[:500]}...
+Conversation:
+User: {user_message}
+Assistant: {assistant_response[:500]}
 
-Generate 3 specific, standalone questions (one per line, no numbering or bullets):"""
-        
-        # Use a fast, efficient model for question generation
-        question_gen_payload = {
+Your Tasks:
+1. First, analyze if the above conversation is contextually related to the System Prompt Context.
+2. If NOT related, respond with: "NOT_RELATED".
+3. If related, generate exactly 3 relevant, standalone, specific questions that expand on the System Prompt topic.
+
+STRICT RULES:
+- Each question must be a complete, standalone question.
+- Do NOT use pronouns (it, that, this, they, etc.).
+- Do NOT start with continuation words (and, but, also, what about, how about, etc.).
+- Be explicit and specific.
+- Output only the 3 questions, each on a new line, with no numbering or extra text.
+"""
+
+        payload = {
             "model": "google/gemini-2.5-flash-lite",
             "messages": [
-                {"role": "system", "content": "You are a helpful assistant that generates standalone, specific questions. Never use pronouns or vague references. Always be explicit and complete. Respond with exactly 3 questions, one per line, without numbering or formatting."},
+                {"role": "system", "content": "You are a precise generator that only outputs topic-relevant standalone questions. If not relevant, return NOT_RELATED."},
                 {"role": "user", "content": prompt}
             ],
-            "max_tokens": 150,
+            "max_tokens": 200,
             "temperature": 0.7
         }
-        
-        # Call OpenRouter to generate questions
+
         url = f"{OPENROUTER_BASE_URL}/chat/completions"
-        resp = httpx_client.post(url, headers=get_openrouter_headers(), json=question_gen_payload, timeout=10.0)
-        
-        if resp.status_code == 200:
-            response_data = resp.json()
-            generated_text = response_data.get('choices', [{}])[0].get('message', {}).get('content', '')
-            
-            # Parse the questions
-            questions = []
-            for line in generated_text.strip().split('\n'):
-                line = line.strip()
-                # Remove numbering, bullets, and formatting
-                line = re.sub(r'^[\d\.\-\*\•]\s*', '', line)
-                if line and len(line) > 10:  # Valid question
-                    # Ensure it ends with a question mark
-                    if not line.endswith('?'):
-                        line += '?'
-                    
-                    # Validate: Check if it's truly standalone (no pronouns at start)
-                    # Convert to lowercase for checking
-                    line_lower = line.lower()
-                    
-                    # Skip questions that start with follow-up indicators
-                    follow_up_starts = ['and ', 'but ', 'also ', 'what about ', 'how about ', 'tell me more']
-                    if any(line_lower.startswith(indicator) for indicator in follow_up_starts):
-                        logger.warning(f"Skipping follow-up style question: {line}")
-                        continue
-                    
-                    # Skip questions with pronouns in first few words (likely context-dependent)
-                    first_words = ' '.join(line_lower.split()[:5])
-                    pronouns = ['it ', 'that ', 'this ', 'them ', 'they ', 'those ', 'these ']
-                    has_pronoun = any(pronoun in first_words for pronoun in pronouns)
-                    if has_pronoun:
-                        logger.warning(f"Skipping question with pronoun: {line}")
-                        continue
-                    
-                    questions.append(line)
-            
-            # Return exactly 3 questions
-            if len(questions) >= 3:
-                return questions[:3]
-            elif len(questions) > 0:
-                # Pad with generic standalone questions if needed
-                while len(questions) < 3:
-                    generic = [
-                        "What are the key concepts to understand about this topic?",
-                        "How can this be applied in practice?",
-                        "What are common misconceptions about this subject?"
-                    ]
-                    for q in generic:
-                        if q not in questions:
-                            questions.append(q)
-                            if len(questions) >= 3:
-                                break
-                return questions[:3]
-        
-        logger.warning(f"Failed to generate related questions: status {resp.status_code}")
+        resp = httpx_client.post(url, headers=get_openrouter_headers(), json=payload, timeout=10.0)
+
+        if resp.status_code != 200:
+            logger.warning(f"LLM request failed: {resp.status_code}")
+            return []
+
+        response_data = resp.json()
+        generated_text = response_data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+
+        # If model says not related — skip generation
+        if "NOT_RELATED" in generated_text.upper():
+            logger.info("Conversation not related to system prompt — skipping question generation.")
+            return []
+
+        # Parse questions
+        questions = []
+        for line in generated_text.split("\n"):
+            q = re.sub(r"^[\d\.\-\*\•]\s*", "", line.strip())
+            if not q or len(q) < 10:
+                continue
+            if not q.endswith("?"):
+                q += "?"
+            questions.append(q)
+
+        # Return up to 3
+        return questions[:3] if questions else []
+
     except Exception as e:
         logger.error(f"Error generating related questions: {e}")
-    
-    # Fallback generic standalone questions (no pronouns or follow-up words)
-    return [
-        "What are the main benefits of this approach?",
-        "How does this concept work in real-world applications?",
-        "What are some common challenges related to this topic?"
-    ]
+        return []
+
 
 
 @api_llm_routes.route("/v1/chat/create", methods=["POST"])
@@ -1931,7 +1902,8 @@ def create_chat_completion():
             assistant_content = cached_response.get('choices', [{}])[0].get('message', {}).get('content', '')
             related_questions = generate_related_questions(
                 user_message=last_user_content,
-                assistant_response=assistant_content
+                assistant_response=assistant_content,
+                active_system_prompt = active_system_prompt
             )
             # Add related questions to response
             cached_response['related_questions'] = related_questions
@@ -2082,7 +2054,8 @@ def create_chat_completion():
                 try:
                     related_questions = generate_related_questions(
                         user_message=last_user_content,
-                        assistant_response=combined_content
+                        assistant_response=combined_content,
+                        active_system_prompt = active_system_prompt
                     )
                     combined_response['related_questions'] = related_questions
                     logger.info(f"Added {len(related_questions)} related questions to streaming response")
@@ -2211,7 +2184,8 @@ def create_chat_completion():
                 assistant_content = response_data.get('choices', [{}])[0].get('message', {}).get('content', '')
                 related_questions = generate_related_questions(
                     user_message=last_user_content,
-                    assistant_response=assistant_content
+                    assistant_response=assistant_content,
+                    active_system_prompt = active_system_prompt
                 )
                 # Add related questions to response
                 response_data['related_questions'] = related_questions

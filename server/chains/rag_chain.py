@@ -166,7 +166,7 @@ class ConversationalRAGPipeline:
         self,
         rag_service,
         workspace_id: str,
-        model: str = "gpt-4o",
+        model: str = "google/gemini-2.5-flash-lite",
         temperature: float = 0.7,
         top_k: int = 5,
         threshold: float = 0.5,
@@ -198,7 +198,7 @@ class ConversationalRAGPipeline:
         
         logger.info(f"🚀 Initializing ConversationalRAGPipeline")
         logger.info(f"   Workspace: {workspace_id}")
-        logger.info(f"   Model: {model}")
+        logger.info(f"   Model: google/gemini-2.5-flash-lite")
         logger.info(f"   RAG top_k: {top_k}, threshold: {threshold}")
         logger.info(f"   Memory: {memory_k} turns")
         logger.info(f"   Prompt enhancement: {use_prompt_enhancement}")
@@ -210,7 +210,7 @@ class ConversationalRAGPipeline:
         
         # Configure for OpenRouter
         self.llm = ChatOpenAI(
-            model=model,
+            model="google/gemini-2.5-flash-lite",
             temperature=temperature,
             openai_api_key=api_key,
             openai_api_base="https://openrouter.ai/api/v1",
