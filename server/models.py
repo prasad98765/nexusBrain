@@ -215,6 +215,7 @@ class ScriptSettings(db.Model):
     theme_settings = db.Column(db.JSON, nullable=False)
     quick_buttons = db.Column(db.JSON, nullable=True)  # Store quick action buttons
     model_config = db.Column(db.JSON, nullable=True)  # Store model configuration settings
+    flow_data = db.Column(db.JSON, nullable=True)  # Store flow builder data
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

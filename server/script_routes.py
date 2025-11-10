@@ -137,3 +137,89 @@ def save_script_settings(workspace_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+@script_bp.route('/script/<workspace_id>/flow', methods=['GET'])
+def get_flow_data(workspace_id):
+    """Get flow builder data for a workspace"""
+    try:
+        # Check if workspace exists
+        workspace = Workspace.query.filter_by(id=workspace_id).first()
+        if not workspace:
+            return jsonify({'error': 'Workspace not found'}), 404
+        
+        # Get script settings
+        settings = ScriptSettings.query.filter_by(workspace_id=workspace_id).first()
+        
+        if not settings or not settings.flow_data:
+            return jsonify({
+                'workspace_id': workspace_id,
+                'flow': None
+            })
+        
+        return jsonify({
+            'workspace_id': settings.workspace_id,
+            'flow': settings.flow_data
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@script_bp.route('/script/<workspace_id>/flow', methods=['POST'])
+@require_auth
+def save_flow_data(workspace_id):
+    """Save or update flow builder data for a workspace"""
+    try:
+        # Verify user has access to this workspace
+        user_workspace_id = request.user.get('workspace_id')
+        if user_workspace_id != workspace_id:
+            return jsonify({'error': 'Unauthorized access to workspace'}), 403
+        
+        data = request.get_json()
+        flow_data = data.get('flow')
+        
+        if not flow_data:
+            return jsonify({'error': 'flow data is required'}), 400
+        
+        # Check if workspace exists
+        workspace = Workspace.query.filter_by(id=workspace_id).first()
+        if not workspace:
+            return jsonify({'error': 'Workspace not found'}), 404
+        
+        # Check if settings already exist
+        settings = ScriptSettings.query.filter_by(workspace_id=workspace_id).first()
+        
+        if settings:
+            # Update existing settings
+            settings.flow_data = flow_data
+            settings.updated_at = datetime.utcnow()
+        else:
+            # Create new settings with minimal theme (flow only)
+            default_theme = {
+                'primary_color': '#6366f1',
+                'secondary_color': '#8b5cf6',
+                'background_color': '#ffffff',
+                'font_style': 'Inter',
+                'button_style': 'rounded',
+                'logo_url': '',
+                'ai_search_engine_name': 'AI Search Engine',
+                'theme_preset': 'light',
+                'welcome_message': 'Hello! How can I help you today?'
+            }
+            settings = ScriptSettings(
+                workspace_id=workspace_id,
+                theme_settings=default_theme,
+                flow_data=flow_data
+            )
+            db.session.add(settings)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Flow saved successfully',
+            'workspace_id': settings.workspace_id,
+            'flow': settings.flow_data
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500

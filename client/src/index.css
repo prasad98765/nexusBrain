@@ -153,3 +153,19 @@ body {
 .animate-pulse-slow {
   animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* React Flow custom node overrides - prevent default styles */
+.react-flow__node-input,
+.react-flow__node-message,
+.react-flow__node-ai {
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  width: auto !important;
+  border-radius: 0 !important;
+}
+
+/* Hide React Flow attribution */
+.react-flow__attribution {
+  display: none !important;
+}

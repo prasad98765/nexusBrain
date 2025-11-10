@@ -20,10 +20,11 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Copy, Check, Code, Palette, Sparkles, Upload, Loader2, Zap, Plus, Trash2, GripVertical, Edit2, Smile, X, ExternalLink, Settings2, ChevronsUpDown, AlertCircle } from 'lucide-react';
+import { Copy, Check, Code, Palette, Sparkles, Upload, Loader2, Zap, Plus, Trash2, GripVertical, Edit2, Smile, X, ExternalLink, Settings2, ChevronsUpDown, AlertCircle, Workflow } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
 import { cn } from '@/lib/utils';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
+import RefactoredFlowBuilder from '@/components/flow/RefactoredFlowBuilder';
 
 interface ModelConfig {
   model: string;
@@ -90,6 +91,9 @@ export default function ScriptsPage() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [uploadingButtonImage, setUploadingButtonImage] = useState(false);
   const buttonImageInputRef = useRef<HTMLInputElement>(null);
+
+  // Flow Builder State
+  const [isFlowFullScreen, setIsFlowFullScreen] = useState(false);
 
   // Quick Start Questions State
   const [newQuickStartQuestion, setNewQuickStartQuestion] = useState('');
@@ -573,7 +577,7 @@ export default function ScriptsPage() {
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="flex items-center justify-between mb-6">
-              <TabsList className="grid max-w-3xl grid-cols-4 bg-slate-800">
+              <TabsList className="grid max-w-4xl grid-cols-5 bg-slate-800">
                 <TabsTrigger value="theme" className="data-[state=active]:bg-indigo-600">
                   <Palette className="w-4 h-4 mr-2" />
                   Customized Theme
@@ -585,6 +589,10 @@ export default function ScriptsPage() {
                 <TabsTrigger value="model-config" className="data-[state=active]:bg-indigo-600">
                   <Settings2 className="w-4 h-4 mr-2" />
                   Model Config
+                </TabsTrigger>
+                <TabsTrigger value="flow" className="data-[state=active]:bg-indigo-600">
+                  <Workflow className="w-4 h-4 mr-2" />
+                  Flow
                 </TabsTrigger>
                 <TabsTrigger value="script" className="data-[state=active]:bg-indigo-600">
                   <Code className="w-4 h-4 mr-2" />
@@ -966,59 +974,47 @@ export default function ScriptsPage() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="button-label" className="text-slate-200">Button Label *</Label>
-                        <Input
-                          id="button-label"
-                          type="text"
-                          value={newButtonLabel}
-                          onChange={(e) => setNewButtonLabel(e.target.value)}
-                          className="bg-slate-700 border-slate-600 text-slate-100"
-                          placeholder="e.g., T-shirt Product"
-                          maxLength={30}
-                        />
-                        <p className="text-xs text-slate-500">Text shown on the button</p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="button-emoji" className="text-slate-200">Emoji (Optional)</Label>
                         <div className="flex gap-2">
                           <Input
-                            id="button-emoji"
+                            id="button-label"
                             type="text"
-                            value={newButtonEmoji}
-                            onChange={(e) => setNewButtonEmoji(e.target.value)}
+                            value={newButtonLabel}
+                            onChange={(e) => setNewButtonLabel(e.target.value)}
                             className="flex-1 bg-slate-700 border-slate-600 text-slate-100"
-                            placeholder="Select or type emoji"
-                            maxLength={2}
+                            placeholder="e.g., 🎨 T-shirt Product"
+                            maxLength={30}
                           />
                           <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
                             <PopoverTrigger asChild>
                               <Button
                                 variant="outline"
-                                className="border-slate-600 hover:bg-slate-700"
+                                className="border-slate-600 hover:bg-slate-700 flex-shrink-0"
                               >
                                 <Smile className="w-4 h-4" />
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0 border-slate-600" align="end">
                               <EmojiPicker
-                                onEmojiClick={handleEmojiSelect}
+                                onEmojiClick={(emojiData: EmojiClickData) => {
+                                  setNewButtonLabel(newButtonLabel + emojiData.emoji);
+                                  setEmojiPickerOpen(false);
+                                }}
                                 width={350}
                                 height={400}
                               />
                             </PopoverContent>
                           </Popover>
                         </div>
-                        <p className="text-xs text-slate-500">Click the smile icon to pick or type emoji directly</p>
+                        <p className="text-xs text-slate-500">Text shown on the button (click emoji icon to insert)</p>
                       </div>
-                    </div>
 
-                    {/* Button Image Upload */}
-                    <div className="space-y-2">
-                      <Label htmlFor="button-image" className="text-slate-200">Button Icon/Image (Optional)</Label>
-                      <div className="space-y-3">
+                      {/* Button Image Upload */}
+                      <div className="space-y-2">
+                        <Label htmlFor="button-image" className="text-slate-200">Button Icon/Image (Optional)</Label>
+                        <div className="space-y-3">
                         {/* Image Preview */}
                         {newButtonImage && (
                           <div className="relative inline-block">
@@ -1112,6 +1108,7 @@ export default function ScriptsPage() {
                         maxLength={500}
                       />
                       <p className="text-xs text-slate-500">Text that will be sent when the button is clicked</p>
+                    </div>
                     </div>
 
                     <Button
@@ -1355,6 +1352,24 @@ export default function ScriptsPage() {
                       Model configuration applies to all conversations in the embedded chat interface.
                     </p>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="flow" className="space-y-6 mt-6">
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-slate-100">Visual Flow Builder</CardTitle>
+                  <CardDescription className="text-slate-400">
+                    Design chat flows and bot workflows visually using drag-and-drop nodes
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <RefactoredFlowBuilder
+                    workspaceId={workspaceId}
+                    isFullScreen={isFlowFullScreen}
+                    onToggleFullScreen={() => setIsFlowFullScreen(!isFlowFullScreen)}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
