@@ -16,6 +16,7 @@ from .models import db, ApiToken, ApiUsageLog, Workspace, SystemPrompt
 from .rag_service import rag_service
 from sentence_transformers import SentenceTransformer
 from .langchain_memory_service import get_langchain_memory_service
+from .chains.rag_chain import ConversationalRAGPipeline, build_prompt_query
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -196,6 +197,9 @@ except Exception as e:
 
 # Global httpx client for connection pooling
 httpx_client = httpx.Client(timeout=30.0, limits=httpx.Limits(max_keepalive_connections=20, max_connections=100))
+
+# In-memory storage for conversational RAG pipelines (session-based)
+active_rag_pipelines = {}
 
 # Profile patterns for intent detection
 profile_patterns = {
@@ -831,6 +835,186 @@ def forward_to_openrouter_stream(endpoint: str, payload: dict):
             "X-Accel-Buffering": "no"
         }
     )
+
+def augment_with_conversational_rag(
+    messages,
+    workspace_id,
+    session_id=None,
+    use_rag=False,
+    top_k=5,
+    threshold=0.5,
+    model="gpt-4o",
+    temperature=0.7
+):
+    """
+    Augment messages with conversational RAG using LangChain pipeline.
+    Uses ConversationalRetrievalChain with memory and prompt-style query enhancement.
+    
+    Args:
+        messages: List of message objects for chat
+        workspace_id: Workspace ID for filtering documents
+        session_id: Optional session ID for conversation continuity
+        use_rag: Whether to use RAG
+        top_k: Number of contexts to retrieve
+        threshold: Similarity threshold
+        model: LLM model to use
+        temperature: LLM temperature
+    
+    Returns: (augmented_messages, rag_contexts_used, original_messages, rag_answer)
+    """
+    if not use_rag or not messages:
+        return messages, [], messages, None
+    
+    try:
+        # Extract last user message
+        last_user_message = ""
+        for msg in reversed(messages):
+            if msg.get('role') == 'user':
+                last_user_message = msg.get('content', '')
+                break
+        
+        if not last_user_message:
+            logger.warning("No user message found for conversational RAG")
+            return messages, [], messages, None
+        
+        # Generate session key for pipeline storage
+        if not session_id:
+            # Use hash of first message for session identification
+            first_content = messages[0].get('content', '')[:100] if messages else ''
+            session_id = hashlib.md5(first_content.encode()).hexdigest()[:16]
+        
+        pipeline_key = f"{workspace_id}_{session_id}"
+        
+        # Get or create conversational RAG pipeline
+        if pipeline_key not in active_rag_pipelines:
+            logger.info(f"Creating new conversational RAG pipeline for session: {session_id}")
+            
+            try:
+                pipeline = ConversationalRAGPipeline(
+                    rag_service=rag_service,
+                    workspace_id=str(workspace_id),
+                    model=model,
+                    temperature=temperature,
+                    top_k=top_k,
+                    threshold=threshold,
+                    memory_k=3,  # Keep last 3 conversation turns
+                    use_prompt_enhancement=True
+                )
+                active_rag_pipelines[pipeline_key] = pipeline
+                
+            except Exception as e:
+                logger.error(f"Failed to create conversational RAG pipeline: {e}")
+                # Fallback to regular RAG
+                aug_msgs, rag_ctx, orig_msgs = augment_with_rag_context(
+                    messages=messages,
+                    workspace_id=workspace_id,
+                    use_rag=use_rag,
+                    top_k=top_k,
+                    threshold=threshold,
+                    mode="system"
+                )
+                return aug_msgs, rag_ctx, orig_msgs, None  # Return 4 values
+        
+        pipeline = active_rag_pipelines[pipeline_key]
+        
+        # Extract conversation history (all messages except last user message)
+        conversation_history = []
+        for i, msg in enumerate(messages[:-1]):
+            if msg.get('role') == 'user':
+                # Find corresponding assistant message
+                if i + 1 < len(messages) and messages[i + 1].get('role') == 'assistant':
+                    conversation_history.append(
+                        (msg.get('content', ''), messages[i + 1].get('content', ''))
+                    )
+        
+        # Build prompt-enhanced query using conversation context
+        enhanced_query = build_prompt_query(last_user_message, conversation_history)
+        
+        logger.info(f"Conversational RAG - Enhanced query built with {len(conversation_history)} turns")
+        logger.debug(f"Enhanced query (first 200 chars): {enhanced_query[:200]}...")
+        
+        # Get RAG response with metadata
+        rag_response = pipeline.ask(last_user_message, return_metadata=True)
+        
+        if not rag_response or 'source_documents' not in rag_response:
+            logger.warning("No RAG response or source documents found")
+            return messages, [], messages, None
+        
+        source_docs = rag_response.get('source_documents', [])
+        rag_answer = rag_response.get('answer', '')
+        
+        if not source_docs:
+            logger.info("No relevant documents found for conversational RAG")
+            return messages, [], messages, rag_answer
+        
+        # Build context text from source documents
+        context_text = "Context from your documents:\n\n"
+        rag_contexts = []
+        
+        for idx, doc in enumerate(source_docs, 1):
+            filename = doc.get('filename', 'unknown')
+            similarity = doc.get('similarity', 0.0)
+            text = doc.get('text', '')
+            chunk_index = doc.get('chunk_index', 0)
+            
+            context_text += f"[Source {idx}: {filename}]\n{text}\n\n"
+            
+            # Store in rag_contexts format
+            rag_contexts.append({
+                'filename': filename,
+                'text': text,
+                'similarity': similarity,
+                'chunk_index': chunk_index
+            })
+        
+        logger.info(f"Conversational RAG retrieved {len(source_docs)} documents")
+        for idx, ctx in enumerate(rag_contexts, 1):
+            logger.info(f"  Doc {idx}: {ctx['filename']} (similarity: {ctx['similarity']:.4f})")
+        
+        # Store original messages
+        original_messages = messages.copy()
+        
+        # Create augmented messages with RAG context as system message
+        augmented_messages = messages.copy()
+        
+        system_message = {
+            "role": "system",
+            "content": context_text
+        }
+        
+        # Check if there's already a system message
+        has_system = any(msg.get('role') == 'system' for msg in augmented_messages)
+        
+        if has_system:
+            # Prepend to existing system message
+            for msg in augmented_messages:
+                if msg.get('role') == 'system':
+                    msg['content'] = context_text + "\n\n" + msg['content']
+                    break
+        else:
+            # Add new system message at the beginning
+            augmented_messages.insert(0, system_message)
+        
+        logger.info(f"✅ Conversational RAG augmentation complete - {len(rag_contexts)} contexts, answer generated")
+        
+        return augmented_messages, rag_contexts, original_messages, rag_answer
+        
+    except Exception as e:
+        logger.error(f"Error in conversational RAG: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        
+        # Fallback to regular RAG
+        aug_msgs, rag_ctx, orig_msgs = augment_with_rag_context(
+            messages=messages,
+            workspace_id=workspace_id,
+            use_rag=use_rag,
+            top_k=top_k,
+            threshold=threshold,
+            mode="system"
+        )
+        return aug_msgs, rag_ctx, orig_msgs, None  # Return 4 values
+
 
 def augment_with_rag_context(messages, workspace_id, use_rag=False, top_k=5, threshold=0.5, mode="system"):
     """
@@ -1782,13 +1966,21 @@ def create_chat_completion():
             # Get the current messages (which may already have system prompt added)
             current_messages = payload["messages"]
             
-            augmented_messages, rag_contexts, original_messages = augment_with_rag_context(
+            # Use conversational RAG with LangChain pipeline
+            # This maintains conversation context and uses prompt-style query enhancement
+            session_id = data.get("session_id")  # Optional session ID from client
+            
+            logger.info(f"🚀 Using conversational RAG pipeline for workspace {workspace_id}")
+            
+            augmented_messages, rag_contexts, original_messages, rag_answer = augment_with_conversational_rag(
                 messages=current_messages,
                 workspace_id=workspace_id,
+                session_id=session_id,
                 use_rag=True,
                 top_k=rag_top_k,
                 threshold=rag_threshold,
-                mode="system"  # Use system prompt for chat completions
+                model=resolved_model,
+                temperature=payload.get("temperature", 0.7)
             )
             
             if rag_contexts:
@@ -1797,7 +1989,11 @@ def create_chat_completion():
                 # Keep original messages for caching (without RAG context but with system prompt)
                 # Note: original_payload already has the system prompt if it was added
                 document_contexts = True
-                logger.info(f"Augmented chat with {len(rag_contexts)} RAG contexts as system prompt")
+                logger.info(f"✅ Conversational RAG: Augmented chat with {len(rag_contexts)} contexts")
+                
+                # Log RAG answer if available (for debugging/monitoring)
+                if rag_answer:
+                    logger.info(f"📝 RAG generated answer (first 100 chars): {rag_answer[:100]}...")
 
     # Check workspace balance before processing (skip for cached responses)
     has_balance, current_balance, balance_error = check_workspace_balance(api_token.workspace_id, 0.0001)
