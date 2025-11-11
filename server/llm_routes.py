@@ -1598,13 +1598,20 @@ def is_follow_up_question(current_question: str, conversation_history: list) -> 
     return False
 
 
-def generate_related_questions(user_message: str, assistant_response: str, conversation_context: str = "", active_system_prompt: str = "") -> list:
+def generate_related_questions(
+    user_message: str, 
+    assistant_response: str, 
+    workspace_id: str,
+    conversation_context: str = "", 
+    active_system_prompt: str = ""
+) -> list:
     """
-    Generate 3 related follow-up questions ONLY if the user message and assistant response 
-    are contextually aligned with the active system prompt.
+    Generate 3 related follow-up questions ONLY if:
+    1. Related content is found in the vector database (Qdrant RAG)
+    2. The conversation is contextually aligned with the active system prompt
 
+    Returns empty array if no related content found.
     Ensures questions are standalone, explicit, and not pronoun-based.
-    Uses a single LLM call.
     """
 
     try:
@@ -1612,24 +1619,51 @@ def generate_related_questions(user_message: str, assistant_response: str, conve
             logger.warning("No active system prompt provided — skipping question generation.")
             return []
 
-        # Build a unified LLM prompt that handles relevance + generation
+        # Step 1: Search vector database for related content
+        try:
+            # Use rag_service to retrieve context from Qdrant
+            rag_contexts = rag_service.retrieve_context(
+                query=user_message,
+                workspace_id=workspace_id,
+                top_k=3,
+                similarity_threshold=0.5
+            )
+            
+            # If no related content found in vector DB, return empty array
+            if not rag_contexts or len(rag_contexts) == 0:
+                logger.info("No related content found in vector database — skipping question generation.")
+                return []
+            
+            # Build RAG context from retrieved documents
+            rag_context = "\n".join([ctx.get('text', '')[:500] for ctx in rag_contexts[:3]])
+            logger.info(f"Found {len(rag_contexts)} related documents in vector DB")
+            
+        except Exception as rag_error:
+            logger.warning(f"RAG search failed: {rag_error} — skipping question generation.")
+            return []
+
+        # Step 2: Build a unified LLM prompt with RAG context
         prompt = f"""
-You are an intelligent assistant specialized in generating topic-specific follow-up questions.
+You are an intelligent assistant specialized in generating topic-specific follow-up questions based on retrieved documentation.
 
 System Prompt Context:
 {active_system_prompt}
 
-Conversation:
+Retrieved Documentation Context:
+{rag_context}
+
+Current Conversation:
 User: {user_message}
 Assistant: {assistant_response[:500]}
 
 Your Tasks:
-1. First, analyze if the above conversation is contextually related to the System Prompt Context.
+1. First, analyze if the conversation is contextually related to the System Prompt Context and Retrieved Documentation.
 2. If NOT related, respond with: "NOT_RELATED".
-3. If related, generate exactly 3 relevant, standalone, specific questions that expand on the System Prompt topic.
+3. If related, generate exactly 3 relevant, standalone, specific questions that expand on the topics found in the documentation.
 
 STRICT RULES:
 - Each question must be a complete, standalone question.
+- Questions should be based on the Retrieved Documentation Context.
 - Do NOT use pronouns (it, that, this, they, etc.).
 - Do NOT start with continuation words (and, but, also, what about, how about, etc.).
 - Be explicit and specific.
@@ -1639,7 +1673,7 @@ STRICT RULES:
         payload = {
             "model": "google/gemini-2.5-flash-lite",
             "messages": [
-                {"role": "system", "content": "You are a precise generator that only outputs topic-relevant standalone questions. If not relevant, return NOT_RELATED."},
+                {"role": "system", "content": "You are a precise generator that only outputs topic-relevant standalone questions based on documentation. If not relevant, return NOT_RELATED."},
                 {"role": "user", "content": prompt}
             ],
             "max_tokens": 200,
@@ -1658,7 +1692,7 @@ STRICT RULES:
 
         # If model says not related — skip generation
         if "NOT_RELATED" in generated_text.upper():
-            logger.info("Conversation not related to system prompt — skipping question generation.")
+            logger.info("Conversation not related to documentation context — skipping question generation.")
             return []
 
         # Parse questions
@@ -1944,6 +1978,7 @@ def create_chat_completion():
             related_questions = generate_related_questions(
                 user_message=last_user_content,
                 assistant_response=assistant_content,
+                workspace_id=str(api_token.workspace_id),
                 active_system_prompt = active_system_prompt
             )
             # Add related questions to response
@@ -2096,6 +2131,7 @@ def create_chat_completion():
                     related_questions = generate_related_questions(
                         user_message=last_user_content,
                         assistant_response=combined_content,
+                        workspace_id=str(api_token.workspace_id),
                         active_system_prompt = active_system_prompt
                     )
                     combined_response['related_questions'] = related_questions
@@ -2226,6 +2262,7 @@ def create_chat_completion():
                 related_questions = generate_related_questions(
                     user_message=last_user_content,
                     assistant_response=assistant_content,
+                    workspace_id=str(api_token.workspace_id),
                     active_system_prompt = active_system_prompt
                 )
                 # Add related questions to response
