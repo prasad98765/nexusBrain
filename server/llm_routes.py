@@ -1878,19 +1878,60 @@ def create_chat_completion():
 
     if data.get("is_cached") and not skip_cache and cache_payload:
         cache_service = get_cache_service(data.get("cache_threshold", 0.70))
-        # Pass the semantic cache threshold and workspace_id from the API token
-        # This checks exact match first, then semantic match with workspace isolation
-        cached_response, cache_type = cache_service.get_cached_response(
-            cache_payload, "chat", 
-            workspace_id=str(api_token.workspace_id),
-            threshold=api_token.semantic_cache_threshold,
-            conversation_context=conversation_context
-        )
         
-        if cached_response:
-            logger.info(f"Cache HIT ({cache_type}) for workspace {api_token.workspace_id}, question: '{last_user_content[:50]}...'")
-        else:
-            logger.info(f"Cache MISS for workspace {api_token.workspace_id}, proceeding to LLM call for: '{last_user_content[:50]}...'")  
+        # Use LangChain-powered caching methods (call_llm or ask_followup)
+        try:
+            workspace_id = str(api_token.workspace_id)
+            
+            if is_follow_up:
+                # Follow-up question: use context-aware method
+                logger.info(f"🔄 Follow-up detected - using ask_followup for workspace {workspace_id}")
+                cache_result = cache_service.ask_followup(last_user_content, workspace_id)
+            else:
+                # Standalone question: use call_llm method
+                logger.info(f"📝 Standalone question - using call_llm for workspace {workspace_id}")
+                cache_result = cache_service.call_llm(last_user_content, workspace_id, endpoint_type="chat")
+            
+            # Check if cache hit and answer exists
+            if cache_result.get("cache_hit") and cache_result.get("answer"):
+                cache_type = cache_result["cache_hit"]
+                answer = cache_result["answer"]
+                cached_data = cache_result.get("cached_data", {})
+                
+                # Build response in OpenAI format with preserved metadata from cache
+                cached_response = {
+                    "id": cached_data.get("id") or f"cached_{hashlib.md5(last_user_content.encode()).hexdigest()[:16]}",
+                    "model": cached_data.get("model") or payload.get("model", "cached"),
+                    "provider": cached_data.get("provider", "cached"),
+                    "choices": [{
+                        "message": {
+                            "role": "assistant",
+                            "content": answer
+                        },
+                        "index": 0,
+                        "finish_reason": "stop"
+                    }],
+                    "usage": cached_data.get("usage", {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}),
+                    "cached": True,
+                    "cache_type": cache_type
+                }
+                
+                logger.info(f"✅ Cache HIT ({cache_type}) for workspace {workspace_id}, question: '{last_user_content[:50]}...'")
+            else:
+                # Cache miss - continue to OpenRouter LLM call
+                cached_response = None
+                cache_type = None
+                logger.info(f"❌ Cache MISS for workspace {workspace_id}, proceeding to LLM call")
+                
+        except Exception as e:
+            logger.error(f"❌ Error in LangChain cache service: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            cached_response = None
+            cache_type = None
+    else:
+        cached_response = None
+        cache_type = None
 
     response_time_ms = int((time.time() - start_time) * 1000)
 
