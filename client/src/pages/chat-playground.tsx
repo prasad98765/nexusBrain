@@ -403,13 +403,13 @@ export default function ChatPlayground() {
                     });
 
                     // Show toast if response was cached
-                    if (isCached) {
-                        toast({
-                            title: '⚡ Cached Response',
-                            description: `Response served from cache (${cacheType || 'unknown'} match)`,
-                            duration: 2000
-                        });
-                    }
+                    // if (isCached) {
+                    //     toast({
+                    //         title: '⚡ Cached Response',
+                    //         description: `Response served from cache (${cacheType || 'unknown'} match)`,
+                    //         duration: 2000
+                    //     });
+                    // }
                 }
             } else {
                 // Non-streaming response handling
