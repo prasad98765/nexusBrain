@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 
 interface NodeConfigPanelProps {
     nodeId: string | null;
@@ -111,7 +112,7 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                         {/* Combined Media Content - Unified UI */}
                         <div className="space-y-3">
                             <Label className="text-gray-200">Media Content (Optional)</Label>
-                            
+
                             <Select
                                 value={config.media?.type || 'none'}
                                 onValueChange={(value) => {
@@ -142,11 +143,10 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                             <button
                                                 type="button"
                                                 onClick={() => setMediaUploadType('link')}
-                                                className={`flex-1 px-3 py-2 text-xs rounded border transition-colors ${
-                                                    mediaUploadType === 'link'
+                                                className={`flex-1 px-3 py-2 text-xs rounded border transition-colors ${mediaUploadType === 'link'
                                                         ? 'bg-blue-600 border-blue-500 text-white'
                                                         : 'bg-transparent border-gray-600 text-gray-400 hover:border-gray-500'
-                                                }`}
+                                                    }`}
                                             >
                                                 <LinkIcon className="h-3 w-3 inline mr-1" />
                                                 Link
@@ -154,11 +154,10 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                             <button
                                                 type="button"
                                                 onClick={() => setMediaUploadType('upload')}
-                                                className={`flex-1 px-3 py-2 text-xs rounded border transition-colors ${
-                                                    mediaUploadType === 'upload'
+                                                className={`flex-1 px-3 py-2 text-xs rounded border transition-colors ${mediaUploadType === 'upload'
                                                         ? 'bg-blue-600 border-blue-500 text-white'
                                                         : 'bg-transparent border-gray-600 text-gray-400 hover:border-gray-500'
-                                                }`}
+                                                    }`}
                                             >
                                                 <Upload className="h-3 w-3 inline mr-1" />
                                                 Upload
@@ -213,14 +212,12 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                             )}
                         </div>
 
-                        {/* Combined Message Text Input */}
+                        {/* Bot asks this question with rich text editor */}
                         <div className="space-y-2">
                             <Label htmlFor="message" className="text-gray-200">Bot asks this question</Label>
-                            <Textarea
-                                id="message"
+                            <RichTextEditor
                                 value={config.message || ''}
-                                onChange={(e) => setConfig({ ...config, message: e.target.value })}
-                                className="bg-[#0f1419] border-gray-700 text-gray-200 min-h-[100px] resize-none"
+                                onChange={(value) => setConfig({ ...config, message: value })}
                                 placeholder="What would you like to choose?"
                             />
                             <p className="text-xs text-gray-500">You can reference a variable by typing #</p>
@@ -258,9 +255,8 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                     onDragStart={() => handleDragStart(idx)}
                                     onDragOver={(e) => handleDragOver(e, idx)}
                                     onDragEnd={handleDragEnd}
-                                    className={`p-3 bg-[#0f1419] border border-gray-700 rounded space-y-2 cursor-move transition-all ${
-                                        draggedButton === idx ? 'opacity-50 scale-95' : ''
-                                    }`}
+                                    className={`p-3 bg-[#0f1419] border border-gray-700 rounded space-y-2 cursor-move transition-all ${draggedButton === idx ? 'opacity-50 scale-95' : ''
+                                        }`}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
@@ -358,14 +354,12 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                             </Select>
                         </div>
 
-                        {/* Combined Placeholder Input */}
+                        {/* Bot asks this question with rich text editor */}
                         <div className="space-y-2">
                             <Label htmlFor="placeholder" className="text-gray-200">Bot asks this question</Label>
-                            <Textarea
-                                id="placeholder"
+                            <RichTextEditor
                                 value={config.placeholder || ''}
-                                onChange={(e) => setConfig({ ...config, placeholder: e.target.value })}
-                                className="bg-[#0f1419] border-gray-700 text-gray-200 min-h-[100px] resize-none"
+                                onChange={(value) => setConfig({ ...config, placeholder: value })}
                                 placeholder="Enter your placeholder text..."
                             />
                             <p className="text-xs text-gray-500">You can reference a variable by typing #</p>
