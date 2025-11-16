@@ -79,7 +79,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             if (!selection) return;
 
             const cursorPosition = selection.index;
-            const text = quill.getText(0, cursorPosition);
+            // Remove trailing newline that Quill always adds
+            const text = quill.getText(0, cursorPosition).replace(/\n$/, '');
             const lastHashIndex = text.lastIndexOf('#');
 
             // Debug logging
@@ -88,8 +89,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             console.log('Last # index:', lastHashIndex);
 
             // Check if we're after a '#' character
-            if (lastHashIndex !== -1 && lastHashIndex < cursorPosition) {
-                const textAfterHash = text.substring(lastHashIndex + 1, cursorPosition);
+            if (lastHashIndex !== -1 && lastHashIndex < text.length) {
+                const textAfterHash = text.substring(lastHashIndex + 1);
 
                 console.log('Text after #:', textAfterHash);
 
@@ -100,32 +101,30 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
                     // Get cursor position for menu placement
                     const bounds = quill.getBounds(cursorPosition);
-                    const editorRect = quill.root.getBoundingClientRect();
-
-                    // Calculate position relative to viewport (not affected by parent overflow)
-                    const top = editorRect.top + bounds.bottom + 5;
-                    const left = editorRect.left + bounds.left;
-
-                    // Check if dropdown would go off-screen (dropdown height ~256px)
+                    const wrapperRect = quillRef.current?.getEditor()?.root.parentElement?.getBoundingClientRect();
+                    
+                    // Calculate position relative to editor wrapper (using absolute positioning)
+                    const relativeTop = bounds.bottom + 39;
+                    
+                    // Check if dropdown would go off-screen
                     const dropdownHeight = 256;
-                    const spaceBelow = window.innerHeight - top;
+                    const editorRect = quill.root.getBoundingClientRect();
+                    const spaceBelow = window.innerHeight - (editorRect.top + bounds.bottom);
                     const shouldShowAbove = spaceBelow < dropdownHeight && bounds.top > dropdownHeight;
-
-                    const finalTop = shouldShowAbove
-                        ? editorRect.top + bounds.top - dropdownHeight - 5
-                        : top;
-
+                    
+                    const finalTop = shouldShowAbove 
+                        ? bounds.top - dropdownHeight - 39
+                        : relativeTop;
+                    
                     console.log('Menu positioning:', {
-                        editorRect,
                         bounds,
-                        calculatedTop: top,
-                        calculatedLeft: left,
+                        relativeTop,
                         spaceBelow,
                         shouldShowAbove,
                         finalTop
                     });
-
-                    setMenuPosition({ top: finalTop, left });
+                    
+                    setMenuPosition({ top: finalTop, left: 0 });
                     setShowVariableMenu(true);
                     setSelectedIndex(0);
 
@@ -303,10 +302,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             {/* Variable Autocomplete Menu */}
             {showVariableMenu && (
                 <div
-                    className="fixed bg-[#0f1419] border border-gray-700/50 rounded-lg shadow-2xl w-80 max-h-64 overflow-y-auto z-[9999]"
+                    className="absolute bg-[#0f1419] border border-gray-700/50 rounded-lg shadow-2xl w-80 max-h-64 overflow-y-auto z-[9999] left-0 right-0 mx-auto"
                     style={{
                         top: `${menuPosition.top}px`,
-                        // left: `${menuPosition.left}px`
                     }}
                     onMouseDown={(e) => {
                         // Prevent losing focus from editor
