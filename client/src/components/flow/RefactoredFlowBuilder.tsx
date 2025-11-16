@@ -156,6 +156,11 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
             
             // Always open/switch to the node's configuration panel
             setEditingNode({ id: nodeId, type });
+            
+            // Auto-switch to full-screen mode if not already in full-screen
+            if (!isFullScreen) {
+                onToggleFullScreen();
+            }
         };
 
         const handleUpdateNodeLabel = (e: Event) => {
@@ -181,7 +186,7 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
             window.removeEventListener('editNode', handleEditNode);
             window.removeEventListener('updateNodeLabel', handleUpdateNodeLabel);
         };
-    }, [nodes, setNodes, setEdges, toast]);
+    }, [nodes, setNodes, setEdges, toast, isFullScreen, onToggleFullScreen]);
 
     // Load existing flow
     useEffect(() => {

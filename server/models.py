@@ -221,3 +221,24 @@ class ScriptSettings(db.Model):
     
     # Relationships
     workspace = db.relationship('Workspace', backref='script_settings', lazy=True)
+
+class VariableMapping(db.Model):
+    __tablename__ = 'variable_mapping'
+    
+    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid4()))
+    workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    format = db.Column(db.String(50), nullable=False)  # text, number, date, name, email, phone, regex
+    error_message = db.Column(db.Text, nullable=True)
+    regex_pattern = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    workspace = db.relationship('Workspace', backref='variables', lazy=True)
+    
+    # Unique constraint for variable name per workspace
+    __table_args__ = (
+        db.UniqueConstraint('workspace_id', 'name', name='uq_workspace_variable_name'),
+    )

@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, MessageSquare } from 'lucide-react';
+import { FileText, MessageSquare, Variable } from 'lucide-react';
 import { useAuth } from "../hooks/useAuth";
 import KnowledgeBasePage from './knowledge-base';
 import SystemPromptsPage from './system-prompts';
 import ModelSelectionPage from './model-configuration';
+import VariablesPage from './variables-page';
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('knowledge-base');
   const { user } = useAuth();
@@ -21,7 +22,7 @@ export default function SettingsPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+        <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
           <TabsTrigger value="knowledge-base" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
             Knowledge Base
@@ -34,6 +35,10 @@ export default function SettingsPage() {
             <MessageSquare className="w-4 h-4" />
             Model Selection
           </TabsTrigger>
+          <TabsTrigger value="variables" className="flex items-center gap-2">
+            <Variable className="w-4 h-4" />
+            Variables
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="knowledge-base" className="space-y-4">
@@ -45,6 +50,9 @@ export default function SettingsPage() {
         </TabsContent>
         <TabsContent value="model-selection" className="space-y-4">
           <ModelSelectionPage workspaceId={user?.workspaceId} />
+        </TabsContent>
+        <TabsContent value="variables" className="space-y-4">
+          <VariablesPage />
         </TabsContent>
       </Tabs>
     </div>

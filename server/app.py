@@ -66,6 +66,7 @@ def create_app():
         model_config_bp, analytics_routes
     )
     from server.script_routes import script_bp
+    from server.variable_routes import variable_bp
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(workspace_bp, url_prefix='/api')
     app.register_blueprint(conversation_bp, url_prefix='/api')
@@ -82,6 +83,7 @@ def create_app():
     app.register_blueprint(model_config_bp, url_prefix='/api')
     app.register_blueprint(analytics_routes, url_prefix='/api')
     app.register_blueprint(script_bp, url_prefix='/api')
+    app.register_blueprint(variable_bp, url_prefix='/api')
     app.register_blueprint(static_bp)
     
     # Import send_file

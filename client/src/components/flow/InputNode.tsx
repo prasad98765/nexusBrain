@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Type, Trash2, Copy, Minimize2, Maximize2, Edit2 } from 'lucide-react';
+import { Type, Trash2, Copy, Minimize2, Maximize2, Edit2, Info, CheckCircle2 } from 'lucide-react';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface InputNodeData {
     label: string;
@@ -73,137 +79,222 @@ export default function InputNode({ id, data, selected }: NodeProps<InputNodeDat
     };
 
     return (
-        <div
-            className={`bg-[#1a1f2e] rounded-lg border transition-all shadow-xl min-w-[280px] !p-0 !w-auto ${
-                selected ? 'border-green-500 ring-2 ring-green-500/50' : 'border-gray-700'
-            }`}
-            onClick={handleNodeClick}
-            style={{ background: '#1a1f2e' }}
-        >
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-700 bg-green-900/20">
-                <div className="flex items-center gap-2 flex-1">
-                    <Type className="h-4 w-4 text-green-400" />
-                    {isEditingLabel ? (
-                        <input
-                            type="text"
-                            value={labelValue}
-                            onChange={(e) => setLabelValue(e.target.value)}
-                            onBlur={handleLabelSave}
-                            onKeyDown={handleLabelKeyDown}
-                            className="text-sm font-medium text-gray-200 bg-transparent border-b border-green-500 outline-none px-1"
-                            autoFocus
-                            onClick={(e) => e.stopPropagation()}
-                        />
-                    ) : (
-                        <span className="text-sm font-medium text-gray-200">
-                            {data.label || 'User Input'}
-                        </span>
-                    )}
-                </div>
-                <div className="flex items-center gap-1">
-                    {!isEditingLabel && (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleLabelEdit();
-                            }}
-                            className="p-1 hover:bg-gray-700 rounded transition-colors"
-                            title="Rename"
-                        >
-                            <Edit2 className="h-3.5 w-3.5 text-gray-400" />
-                        </button>
-                    )}
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleMinimize();
-                        }}
-                        className="p-1 hover:bg-gray-700 rounded transition-colors"
-                        title={isMinimized ? 'Expand' : 'Minimize'}
-                    >
-                        {isMinimized ? (
-                            <Maximize2 className="h-3.5 w-3.5 text-gray-400" />
-                        ) : (
-                            <Minimize2 className="h-3.5 w-3.5 text-gray-400" />
-                        )}
-                    </button>
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleDuplicate();
-                        }}
-                        className="p-1 hover:bg-gray-700 rounded transition-colors"
-                        title="Duplicate"
-                    >
-                        <Copy className="h-3.5 w-3.5 text-gray-400" />
-                    </button>
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete();
-                        }}
-                        className="p-1 hover:bg-red-900/50 rounded transition-colors"
-                        title="Delete"
-                    >
-                        <Trash2 className="h-3.5 w-3.5 text-red-400" />
-                    </button>
-                </div>
-            </div>
-
-            {/* Body */}
-            {!isMinimized && (
-                <div className="p-4 space-y-3">
-                    {/* Input Type */}
-                    <div>
-                        <label className="text-xs text-gray-400 mb-1 block">Input Type</label>
-                        <div className="bg-[#0f1419] border border-gray-700 rounded px-3 py-2 text-sm text-green-400 font-medium">
-                            {getInputTypeLabel(data.inputType)}
-                            {data.required && <span className="text-red-400 ml-1">*</span>}
+        <TooltipProvider>
+            <div
+                className={`bg-gradient-to-br from-[#1a1f2e] to-[#151922] rounded-lg border transition-all shadow-xl min-w-[280px] !p-0 !w-auto hover:shadow-2xl hover:shadow-green-500/10 ${selected ? 'border-green-500 ring-2 ring-green-500/50 shadow-green-500/20' : 'border-gray-700 hover:border-gray-600'
+                    }`}
+                onClick={handleNodeClick}
+            >
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 bg-gradient-to-r from-green-900/30 to-green-800/20">
+                    <div className="flex items-center gap-2.5 flex-1">
+                        <div className="p-1.5 bg-green-500/20 rounded-md ring-1 ring-green-500/30">
+                            <Type className="h-4 w-4 text-green-400" />
                         </div>
+                        {isEditingLabel ? (
+                            <input
+                                type="text"
+                                value={labelValue}
+                                onChange={(e) => setLabelValue(e.target.value)}
+                                onBlur={handleLabelSave}
+                                onKeyDown={handleLabelKeyDown}
+                                className="text-sm font-semibold text-gray-100 bg-transparent border-b border-green-400 outline-none px-1 focus:border-green-300"
+                                autoFocus
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        ) : (
+                            <span className="text-sm font-semibold text-gray-100">
+                                {data.label || 'User Input'}
+                            </span>
+                        )}
                     </div>
+                    <div className="flex items-center gap-1">
+                        {!isEditingLabel && (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleLabelEdit();
+                                        }}
+                                        className="p-1.5 hover:bg-gray-700/70 rounded transition-all hover:scale-105"
+                                    >
+                                        <Edit2 className="h-3.5 w-3.5 text-gray-400 hover:text-gray-200" />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="bg-gray-900 border-gray-700 text-xs">
+                                    <p>Rename node</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleMinimize();
+                                    }}
+                                    className="p-1.5 hover:bg-gray-700/70 rounded transition-all hover:scale-105"
+                                >
+                                    {isMinimized ? (
+                                        <Maximize2 className="h-3.5 w-3.5 text-gray-400 hover:text-gray-200" />
+                                    ) : (
+                                        <Minimize2 className="h-3.5 w-3.5 text-gray-400 hover:text-gray-200" />
+                                    )}
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="bg-gray-900 border-gray-700 text-xs">
+                                <p>{isMinimized ? 'Expand node' : 'Minimize node'}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDuplicate();
+                                    }}
+                                    className="p-1.5 hover:bg-gray-700/70 rounded transition-all hover:scale-105"
+                                >
+                                    <Copy className="h-3.5 w-3.5 text-gray-400 hover:text-gray-200" />
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="bg-gray-900 border-gray-700 text-xs">
+                                <p>Duplicate node</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDelete();
+                                    }}
+                                    className="p-1.5 hover:bg-red-900/60 rounded transition-all hover:scale-105"
+                                >
+                                    <Trash2 className="h-3.5 w-3.5 text-red-400 hover:text-red-300" />
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="bg-gray-900 border-gray-700 text-xs">
+                                <p>Delete node</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
+                </div>
 
-                    {/* Placeholder Preview */}
-                    {data.placeholder && (
-                        <div>
-                            <label className="text-xs text-gray-400 mb-1 block">Placeholder</label>
-                            <div className="bg-[#0f1419] border border-gray-700 rounded px-3 py-2 text-sm text-gray-500 italic">
-                                {data.placeholder}
+                {/* Body */}
+                {!isMinimized && (
+                    <div className="p-4 space-y-3.5">
+                        {/* Input Type */}
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Input Type</label>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Info className="h-3.5 w-3.5 text-gray-500 cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent side="left" className="bg-gray-900 border-gray-700 text-xs max-w-[200px]">
+                                        <p>The type of data this input will collect from users</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
+                            <div className="bg-gradient-to-br from-[#0f1419] to-[#0a0e14] border border-gray-600/50 rounded-lg px-3.5 py-2.5 text-sm text-green-400 font-semibold shadow-inner flex items-center justify-between">
+                                <span>{getInputTypeLabel(data.inputType)}</span>
+                                {data.required && (
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <span className="text-red-400 text-base cursor-help">*</span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="bg-gray-900 border-gray-700 text-xs">
+                                            <p>Required field</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                )}
                             </div>
                         </div>
-                    )}
 
-                    {/* Field Info */}
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                        {data.required && (
-                            <span className="bg-red-900/20 text-red-400 px-2 py-1 rounded">Required</span>
+                        {/* Placeholder Preview */}
+                        {data.placeholder && (
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Question</label>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Info className="h-3.5 w-3.5 text-gray-500 cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="bg-gray-900 border-gray-700 text-xs max-w-[200px]">
+                                            <p>The question or prompt shown to users</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+                                <div className="bg-gradient-to-br from-[#0f1419] to-[#0a0e14] border border-gray-600/50 rounded-lg px-3.5 py-2.5 text-sm text-gray-300 shadow-inner leading-relaxed">
+                                    <div dangerouslySetInnerHTML={{ __html: data.placeholder }} />
+                                </div>
+                            </div>
                         )}
-                        <span className="bg-green-900/20 text-green-400 px-2 py-1 rounded">🟩 Input Node</span>
+
+                        {/* Field Info */}
+                        <div className="flex items-center gap-2 pt-1">
+                            {data.required && (
+                                <div className="flex items-center gap-1.5 bg-red-900/20 text-red-400 px-2.5 py-1.5 rounded-md border border-red-900/30 text-xs font-medium">
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                    <span>Required</span>
+                                </div>
+                            )}
+                            <div className="flex items-center gap-1.5 bg-green-900/20 text-green-400 px-2.5 py-1.5 rounded-md border border-green-900/30 text-xs font-medium">
+                                <Type className="h-3.5 w-3.5" />
+                                <span>Input Node</span>
+                            </div>
+                        </div>
+
+                        {/* Click to edit hint */}
+                        <div className="pt-2 border-t border-gray-700/50">
+                            <p className="text-xs text-gray-500 text-center italic">
+                                Click node to configure settings
+                            </p>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {isMinimized && (
-                <div className="p-3">
-                    <p className="text-xs text-gray-400 truncate">
-                        {getInputTypeLabel(data.inputType)} input field
-                    </p>
-                </div>
-            )}
+                {isMinimized && (
+                    <div className="p-3">
+                        <div className="flex items-center gap-2">
+                            <div className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+                            <p className="text-xs text-gray-400 truncate font-medium">
+                                {getInputTypeLabel(data.inputType)} input field
+                            </p>
+                        </div>
+                    </div>
+                )}
 
-            {/* Handles - positioned at 50% vertically centered */}
-            <Handle
-                type="target"
-                position={Position.Left}
-                className="!w-3 !h-3 !bg-green-500 !border-2 !border-[#1a1f2e]"
-                style={{ top: '50%' }}
-            />
-            <Handle
-                type="source"
-                position={Position.Right}
-                className="!w-3 !h-3 !bg-green-500 !border-2 !border-[#1a1f2e]"
-                style={{ top: '50%' }}
-            />
-        </div>
+                {/* Handles - positioned at 50% vertically centered */}
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Handle
+                            type="target"
+                            position={Position.Left}
+                            className="!w-3.5 !h-3.5 !bg-green-500 !border-2 !border-gray-900 hover:!w-4 hover:!h-4 transition-all !shadow-lg !shadow-green-500/50"
+                            style={{ top: '50%' }}
+                        />
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="bg-gray-900 border-gray-700 text-xs">
+                        <p>Connect from previous node</p>
+                    </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Handle
+                            type="source"
+                            position={Position.Right}
+                            className="!w-3.5 !h-3.5 !bg-green-500 !border-2 !border-gray-900 hover:!w-4 hover:!h-4 transition-all !shadow-lg !shadow-green-500/50"
+                            style={{ top: '50%' }}
+                        />
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-gray-900 border-gray-700 text-xs">
+                        <p>Connect to next node</p>
+                    </TooltipContent>
+                </Tooltip>
+            </div>
+        </TooltipProvider>
     );
 }

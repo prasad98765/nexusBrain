@@ -32,10 +32,18 @@ import {
   AlertCircle,
   CheckCircle,
   RefreshCw,
+  Info,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { SystemPrompt, SystemPromptsResponse, EnhancePromptResponse } from '@shared/schema';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 function ConfirmDeleteDialog({ open, onOpenChange, onConfirm, isDeleting }: { open: boolean; onOpenChange: (open: boolean) => void; onConfirm: () => void; isDeleting: boolean }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange} >
@@ -71,21 +79,23 @@ function PromptModal({ open, onOpenChange, prompt, onSave, isLoading }: PromptMo
   console.log("prompt", prompt);
 
   const [formData, setFormData] = useState<SystemPromptFormData>({
-    title: prompt?.title || '',
-    prompt: prompt?.prompt || '',
-    is_active: prompt?.is_active || false,
+    title: '',
+    prompt: '',
+    is_active: false,
   });
   const [isEnhancing, setIsEnhancing] = useState(false);
   const { token } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    setFormData({
-      title: prompt?.title || '',
-      prompt: prompt?.prompt || '',
-      is_active: prompt?.is_active || false,
-    })
-  }, [prompt])
+    if (open) {
+      setFormData({
+        title: prompt?.title || '',
+        prompt: prompt?.prompt || '',
+        is_active: prompt?.is_active || false,
+      });
+    }
+  }, [prompt, open]);
 
   const handleEnhance = async () => {
     if (!formData.prompt.trim()) {
@@ -142,12 +152,11 @@ function PromptModal({ open, onOpenChange, prompt, onSave, isLoading }: PromptMo
       return;
     }
     onSave(formData);
-    setFormData({ title: '', prompt: '', is_active: false });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" style={{ color: "white" }}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" style={{ color: "white" }}>
         <DialogHeader>
           <DialogTitle>
             {prompt ? 'Edit System Prompt' : 'Create New System Prompt'}
@@ -168,7 +177,19 @@ function PromptModal({ open, onOpenChange, prompt, onSave, isLoading }: PromptMo
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <Label htmlFor="prompt">System Prompt</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="prompt">System Prompt</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-gray-500 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-gray-900 border-gray-700 text-xs max-w-[250px]">
+                      <p>Type <span className="font-mono bg-gray-800 px-1 rounded">#</span> to insert variables into your prompt</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <Button
                 type="button"
                 variant="outline"
@@ -185,13 +206,11 @@ function PromptModal({ open, onOpenChange, prompt, onSave, isLoading }: PromptMo
                 Enhance with AI
               </Button>
             </div>
-            <Textarea
-              id="prompt"
+            <RichTextEditor
               value={formData.prompt}
-              onChange={(e) => setFormData(prev => ({ ...prev, prompt: e.target.value }))}
-              placeholder="Enter your system prompt here..."
-              rows={8}
-              required
+              onChange={(value) => setFormData(prev => ({ ...prev, prompt: value }))}
+              placeholder="Enter your system prompt here... (Type # to insert variables)"
+              className="min-h-[200px]"
             />
           </div>
 
