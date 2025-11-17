@@ -75,6 +75,7 @@ export default function VariableSelector({ value, onChange, label = 'Save Respon
                             role="combobox"
                             aria-expanded={open}
                             className="w-full justify-between h-9 bg-[#0f1419] border-gray-700 text-gray-200 hover:bg-[#1a1f2e] hover:text-gray-200 hover:border-gray-600"
+                            style={{ height: '54px' }}
                         >
                             {selectedVariable ? (
                                 <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -192,13 +193,6 @@ export default function VariableSelector({ value, onChange, label = 'Save Respon
                         </Command>
                     </PopoverContent>
                 </Popover>
-
-                {/* Selected variable description */}
-                {selectedVariable && selectedVariable.description && (
-                    <p className="text-xs text-gray-500 px-1">
-                        {selectedVariable.description}
-                    </p>
-                )}
             </div>
 
             {/* Create Variable Modal - Rendered outside popover at root level */}

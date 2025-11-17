@@ -1,0 +1,210 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
+import { apiClient } from '@/lib/apiClient';
+
+interface Variable {
+    id: string;
+    name: string;
+    description: string;
+    format: string;
+}
+
+interface VariableTextareaProps {
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+    className?: string;
+    rows?: number;
+}
+
+export default function VariableTextarea({ value, onChange, placeholder, className, rows = 4 }: VariableTextareaProps) {
+    const [showMenu, setShowMenu] = useState(false);
+    const [variables, setVariables] = useState<Variable[]>([]);
+    const [filteredVariables, setFilteredVariables] = useState<Variable[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedIndex, setSelectedIndex] = useState(0);
+    const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const variableStartIndex = useRef<number>(-1);
+
+    // Fetch variables
+    useEffect(() => {
+        const fetchVariables = async () => {
+            try {
+                const response = await apiClient.get('/api/variables?limit=100');
+                const data = await response.json();
+                setVariables(data.variables || []);
+            } catch (err) {
+                console.error('Failed to fetch variables:', err);
+            }
+        };
+        fetchVariables();
+    }, []);
+
+    // Handle textarea change
+    const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const newValue = e.target.value;
+        onChange(newValue);
+
+        const cursorPosition = e.target.selectionStart || 0;
+        const textBeforeCursor = newValue.substring(0, cursorPosition);
+        const lastHashIndex = textBeforeCursor.lastIndexOf('#');
+
+        if (lastHashIndex !== -1) {
+            const textAfterHash = textBeforeCursor.substring(lastHashIndex + 1);
+            
+            // Only show menu if there's no space or newline after #
+            if (!textAfterHash.includes(' ') && !textAfterHash.includes('\n')) {
+                setSearchTerm(textAfterHash);
+                variableStartIndex.current = lastHashIndex;
+                
+                // Filter variables
+                const search = textAfterHash.toLowerCase();
+                const filtered = variables.filter(v =>
+                    v.name.toLowerCase().includes(search) ||
+                    v.description.toLowerCase().includes(search)
+                );
+                setFilteredVariables(filtered);
+                
+                // Calculate menu position
+                if (textareaRef.current) {
+                    const rect = textareaRef.current.getBoundingClientRect();
+                    setMenuPosition({
+                        top: rect.bottom + 4,
+                        left: rect.left
+                    });
+                }
+                
+                setShowMenu(true);
+                setSelectedIndex(0);
+            } else {
+                setShowMenu(false);
+            }
+        } else {
+            setShowMenu(false);
+        }
+    };
+
+    // Insert variable
+    const insertVariable = (variable: Variable) => {
+        if (!textareaRef.current || variableStartIndex.current === -1) return;
+
+        const cursorPosition = textareaRef.current.selectionStart || 0;
+        const beforeHash = value.substring(0, variableStartIndex.current);
+        const afterCursor = value.substring(cursorPosition);
+        
+        const newValue = `${beforeHash}#{${variable.name}} ${afterCursor}`;
+        onChange(newValue);
+        
+        setShowMenu(false);
+        variableStartIndex.current = -1;
+        
+        // Set cursor position after variable
+        setTimeout(() => {
+            if (textareaRef.current) {
+                const newPosition = variableStartIndex.current + variable.name.length + 4; // +4 for #{} and space
+                textareaRef.current.focus();
+                textareaRef.current.setSelectionRange(newPosition, newPosition);
+            }
+        }, 0);
+    };
+
+    // Handle keyboard navigation
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (!showMenu) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSelectedIndex(prev =>
+                prev < filteredVariables.length - 1 ? prev + 1 : prev
+            );
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSelectedIndex(prev => prev > 0 ? prev - 1 : 0);
+        } else if (e.key === 'Enter' && filteredVariables.length > 0 && showMenu) {
+            e.preventDefault();
+            insertVariable(filteredVariables[selectedIndex]);
+        } else if (e.key === 'Escape') {
+            setShowMenu(false);
+        }
+    };
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (showMenu && !textareaRef.current?.contains(e.target as Node)) {
+                setShowMenu(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showMenu]);
+
+    return (
+        <div className="relative">
+            <Textarea
+                ref={textareaRef}
+                value={value}
+                onChange={handleTextareaChange}
+                onKeyDown={handleKeyDown}
+                placeholder={placeholder}
+                rows={rows}
+                className={cn("bg-[#0f1419] border-gray-700 text-gray-200", className)}
+            />
+
+            {/* Variable Autocomplete Menu */}
+            {showMenu && (
+                <div
+                    className="fixed bg-[#0f1419] border border-gray-700/50 rounded-lg shadow-2xl w-80 max-h-64 overflow-y-auto z-[9999]"
+                    style={{
+                        top: `${menuPosition.top}px`,
+                        left: `${menuPosition.left}px`,
+                    }}
+                    onMouseDown={(e) => e.preventDefault()}
+                >
+                    {filteredVariables.length === 0 ? (
+                        <div className="p-4 text-center text-gray-500 text-sm">
+                            No variables found
+                        </div>
+                    ) : (
+                        <div className="py-1">
+                            {filteredVariables.map((variable, index) => (
+                                <div
+                                    key={variable.id}
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        insertVariable(variable);
+                                    }}
+                                    className={cn(
+                                        "px-3 py-2 cursor-pointer transition-colors",
+                                        index === selectedIndex
+                                            ? "bg-blue-600/20 border-l-2 border-blue-500"
+                                            : "hover:bg-[#1a1f2e]/60"
+                                    )}
+                                >
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-medium text-gray-200 truncate">
+                                                {variable.name}
+                                            </div>
+                                            {variable.description && (
+                                                <div className="text-xs text-gray-500 truncate mt-0.5">
+                                                    {variable.description}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <span className="text-xs px-2 py-0.5 rounded bg-gray-700/50 text-gray-400 flex-shrink-0">
+                                            {variable.format}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}

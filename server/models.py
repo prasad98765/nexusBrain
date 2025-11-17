@@ -242,3 +242,44 @@ class VariableMapping(db.Model):
     __table_args__ = (
         db.UniqueConstraint('workspace_id', 'name', name='uq_workspace_variable_name'),
     )
+
+class ApiLibrary(db.Model):
+    __tablename__ = 'api_library'
+    
+    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid4()))
+    workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    prompt_instructions = db.Column(db.Text, nullable=True)
+    method = db.Column(db.String(10), nullable=False, default='GET')  # GET, POST, PUT, PATCH, DELETE
+    endpoint = db.Column(db.Text, nullable=False)
+    headers = db.Column(db.JSON, nullable=True)  # [{'key': 'Authorization', 'value': 'Bearer #token'}]
+    body_mode = db.Column(db.String(10), default='raw')  # 'raw' or 'form'
+    body_raw = db.Column(db.Text, nullable=True)  # For raw mode
+    body_form = db.Column(db.JSON, nullable=True)  # [{'key': 'name', 'value': '#user_name', 'type': 'text'}]
+    retry_enabled = db.Column(db.Boolean, default=False)
+    max_retries = db.Column(db.Integer, default=1)
+    response_mappings = db.Column(db.JSON, nullable=True)  # [{'object_path': 'result.name', 'variable_id': 'var-id'}]
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    workspace = db.relationship('Workspace', backref='api_library', lazy=True)
+    runs = db.relationship('ApiLibraryRun', backref='api', lazy=True, cascade='all, delete-orphan')
+
+class ApiLibraryRun(db.Model):
+    __tablename__ = 'api_library_runs'
+    
+    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid4()))
+    api_id = db.Column(db.String, db.ForeignKey('api_library.id'), nullable=False)
+    workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
+    status_code = db.Column(db.Integer, nullable=True)
+    success = db.Column(db.Boolean, default=False)
+    request_data = db.Column(db.JSON, nullable=True)  # Full request details
+    response_data = db.Column(db.JSON, nullable=True)  # Full response
+    error_message = db.Column(db.Text, nullable=True)
+    duration_ms = db.Column(db.Integer, nullable=True)
+    retry_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    workspace = db.relationship('Workspace', backref='api_library_runs', lazy=True)

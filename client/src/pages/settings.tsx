@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, MessageSquare, Variable } from 'lucide-react';
+import { FileText, MessageSquare, Variable, Network } from 'lucide-react';
 import { useAuth } from "../hooks/useAuth";
 import KnowledgeBasePage from './knowledge-base';
 import SystemPromptsPage from './system-prompts';
 import ModelSelectionPage from './model-configuration';
 import VariablesPage from './variables-page';
+import ApiLibraryPage from './settings/api-library';
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('knowledge-base');
   const { user } = useAuth();
@@ -22,7 +23,7 @@ export default function SettingsPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+        <TabsList className="grid w-full grid-cols-5 lg:w-[750px]">
           <TabsTrigger value="knowledge-base" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
             Knowledge Base
@@ -39,6 +40,10 @@ export default function SettingsPage() {
             <Variable className="w-4 h-4" />
             Variables
           </TabsTrigger>
+          <TabsTrigger value="api-library" className="flex items-center gap-2">
+            <Network className="w-4 h-4" />
+            API Library
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="knowledge-base" className="space-y-4">
@@ -53,6 +58,10 @@ export default function SettingsPage() {
         </TabsContent>
         <TabsContent value="variables" className="space-y-4">
           <VariablesPage />
+        </TabsContent>
+
+        <TabsContent value="api-library" className="space-y-4">
+          <ApiLibraryPage workspaceId={user?.workspaceId || ''} />
         </TabsContent>
       </Tabs>
     </div>

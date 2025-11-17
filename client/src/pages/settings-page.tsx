@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import ContactProperties from './settings/contact-properties';
 import LLMSettings from './settings/llm-settings';
 import ModelConfiguration from './model-configuration';
+import ApiLibraryPage from './settings/api-library';
 
 interface TabButtonProps {
   active: boolean;
@@ -50,6 +51,13 @@ export default function SettingsPage({ workspaceId }: SettingsPageProps) {
       icon: Bot,
       component: LLMSettings,
       description: 'Configure AI model settings'
+    },
+    {
+      id: 'api-library',
+      label: 'API Library',
+      icon: Network,
+      component: ApiLibraryPage,
+      description: 'Manage external API integrations'
     },
     // {
     //   id: 'model-configuration',
