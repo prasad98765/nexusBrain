@@ -84,11 +84,6 @@ const GRADIENT_COLORS = {
 
 const CHART_COLORS = ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#06b6d4'];
 
-interface DateRange {
-    from: Date;
-    to: Date;
-}
-
 interface AnalyticsFilters {
     dateRange: DateRange;
     workspace_id?: string;
@@ -128,8 +123,8 @@ export default function AnalyticsDashboard() {
         };
 
         const params = new URLSearchParams({
-            start_date: formatDateLocal(dateRange.from),
-            end_date: formatDateLocal(dateRange.to),
+            start_date: formatDateLocal(dateRange.from || new Date()),
+            end_date: formatDateLocal(dateRange.to || new Date()),
             // interval,
         });
 
@@ -1280,7 +1275,27 @@ export default function AnalyticsDashboard() {
                                 </div>
                             </CardHeader>
                             <CardContent className="pt-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                                    {/* Cost Saved - NEW CARD */}
+                                    <div className="relative group">
+                                        <div className="absolute inset-0 bg-primary/5 rounded-xl blur-xl group-hover:blur-2xl transition-all" />
+                                        <div className="relative bg-card/50 p-4 rounded-xl border border-border backdrop-blur-sm">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <p className="text-xs font-medium text-white">Cost Saved</p>
+                                                <div className="p-1.5 bg-green-500/10 rounded-lg">
+                                                    <DollarSign className="w-3.5 h-3.5 text-green-500" />
+                                                </div>
+                                            </div>
+                                            <p className="text-3xl font-bold text-green-500">
+                                                {formatCurrency(caching.cost_saved_usd || 0)}
+                                            </p>
+                                            <div className="flex items-center gap-1 mt-2">
+                                                <TrendingDown className="w-3 h-3 text-green-500" />
+                                                <span className="text-xs text-white font-medium">Savings</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     {/* Exact Cache Hits */}
                                     <div className="relative group">
                                         <div className="absolute inset-0 bg-primary/5 rounded-xl blur-xl group-hover:blur-2xl transition-all" />

@@ -90,7 +90,8 @@ interface ModelConfig {
     stream: boolean;
     cache_threshold: number;
     is_cached: boolean;
-    use_rag: boolean
+    use_rag: boolean,
+    enable_related_questions: boolean
 }
 
 interface ThemeSettings {
@@ -146,7 +147,8 @@ export default function ChatPlayground() {
         stream: true,
         cache_threshold: 0.5,
         is_cached: false,
-        use_rag: false
+        use_rag: false,
+        enable_related_questions: false
     });
 
     // Fetch available models
@@ -301,7 +303,8 @@ export default function ChatPlayground() {
                 stream: config.stream,
                 cache_threshold: config.cache_threshold,
                 is_cached: config.is_cached,
-                use_rag: config.use_rag
+                use_rag: config.use_rag,
+                enable_related_questions: config.enable_related_questions
             };
 
             const response = await fetch(`/api/v1/chat/create`, {

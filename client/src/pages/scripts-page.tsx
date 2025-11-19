@@ -34,6 +34,7 @@ interface ModelConfig {
   cache_threshold: number;
   is_cached: boolean;
   use_rag: boolean;
+  enable_related_questions: boolean;
 }
 
 interface QuickButton {
@@ -112,7 +113,8 @@ export default function ScriptsPage() {
     stream: true,
     cache_threshold: 0.5,
     is_cached: false,
-    use_rag: false
+    use_rag: false,
+    enable_related_questions: false
   });
   const [modelSearchOpen, setModelSearchOpen] = useState(false);
 
@@ -1015,100 +1017,100 @@ export default function ScriptsPage() {
                       <div className="space-y-2">
                         <Label htmlFor="button-image" className="text-slate-200">Button Icon/Image (Optional)</Label>
                         <div className="space-y-3">
-                        {/* Image Preview */}
-                        {newButtonImage && (
-                          <div className="relative inline-block">
-                            <div className="w-16 h-16 rounded-lg border-2 border-slate-600 bg-slate-700 flex items-center justify-center overflow-hidden">
-                              <img
-                                src={newButtonImage}
-                                alt="Button image preview"
-                                className="w-full h-full object-contain"
-                              />
+                          {/* Image Preview */}
+                          {newButtonImage && (
+                            <div className="relative inline-block">
+                              <div className="w-16 h-16 rounded-lg border-2 border-slate-600 bg-slate-700 flex items-center justify-center overflow-hidden">
+                                <img
+                                  src={newButtonImage}
+                                  alt="Button image preview"
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => setNewButtonImage('')}
+                                className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                              >
+                                ×
+                              </Button>
                             </div>
+                          )}
+
+                          {/* URL Input */}
+                          <div className="flex gap-2">
+                            <Input
+                              id="button-image"
+                              type="text"
+                              value={newButtonImage}
+                              onChange={(e) => setNewButtonImage(e.target.value)}
+                              className="flex-1 bg-slate-700 border-slate-600 text-slate-100"
+                              placeholder="https://example.com/icon.png or upload below"
+                            />
+                          </div>
+
+                          {/* File Upload */}
+                          <div className="flex gap-2">
+                            <input
+                              ref={buttonImageInputRef}
+                              type="file"
+                              accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                              onChange={handleButtonImageUpload}
+                              className="hidden"
+                            />
                             <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => setNewButtonImage('')}
-                              className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                              variant="outline"
+                              onClick={() => buttonImageInputRef.current?.click()}
+                              disabled={uploadingButtonImage}
+                              className="border-slate-600 hover:bg-slate-700 flex-1"
                             >
-                              ×
+                              {uploadingButtonImage ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="w-4 h-4 mr-2" />
+                                  Upload Icon (PNG, JPG, SVG - Max 1MB)
+                                </>
+                              )}
                             </Button>
                           </div>
-                        )}
-
-                        {/* URL Input */}
-                        <div className="flex gap-2">
-                          <Input
-                            id="button-image"
-                            type="text"
-                            value={newButtonImage}
-                            onChange={(e) => setNewButtonImage(e.target.value)}
-                            className="flex-1 bg-slate-700 border-slate-600 text-slate-100"
-                            placeholder="https://example.com/icon.png or upload below"
-                          />
+                          <p className="text-xs text-slate-500">
+                            Upload an icon or image to display on the button (shown instead of emoji if provided)
+                          </p>
                         </div>
-
-                        {/* File Upload */}
-                        <div className="flex gap-2">
-                          <input
-                            ref={buttonImageInputRef}
-                            type="file"
-                            accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
-                            onChange={handleButtonImageUpload}
-                            className="hidden"
-                          />
-                          <Button
-                            variant="outline"
-                            onClick={() => buttonImageInputRef.current?.click()}
-                            disabled={uploadingButtonImage}
-                            className="border-slate-600 hover:bg-slate-700 flex-1"
-                          >
-                            {uploadingButtonImage ? (
-                              <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Uploading...
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="w-4 h-4 mr-2" />
-                                Upload Icon (PNG, JPG, SVG - Max 1MB)
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                        <p className="text-xs text-slate-500">
-                          Upload an icon or image to display on the button (shown instead of emoji if provided)
-                        </p>
                       </div>
-                    </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="button-description" className="text-slate-200">Description (Optional)</Label>
-                      <Textarea
-                        id="button-description"
-                        value={newButtonDescription}
-                        onChange={(e) => setNewButtonDescription(e.target.value)}
-                        className="bg-slate-700 border-slate-600 text-slate-100"
-                        placeholder="e.g., Develop a business expansion..."
-                        rows={2}
-                        maxLength={200}
-                      />
-                      <p className="text-xs text-slate-500">Short description shown on hover (max 200 characters)</p>
-                    </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="button-description" className="text-slate-200">Description (Optional)</Label>
+                        <Textarea
+                          id="button-description"
+                          value={newButtonDescription}
+                          onChange={(e) => setNewButtonDescription(e.target.value)}
+                          className="bg-slate-700 border-slate-600 text-slate-100"
+                          placeholder="e.g., Develop a business expansion..."
+                          rows={2}
+                          maxLength={200}
+                        />
+                        <p className="text-xs text-slate-500">Short description shown on hover (max 200 characters)</p>
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="button-text" className="text-slate-200">Button Action Text *</Label>
-                      <Textarea
-                        id="button-text"
-                        value={newButtonText}
-                        onChange={(e) => setNewButtonText(e.target.value)}
-                        className="bg-slate-700 border-slate-600 text-slate-100"
-                        placeholder="e.g., Show me information about t-shirt products"
-                        rows={3}
-                        maxLength={500}
-                      />
-                      <p className="text-xs text-slate-500">Text that will be sent when the button is clicked</p>
-                    </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="button-text" className="text-slate-200">Button Action Text *</Label>
+                        <Textarea
+                          id="button-text"
+                          value={newButtonText}
+                          onChange={(e) => setNewButtonText(e.target.value)}
+                          className="bg-slate-700 border-slate-600 text-slate-100"
+                          placeholder="e.g., Show me information about t-shirt products"
+                          rows={3}
+                          maxLength={500}
+                        />
+                        <p className="text-xs text-slate-500">Text that will be sent when the button is clicked</p>
+                      </div>
                     </div>
 
                     <Button
@@ -1343,7 +1345,28 @@ export default function ScriptsPage() {
                         onCheckedChange={(checked) => setModelConfig({ ...modelConfig, use_rag: checked })}
                       />
                     </div>
+
+                    <div className="flex items-center justify-between p-3 bg-slate-900 rounded-lg">
+                      <div>
+                        <Label className="text-slate-200">Enable Related Questions</Label>
+                        <p className="text-xs text-slate-500">Show suggested follow-up questions</p>
+                      </div>
+                      <Switch
+                        checked={modelConfig.enable_related_questions}
+                        onCheckedChange={(checked) => setModelConfig({ ...modelConfig, enable_related_questions: checked })}
+                      />
+                    </div>
                   </div>
+
+                  {/* Related Questions Info */}
+                  {modelConfig.enable_related_questions && (
+                    <div className="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                      <Sparkles className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-slate-300">
+                        When enabled, the system will generate 3 related questions for each smart AI answer to help users explore related topics.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Info Message */}
                   <div className="flex items-start gap-2 p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-lg">

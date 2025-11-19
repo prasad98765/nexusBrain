@@ -134,7 +134,7 @@ function Router() {
         <Route path="agents" element={<ComingSoon title="Agents (Coming Soon)" />} />
         <Route path="contacts" element={<ComingSoon title="Contacts (Coming Soon)" />} />
         <Route path="settings" element={<SettingsPage />} />
-        <Route path="flow-builder" element={<ComingSoon title="Flow Builder (Coming Soon)" />} />
+        {/* <Route path="flow-builder" element={<ComingSoon title="Flow Builder (Coming Soon)" />} /> */}
         <Route path="API-integrations" element={<APIIntegrationsPage />} />
         <Route path="scripts" element={<ScriptsPage />} />
       </Route>

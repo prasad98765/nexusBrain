@@ -117,12 +117,13 @@ def parse_date_filters(params: dict) -> tuple:
         raise ValueError(f"Error parsing dates: {str(e)}")
 
 
-def build_base_query(params: dict, workspace_id: str = None):
+def build_base_query(params: dict, workspace_id: str = None, exclude_semantic_cache: bool = False):
     """Build base query with common filters
     
     Args:
         params: Request parameters
         workspace_id: Workspace ID from authenticated user (required for workspace isolation)
+        exclude_semantic_cache: If True, exclude semantic cache hits from query
         
     Returns:
         Tuple of (query, start_date_ist, end_date_ist)
@@ -133,6 +134,21 @@ def build_base_query(params: dict, workspace_id: str = None):
     query = db.session.query(ApiUsageLog).filter(
         ApiUsageLog.created_at.between(start_date_utc, end_date_utc)
     )
+    
+    # Exclude semantic cache hits if requested (for cost/token calculations)
+    if exclude_semantic_cache:
+        query = query.filter(
+            or_(
+                ApiUsageLog.cached == False,
+                and_(
+                    ApiUsageLog.cached == True,
+                    or_(
+                        ApiUsageLog.cache_type.is_(None),
+                        ~ApiUsageLog.cache_type.like('semantic%')
+                    )
+                )
+            )
+        )
     
     # REQUIRED: Workspace-based filtering for data isolation
     if workspace_id:
@@ -166,16 +182,20 @@ def get_overview():
     Get summary statistics for the analytics dashboard
     Returns: total requests, tokens, cost, latencies, rates
     Note: Data is automatically scoped to the authenticated user's workspace
+    Note: Semantic cache hits are excluded from token/cost calculations
     """
     try:
         # Extract workspace_id from authenticated user's token
         workspace_id = request.user.get('workspace_id')
         
         params = request.args.to_dict()
-        query, start_date_ist, end_date_ist = build_base_query(params, workspace_id=workspace_id)
+        # Get all requests for counting
+        query_all, start_date_ist, end_date_ist = build_base_query(params, workspace_id=workspace_id, exclude_semantic_cache=False)
+        # Get non-semantic-cached requests for cost/token calculations
+        query_billable, _, _ = build_base_query(params, workspace_id=workspace_id, exclude_semantic_cache=True)
         
-        # Total requests
-        total_requests = query.count()
+        # Total requests (all requests)
+        total_requests = query_all.count()
         
         if total_requests == 0:
             return jsonify({
@@ -185,23 +205,23 @@ def get_overview():
                 "total_completion_tokens": 0,
                 "avg_tokens_per_request": 0,
                 "total_cost_usd": 0,
-                "cached_savings_usd": 0,
                 "avg_latency_ms": 0,
                 "cache_hit_rate": 0,
                 "rag_usage_rate": 0,
                 "error_rate": 0
             }), 200
         
-        # Aggregate statistics
-        stats = query.with_entities(
+        # Aggregate statistics (excluding semantic cache)
+        stats = query_billable.with_entities(
             func.sum(ApiUsageLog.tokens_used).label('total_tokens'),
             func.sum(ApiUsageLog.prompt_tokens).label('total_prompt_tokens'),
             func.sum(ApiUsageLog.completion_tokens).label('total_completion_tokens'),
-            # Calculate actual cost (only non-cached requests incur costs)
-            func.sum(case((ApiUsageLog.cached == False, ApiUsageLog.usage), else_=0)).label('total_cost'),
-            # Calculate potential cost savings from cached requests
-            func.sum(case((ApiUsageLog.cached == True, ApiUsageLog.usage), else_=0)).label('cached_savings'),
-            func.avg(ApiUsageLog.response_time_ms).label('avg_latency'),
+            func.sum(ApiUsageLog.usage).label('total_cost'),
+            func.avg(ApiUsageLog.response_time_ms).label('avg_latency')
+        ).first()
+        
+        # Count-based stats (all requests)
+        count_stats = query_all.with_entities(
             func.sum(case((ApiUsageLog.cached == True, 1), else_=0)).label('cached_count'),
             func.sum(case((ApiUsageLog.document_contexts == True, 1), else_=0)).label('rag_count'),
             func.sum(case((ApiUsageLog.status_code >= 400, 1), else_=0)).label('error_count')
@@ -211,11 +231,10 @@ def get_overview():
         total_prompt_tokens = float(stats.total_prompt_tokens or 0)
         total_completion_tokens = float(stats.total_completion_tokens or 0)
         total_cost = float(stats.total_cost or 0)
-        cached_savings = float(stats.cached_savings or 0)
         avg_latency = float(stats.avg_latency or 0)
-        cached_count = int(stats.cached_count or 0)
-        rag_count = int(stats.rag_count or 0)
-        error_count = int(stats.error_count or 0)
+        cached_count = int(count_stats.cached_count or 0)
+        rag_count = int(count_stats.rag_count or 0)
+        error_count = int(count_stats.error_count or 0)
         
         return jsonify({
             "total_requests": total_requests,
@@ -223,8 +242,7 @@ def get_overview():
             "total_prompt_tokens": int(total_prompt_tokens),
             "total_completion_tokens": int(total_completion_tokens),
             "avg_tokens_per_request": int(total_tokens / total_requests) if total_requests > 0 else 0,
-            "total_cost_usd": round(total_cost, 6),  # Actual cost incurred
-            "cached_savings_usd": round(cached_savings, 6),  # Cost saved from caching
+            "total_cost_usd": round(total_cost, 6),
             "avg_latency_ms": round(avg_latency, 2),
             "cache_hit_rate": round(cached_count / total_requests, 4) if total_requests > 0 else 0,
             "rag_usage_rate": round(rag_count / total_requests, 4) if total_requests > 0 else 0,
@@ -245,32 +263,26 @@ def get_trends():
     Get time-series data for requests, tokens, cost, and errors
     Query params: interval (day|week|month)
     Note: Data is automatically scoped to the authenticated user's workspace
+    Note: Semantic cache hits are excluded from token/cost calculations
     """
     try:
         # Extract workspace_id from authenticated user's token
         workspace_id = request.user.get('workspace_id')
         
         params = request.args.to_dict()
-        query, start_date_ist, end_date_ist = build_base_query(params, workspace_id=workspace_id)
+        # Exclude semantic cache for token/cost calculations
+        query, start_date_ist, end_date_ist = build_base_query(params, workspace_id=workspace_id, exclude_semantic_cache=True)
         
         interval = params.get('interval', 'day')
         
         # Convert UTC timestamps to India timezone (UTC+5:30) before grouping
-        # PostgreSQL: Use AT TIME ZONE to convert to India timezone
-        # This ensures dates match what users see in India timezone
-        
-        # Convert UTC to IST using PostgreSQL's timezone support
-        # created_at is stored as UTC, convert to 'Asia/Kolkata' timezone
         india_time_expr = func.timezone('Asia/Kolkata', func.timezone('UTC', ApiUsageLog.created_at))
         
         if interval == 'week':
-            # Group by week start (Monday) in India timezone
             date_group = func.date_trunc('week', india_time_expr)
         elif interval == 'month':
-            # Group by month start in India timezone
             date_group = func.date_trunc('month', india_time_expr)
         else:  # day
-            # Group by day in India timezone
             date_group = func.date_trunc('day', india_time_expr)
         
         # Cast to date for cleaner grouping
@@ -281,14 +293,12 @@ def get_trends():
             date_group.label('date'),
             func.count(ApiUsageLog.id).label('requests'),
             func.sum(ApiUsageLog.tokens_used).label('tokens'),
-            # Only calculate cost for non-cached requests
-            func.sum(case((ApiUsageLog.cached == False, ApiUsageLog.usage), else_=0)).label('cost_usd'),
+            func.sum(ApiUsageLog.usage).label('cost_usd'),
             func.sum(case((ApiUsageLog.status_code >= 400, 1), else_=0)).label('errors')
         ).group_by('date').order_by('date').all()
         
         result = []
         for trend in trends:
-            # Use helper function for consistent date formatting
             result.append({
                 "date": format_date_for_response(trend.date),
                 "requests": int(trend.requests or 0),
@@ -309,13 +319,16 @@ def get_trends():
 @analytics_routes.route("/analytics/models", methods=["GET"])
 @require_auth
 def get_models_breakdown():
-    """Get model-wise breakdown of usage (workspace-scoped)"""
+    """Get model-wise breakdown of usage (workspace-scoped)
+    Note: Semantic cache hits are excluded from token/cost calculations
+    """
     try:
         # Extract workspace_id from authenticated user's token
         workspace_id = request.user.get('workspace_id')
         
         params = request.args.to_dict()
-        query, start_date_ist, end_date_ist = build_base_query(params, workspace_id=workspace_id)
+        # Exclude semantic cache for accurate cost/token data
+        query, start_date_ist, end_date_ist = build_base_query(params, workspace_id=workspace_id, exclude_semantic_cache=True)
         
         models = query.with_entities(
             ApiUsageLog.model,
@@ -348,13 +361,16 @@ def get_models_breakdown():
 @analytics_routes.route("/analytics/providers", methods=["GET"])
 @require_auth
 def get_providers_comparison():
-    """Get provider-wise comparison (workspace-scoped)"""
+    """Get provider-wise comparison (workspace-scoped)
+    Note: Semantic cache hits are excluded from token/cost calculations
+    """
     try:
         # Extract workspace_id from authenticated user's token
         workspace_id = request.user.get('workspace_id')
         
         params = request.args.to_dict()
-        query, start_date_ist, end_date_ist = build_base_query(params, workspace_id=workspace_id)
+        # Exclude semantic cache for accurate cost/token data
+        query, start_date_ist, end_date_ist = build_base_query(params, workspace_id=workspace_id, exclude_semantic_cache=True)
         
         providers = query.with_entities(
             ApiUsageLog.provider,
@@ -434,20 +450,21 @@ def get_errors():
 @analytics_routes.route("/analytics/caching", methods=["GET"])
 @require_auth
 def get_caching_stats():
-    """Get caching statistics (workspace-scoped)"""
+    """Get caching statistics and performance (workspace-scoped)"""
     try:
         # Extract workspace_id from authenticated user's token
         workspace_id = request.user.get('workspace_id')
         
         params = request.args.to_dict()
-        query, start_date_ist, end_date_ist = build_base_query(params, workspace_id=workspace_id)
+        # Get all requests (including semantic cache)
+        query_all, start_date_ist, end_date_ist = build_base_query(params, workspace_id=workspace_id, exclude_semantic_cache=False)
         
-        total_requests = query.count()
+        total_requests = query_all.count()
         
         # Cache stats
-        cache_stats = query.with_entities(
+        cache_stats = query_all.with_entities(
             func.sum(case((and_(ApiUsageLog.cached == True, ApiUsageLog.cache_type == 'exact'), 1), else_=0)).label('exact_hits'),
-            func.sum(case((and_(ApiUsageLog.cached == True, ApiUsageLog.cache_type == 'semantic'), 1), else_=0)).label('semantic_hits'),
+            func.sum(case((and_(ApiUsageLog.cached == True, ApiUsageLog.cache_type.like('semantic%')), 1), else_=0)).label('semantic_hits'),
             func.sum(case((ApiUsageLog.cached == False, 1), else_=0)).label('non_cached')
         ).first()
         
@@ -456,17 +473,27 @@ def get_caching_stats():
         non_cached = int(cache_stats.non_cached or 0)
         total_cache_hits = exact_hits + semantic_hits
         
+        # Cost savings from semantic cache (these would have incurred cost)
+        semantic_cache_savings = query_all.filter(
+            and_(
+                ApiUsageLog.cached == True,
+                ApiUsageLog.cache_type.like('semantic%')
+            )
+        ).with_entities(
+            func.sum(ApiUsageLog.usage)
+        ).scalar() or 0
+        
         # Average latencies
-        cached_latency = query.filter(ApiUsageLog.cached == True).with_entities(
+        cached_latency = query_all.filter(ApiUsageLog.cached == True).with_entities(
             func.avg(ApiUsageLog.response_time_ms)
         ).scalar() or 0
         
-        uncached_latency = query.filter(ApiUsageLog.cached == False).with_entities(
+        uncached_latency = query_all.filter(ApiUsageLog.cached == False).with_entities(
             func.avg(ApiUsageLog.response_time_ms)
         ).scalar() or 0
         
-        # Token savings (cached requests don't count tokens)
-        token_savings = query.filter(ApiUsageLog.cached == True).with_entities(
+        # Token savings from all cache hits
+        token_savings = query_all.filter(ApiUsageLog.cached == True).with_entities(
             func.sum(ApiUsageLog.tokens_used)
         ).scalar() or 0
         
@@ -477,7 +504,8 @@ def get_caching_stats():
             "non_cached_requests": non_cached,
             "avg_latency_cached": round(float(cached_latency), 2),
             "avg_latency_uncached": round(float(uncached_latency), 2),
-            "token_savings": int(token_savings)
+            "token_savings": int(token_savings),
+            "cost_saved_usd": round(float(semantic_cache_savings), 6)
         }), 200
         
     except ValueError as e:
@@ -533,13 +561,16 @@ def get_rag_stats():
 @analytics_routes.route("/analytics/endpoints", methods=["GET"])
 @require_auth
 def get_endpoints_stats():
-    """Get endpoint-level statistics (workspace-scoped)"""
+    """Get endpoint-level statistics (workspace-scoped)
+    Note: Semantic cache hits are excluded from token/cost calculations
+    """
     try:
         # Extract workspace_id from authenticated user's token
         workspace_id = request.user.get('workspace_id')
         
         params = request.args.to_dict()
-        query, start_date_ist, end_date_ist = build_base_query(params, workspace_id=workspace_id)
+        # Exclude semantic cache for accurate cost/token data
+        query, start_date_ist, end_date_ist = build_base_query(params, workspace_id=workspace_id, exclude_semantic_cache=True)
         
         endpoints = query.with_entities(
             ApiUsageLog.endpoint,
@@ -605,23 +636,28 @@ def get_user_agents():
 @analytics_routes.route("/analytics/performance", methods=["GET"])
 @require_auth
 def get_performance():
-    """Get latency and throughput insights (workspace-scoped)"""
+    """Get latency and throughput insights (workspace-scoped)
+    Note: Semantic cache hits are excluded from slowest models calculation
+    """
     try:
         # Extract workspace_id from authenticated user's token
         workspace_id = request.user.get('workspace_id')
         
         params = request.args.to_dict()
-        query, start_date_ist, end_date_ist = build_base_query(params, workspace_id=workspace_id)
+        # Use all queries for overall performance
+        query_all, start_date_ist, end_date_ist = build_base_query(params, workspace_id=workspace_id, exclude_semantic_cache=False)
+        # Exclude semantic cache for model performance
+        query_billable, _, _ = build_base_query(params, workspace_id=workspace_id, exclude_semantic_cache=True)
         
-        # Overall performance
-        perf_stats = query.with_entities(
+        # Overall performance (all requests)
+        perf_stats = query_all.with_entities(
             func.avg(ApiUsageLog.response_time_ms).label('avg_response_time'),
             func.avg(ApiUsageLog.first_token_latency).label('avg_first_token'),
             func.avg(ApiUsageLog.throughput).label('avg_throughput')
         ).first()
         
-        # Slowest models
-        slowest_models = query.with_entities(
+        # Slowest models (exclude semantic cache)
+        slowest_models = query_billable.with_entities(
             ApiUsageLog.model,
             func.avg(ApiUsageLog.response_time_ms).label('avg_latency')
         ).group_by(ApiUsageLog.model)\

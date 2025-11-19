@@ -1973,20 +1973,21 @@ def create_chat_completion():
         logger.info(f"Returning cached response ({cache_type} match) for chat model: {payload['model']}, workspace: {api_token.workspace_id}")
 
         # Generate related questions for cached response
-        try:
-            assistant_content = cached_response.get('choices', [{}])[0].get('message', {}).get('content', '')
-            related_questions = generate_related_questions(
-                user_message=last_user_content,
-                assistant_response=assistant_content,
-                workspace_id=str(api_token.workspace_id),
-                active_system_prompt = active_system_prompt
-            )
-            # Add related questions to response
-            cached_response['related_questions'] = related_questions
-            logger.info(f"Added {len(related_questions)} related questions to cached response")
-        except Exception as e:
-            logger.error(f"Failed to generate related questions for cached response: {e}")
-            cached_response['related_questions'] = []
+        if payload.get("enable_related_questions", False):
+            try:
+                assistant_content = cached_response.get('choices', [{}])[0].get('message', {}).get('content', '')
+                related_questions = generate_related_questions(
+                    user_message=last_user_content,
+                    assistant_response=assistant_content,
+                    workspace_id=str(api_token.workspace_id),
+                    active_system_prompt = active_system_prompt
+                )
+                # Add related questions to response
+                cached_response['related_questions'] = related_questions
+                logger.info(f"Added {len(related_questions)} related questions to cached response")
+            except Exception as e:
+                logger.error(f"Failed to generate related questions for cached response: {e}")
+                cached_response['related_questions'] = []
 
         # Log cache hit
         async_log_api_usage(
@@ -2127,18 +2128,19 @@ def create_chat_completion():
                 combined_response["model"] = last_chunk_data['model']
 
                 # Generate related questions for streaming response
-                try:
-                    related_questions = generate_related_questions(
-                        user_message=last_user_content,
-                        assistant_response=combined_content,
-                        workspace_id=str(api_token.workspace_id),
-                        active_system_prompt = active_system_prompt
-                    )
-                    combined_response['related_questions'] = related_questions
-                    logger.info(f"Added {len(related_questions)} related questions to streaming response")
-                except Exception as e:
-                    logger.error(f"Failed to generate related questions for streaming response: {e}")
-                    combined_response['related_questions'] = []
+                if payload.get("enable_related_questions", False):
+                    try:
+                        related_questions = generate_related_questions(
+                            user_message=last_user_content,
+                            assistant_response=combined_content,
+                            workspace_id=str(api_token.workspace_id),
+                            active_system_prompt = active_system_prompt
+                        )
+                        combined_response['related_questions'] = related_questions
+                        logger.info(f"Added {len(related_questions)} related questions to streaming response")
+                    except Exception as e:
+                        logger.error(f"Failed to generate related questions for streaming response: {e}")
+                        combined_response['related_questions'] = []
 
                 # Store in cache if enabled (reuse the cache_payload from earlier)
                 # This ensures cache lookup and storage use the same key format
@@ -2257,20 +2259,21 @@ def create_chat_completion():
             response_data = response.get_json() if hasattr(response, 'get_json') else response.json
             
             # Generate related questions for non-streaming response
-            try:
-                assistant_content = response_data.get('choices', [{}])[0].get('message', {}).get('content', '')
-                related_questions = generate_related_questions(
-                    user_message=last_user_content,
-                    assistant_response=assistant_content,
-                    workspace_id=str(api_token.workspace_id),
-                    active_system_prompt = active_system_prompt
-                )
-                # Add related questions to response
-                response_data['related_questions'] = related_questions
-                logger.info(f"Added {len(related_questions)} related questions to non-streaming response")
-            except Exception as e:
-                logger.error(f"Failed to generate related questions: {e}")
-                response_data['related_questions'] = []
+            if payload.get("enable_related_questions", False):
+                try:
+                    assistant_content = response_data.get('choices', [{}])[0].get('message', {}).get('content', '')
+                    related_questions = generate_related_questions(
+                        user_message=last_user_content,
+                        assistant_response=assistant_content,
+                        workspace_id=str(api_token.workspace_id),
+                        active_system_prompt = active_system_prompt
+                    )
+                    # Add related questions to response
+                    response_data['related_questions'] = related_questions
+                    logger.info(f"Added {len(related_questions)} related questions to non-streaming response")
+                except Exception as e:
+                    logger.error(f"Failed to generate related questions: {e}")
+                    response_data['related_questions'] = []
             
             # Context-aware caching (runs in parallel with traditional cache)
             # try:
