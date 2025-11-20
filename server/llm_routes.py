@@ -1995,7 +1995,7 @@ def create_chat_completion():
         logger.info(f"Returning cached response ({cache_type} match) for chat model: {payload['model']}, workspace: {api_token.workspace_id}")
 
         # Generate related questions for cached response
-        if payload.get("enable_related_questions", False):
+        if data.get("enable_related_questions", False):
             try:
                 assistant_content = cached_response.get('choices', [{}])[0].get('message', {}).get('content', '')
                 related_questions = generate_related_questions(
@@ -2150,7 +2150,7 @@ def create_chat_completion():
                 combined_response["model"] = last_chunk_data['model']
 
                 # Generate related questions for streaming response
-                if payload.get("enable_related_questions", False):
+                if data.get("enable_related_questions", False):
                     try:
                         related_questions = generate_related_questions(
                             user_message=last_user_content,
@@ -2281,7 +2281,7 @@ def create_chat_completion():
             response_data = response.get_json() if hasattr(response, 'get_json') else response.json
             
             # Generate related questions for non-streaming response
-            if payload.get("enable_related_questions", False):
+            if data.get("enable_related_questions", False):
                 try:
                     assistant_content = response_data.get('choices', [{}])[0].get('message', {}).get('content', '')
                     related_questions = generate_related_questions(
