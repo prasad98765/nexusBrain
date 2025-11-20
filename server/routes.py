@@ -103,6 +103,15 @@ def signup():
             role='owner'
         )
         db.session.add(workspace_member)
+        
+        # Create default system variables for the workspace
+        from .workspace_utils import create_default_system_variables
+        try:
+            create_default_system_variables(default_workspace.id)
+        except Exception as var_error:
+            print(f"Warning: Failed to create default variables: {var_error}")
+            # Don't fail workspace creation if variables fail
+        
         db.session.commit()
         
         # Send verification email
@@ -185,6 +194,15 @@ def google_signup():
             role='owner'
         )
         db.session.add(workspace_member)
+        
+        # Create default system variables for the workspace
+        from .workspace_utils import create_default_system_variables
+        try:
+            create_default_system_variables(default_workspace.id)
+        except Exception as var_error:
+            print(f"Warning: Failed to create default variables: {var_error}")
+            # Don't fail workspace creation if variables fail
+        
         db.session.commit()
 
         from datetime import datetime
@@ -820,6 +838,15 @@ def create_workspace():
             role='owner'
         )
         db.session.add(member)
+        
+        # Create default system variables for the workspace
+        from .workspace_utils import create_default_system_variables
+        try:
+            create_default_system_variables(workspace.id)
+        except Exception as var_error:
+            print(f"Warning: Failed to create default variables: {var_error}")
+            # Don't fail workspace creation if variables fail
+        
         db.session.commit()
         
         return jsonify({

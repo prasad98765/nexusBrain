@@ -232,6 +232,7 @@ class VariableMapping(db.Model):
     format = db.Column(db.String(50), nullable=False)  # text, number, date, name, email, phone, regex
     error_message = db.Column(db.Text, nullable=True)
     regex_pattern = db.Column(db.Text, nullable=True)
+    is_system = db.Column(db.Boolean, default=False, nullable=False)  # True for system-managed variables
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

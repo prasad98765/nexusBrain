@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight, RefreshCw, Lock } from 'lucide-react';
 import {
     Table,
     TableBody,
@@ -12,9 +12,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Dialog,
+    DialogContent,
+} from '@/components/ui/dialog';
 import { apiClient } from '@/lib/apiClient';
 import { useAuth } from '@/hooks/useAuth';
 import CreateVariableModal from '@/components/variables/CreateVariableModal';
+import { useToast } from '@/hooks/use-toast';
 
 interface Variable {
     id: string;
@@ -23,11 +28,41 @@ interface Variable {
     format: 'text' | 'number' | 'date' | 'name' | 'email' | 'phone' | 'regex';
     error_message?: string;
     regex_pattern?: string;
+    is_system?: boolean;
     created_at: string;
+}
+
+function ConfirmDeleteDialog({ open, onOpenChange, onConfirm, isDeleting, variableName }: { 
+    open: boolean; 
+    onOpenChange: (open: boolean) => void; 
+    onConfirm: () => void; 
+    isDeleting: boolean;
+    variableName: string;
+}) {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="w-[350px] p-6 text-center" style={{ color: "white" }}>
+                <Trash2 className="w-10 h-10 mx-auto mb-4 text-destructive" />
+                <h4 className="text-lg font-semibold mb-2">Are you sure you want to delete this variable?</h4>
+                <p className="text-muted-foreground mb-2">Variable: <span className="font-semibold">{variableName}</span></p>
+                <p className="text-muted-foreground mb-6">This action cannot be undone.</p>
+                <div className="flex justify-center gap-4">
+                    <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isDeleting}>
+                        Cancel
+                    </Button>
+                    <Button variant="destructive" onClick={onConfirm} disabled={isDeleting}>
+                        {isDeleting ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                        Delete
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
 }
 
 export default function VariablesPage() {
     const { user } = useAuth();
+    const { toast } = useToast();
     const [variables, setVariables] = useState<Variable[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -37,6 +72,9 @@ export default function VariablesPage() {
     const [totalCount, setTotalCount] = useState(0);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingVariable, setEditingVariable] = useState<Variable | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deletingVariable, setDeletingVariable] = useState<Variable | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const limit = 10;
 
@@ -70,15 +108,34 @@ export default function VariablesPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this variable?')) return;
+    const handleDelete = async (variable: Variable) => {
+        setDeletingVariable(variable);
+        setDeleteDialogOpen(true);
+    };
 
+    const confirmDelete = async () => {
+        if (!deletingVariable) return;
+
+        setIsDeleting(true);
         try {
-            await apiClient.delete(`/api/variables/${id}`);
+            await apiClient.delete(`/api/variables/${deletingVariable.id}`);
+            toast({
+                title: 'Success',
+                description: 'Variable deleted successfully',
+            });
             fetchVariables();
-        } catch (err) {
+            setDeleteDialogOpen(false);
+            setDeletingVariable(null);
+        } catch (err: any) {
             console.error('Failed to delete variable:', err);
-            alert('Failed to delete variable');
+            const errorMessage = err?.message || 'Failed to delete variable';
+            toast({
+                title: 'Error',
+                description: errorMessage,
+                variant: 'destructive',
+            });
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -205,7 +262,15 @@ export default function VariablesPage() {
                             variables.map((variable) => (
                                 <TableRow key={variable.id}>
                                     <TableCell>
-                                        <div className="font-medium">{variable.name}</div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium">{variable.name}</span>
+                                            {variable.is_system && (
+                                                <Badge variant="outline" className="bg-indigo-500/10 text-indigo-400 border-indigo-500/30">
+                                                    <Lock className="w-3 h-3 mr-1" />
+                                                    System
+                                                </Badge>
+                                            )}
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         <div className="text-sm text-muted-foreground truncate max-w-xs">
@@ -224,23 +289,29 @@ export default function VariablesPage() {
                                         {formatDate(variable.created_at)}
                                     </TableCell>
                                     <TableCell>
-                                        <div className="flex items-center space-x-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleEdit(variable)}
-                                            >
-                                                <Edit className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleDelete(variable.id)}
-                                                className="text-destructive hover:text-destructive"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
+                                        {variable.is_system ? (
+                                            <div className="text-xs text-muted-foreground italic">
+                                                Read-only
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center space-x-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleEdit(variable)}
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleDelete(variable)}
+                                                    className="text-destructive hover:text-destructive"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -291,6 +362,15 @@ export default function VariablesPage() {
                     setEditingVariable(null);
                 }}
                 editVariable={editingVariable as any}
+            />
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDeleteDialog
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                onConfirm={confirmDelete}
+                isDeleting={isDeleting}
+                variableName={deletingVariable?.name || ''}
             />
         </div>
     );

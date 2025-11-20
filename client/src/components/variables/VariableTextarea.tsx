@@ -53,12 +53,12 @@ export default function VariableTextarea({ value, onChange, placeholder, classNa
 
         if (lastHashIndex !== -1) {
             const textAfterHash = textBeforeCursor.substring(lastHashIndex + 1);
-            
+
             // Only show menu if there's no space or newline after #
             if (!textAfterHash.includes(' ') && !textAfterHash.includes('\n')) {
                 setSearchTerm(textAfterHash);
                 variableStartIndex.current = lastHashIndex;
-                
+
                 // Filter variables
                 const search = textAfterHash.toLowerCase();
                 const filtered = variables.filter(v =>
@@ -66,7 +66,7 @@ export default function VariableTextarea({ value, onChange, placeholder, classNa
                     v.description.toLowerCase().includes(search)
                 );
                 setFilteredVariables(filtered);
-                
+
                 // Calculate menu position
                 if (textareaRef.current) {
                     const rect = textareaRef.current.getBoundingClientRect();
@@ -75,7 +75,7 @@ export default function VariableTextarea({ value, onChange, placeholder, classNa
                         left: rect.left
                     });
                 }
-                
+
                 setShowMenu(true);
                 setSelectedIndex(0);
             } else {
@@ -93,13 +93,13 @@ export default function VariableTextarea({ value, onChange, placeholder, classNa
         const cursorPosition = textareaRef.current.selectionStart || 0;
         const beforeHash = value.substring(0, variableStartIndex.current);
         const afterCursor = value.substring(cursorPosition);
-        
+
         const newValue = `${beforeHash}#{${variable.name}} ${afterCursor}`;
         onChange(newValue);
-        
+
         setShowMenu(false);
         variableStartIndex.current = -1;
-        
+
         // Set cursor position after variable
         setTimeout(() => {
             if (textareaRef.current) {
@@ -160,7 +160,7 @@ export default function VariableTextarea({ value, onChange, placeholder, classNa
                     className="fixed bg-[#0f1419] border border-gray-700/50 rounded-lg shadow-2xl w-80 max-h-64 overflow-y-auto z-[9999]"
                     style={{
                         top: `${menuPosition.top}px`,
-                        left: `${menuPosition.left}px`,
+                        // left: `${menuPosition.left}px`,
                     }}
                     onMouseDown={(e) => e.preventDefault()}
                 >
@@ -189,11 +189,6 @@ export default function VariableTextarea({ value, onChange, placeholder, classNa
                                             <div className="text-sm font-medium text-gray-200 truncate">
                                                 {variable.name}
                                             </div>
-                                            {variable.description && (
-                                                <div className="text-xs text-gray-500 truncate mt-0.5">
-                                                    {variable.description}
-                                                </div>
-                                            )}
                                         </div>
                                         <span className="text-xs px-2 py-0.5 rounded bg-gray-700/50 text-gray-400 flex-shrink-0">
                                             {variable.format}

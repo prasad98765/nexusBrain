@@ -69,11 +69,6 @@ export default function CreateVariableModal({ isOpen, onClose, onSuccess, editVa
             return;
         }
 
-        if (!formData.description.trim()) {
-            setError('Description is required');
-            return;
-        }
-
         // Check if error message is required
         if (ERROR_MESSAGE_REQUIRED_FORMATS.includes(formData.format) && !formData.error_message?.trim()) {
             setError(`Error message is required for ${formData.format} format`);

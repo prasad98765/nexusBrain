@@ -66,12 +66,46 @@ export default function VariableInput({ value, onChange, placeholder, className 
                 );
                 setFilteredVariables(filtered);
 
-                // Calculate menu position
+                // Calculate cursor position within input for accurate dropdown placement
                 if (inputRef.current) {
-                    const rect = inputRef.current.getBoundingClientRect();
+                    const input = inputRef.current;
+                    const rect = input.getBoundingClientRect();
+
+                    // Create a temporary span to measure text width up to cursor
+                    const span = document.createElement('span');
+                    const computedStyle = window.getComputedStyle(input);
+
+                    // Copy input styles to span for accurate measurement
+                    span.style.position = 'absolute';
+                    span.style.visibility = 'hidden';
+                    span.style.whiteSpace = 'pre';
+                    span.style.font = computedStyle.font;
+                    span.style.padding = computedStyle.padding;
+                    span.style.border = computedStyle.border;
+
+                    // Set text up to cursor position
+                    span.textContent = textBeforeCursor;
+                    document.body.appendChild(span);
+
+                    // Get width of text before cursor
+                    const textWidth = span.getBoundingClientRect().width;
+                    document.body.removeChild(span);
+
+                    // Calculate horizontal position
+                    // Add padding-left from computed style
+                    const paddingLeft = parseInt(computedStyle.paddingLeft) || 0;
+                    let leftPosition = rect.left + paddingLeft + textWidth;
+
+                    // Ensure dropdown doesn't go off-screen on the right
+                    const dropdownWidth = 320; // w-80 = 320px
+                    const viewportWidth = window.innerWidth;
+                    if (leftPosition + dropdownWidth > viewportWidth) {
+                        leftPosition = viewportWidth - dropdownWidth - 10;
+                    }
+
                     setMenuPosition({
                         top: rect.bottom + 4,
-                        left: rect.left
+                        left: leftPosition
                     });
                 }
 
@@ -158,7 +192,7 @@ export default function VariableInput({ value, onChange, placeholder, className 
                     className="fixed bg-[#0f1419] border border-gray-700/50 rounded-lg shadow-2xl w-80 max-h-64 overflow-y-auto z-[9999]"
                     style={{
                         top: `${menuPosition.top}px`,
-                        left: `${menuPosition.left}px`,
+                        // left: `${menuPosition.left}px`,
                     }}
                     onMouseDown={(e) => e.preventDefault()}
                 >

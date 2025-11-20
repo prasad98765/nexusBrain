@@ -68,7 +68,7 @@ export default function VariableSelector({ value, onChange, label = 'Save Respon
             <div className="space-y-2">
                 {label && <Label className="text-sm font-medium text-gray-200">{label}</Label>}
 
-                <Popover open={open} onOpenChange={setOpen}>
+                <Popover open={open} onOpenChange={setOpen} modal={true}>
                     <PopoverTrigger asChild>
                         <Button
                             variant="outline"
@@ -102,7 +102,7 @@ export default function VariableSelector({ value, onChange, label = 'Save Respon
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[380px] p-0 bg-[#0f1419] border-gray-700/50" align="start">
+                    <PopoverContent className="w-[380px] p-0 bg-[#0f1419] border-gray-700/50 z-[9999]" align="start">
                         <Command className="bg-[#0f1419] border-0">
                             <CommandInput
                                 placeholder="Search variables..."

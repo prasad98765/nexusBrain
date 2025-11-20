@@ -161,6 +161,7 @@ export default function JsonResponseViewer({ response, onAddMapping, existingMap
                                                         <Popover 
                                                             open={openPopover === keyPathStr} 
                                                             onOpenChange={(open) => setOpenPopover(open ? keyPathStr : null)}
+                                                            modal={true}
                                                         >
                                                             <PopoverTrigger asChild>
                                                                 <Button
@@ -179,7 +180,7 @@ export default function JsonResponseViewer({ response, onAddMapping, existingMap
                                                                 </Button>
                                                             </PopoverTrigger>
                                                             <PopoverContent 
-                                                                className="w-80 p-2 bg-[#0f1419] border-gray-700/50"
+                                                                className="w-80 p-2 bg-[#0f1419] border-gray-700/50 z-[9999]"
                                                                 align="start"
                                                             >
                                                                 <div className="space-y-2">

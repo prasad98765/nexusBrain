@@ -98,6 +98,7 @@ def create_variable():
                 'format': variable.format,
                 'error_message': variable.error_message,
                 'regex_pattern': variable.regex_pattern,
+                'is_system': variable.is_system,
                 'created_at': variable.created_at.isoformat(),
                 'updated_at': variable.updated_at.isoformat()
             }
@@ -156,6 +157,7 @@ def list_variables():
             'format': var.format,
             'error_message': var.error_message,
             'regex_pattern': var.regex_pattern,
+            'is_system': var.is_system,
             'created_at': var.created_at.isoformat(),
             'updated_at': var.updated_at.isoformat()
         } for var in variables.items]
@@ -192,6 +194,7 @@ def get_variable(variable_id):
                 'format': variable.format,
                 'error_message': variable.error_message,
                 'regex_pattern': variable.regex_pattern,
+                'is_system': variable.is_system,
                 'created_at': variable.created_at.isoformat(),
                 'updated_at': variable.updated_at.isoformat()
             }
@@ -214,6 +217,12 @@ def update_variable(variable_id):
         
         if not variable:
             return jsonify({'error': 'Variable not found'}), 404
+        
+        # Check if variable is a system variable
+        if variable.is_system:
+            return jsonify({
+                'error': 'System variables cannot be modified. This is a read-only variable managed by the system.'
+            }), 403
         
         # Update name if provided
         if 'name' in data:
@@ -284,6 +293,7 @@ def update_variable(variable_id):
                 'format': variable.format,
                 'error_message': variable.error_message,
                 'regex_pattern': variable.regex_pattern,
+                'is_system': variable.is_system,
                 'created_at': variable.created_at.isoformat(),
                 'updated_at': variable.updated_at.isoformat()
             }
@@ -304,6 +314,12 @@ def delete_variable(variable_id):
         
         if not variable:
             return jsonify({'error': 'Variable not found'}), 404
+        
+        # Check if variable is a system variable
+        if variable.is_system:
+            return jsonify({
+                'error': 'System variables cannot be deleted. This is a read-only variable managed by the system.'
+            }), 403
         
         db.session.delete(variable)
         db.session.commit()
