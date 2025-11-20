@@ -24,9 +24,10 @@ export default function VariableTextarea({ value, onChange, placeholder, classNa
     const [filteredVariables, setFilteredVariables] = useState<Variable[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedIndex, setSelectedIndex] = useState(0);
-    const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+    const [menuPosition, setMenuPosition] = useState({ top: 0 });
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const variableStartIndex = useRef<number>(-1);
+    const menuRef = useRef<HTMLDivElement>(null);
 
     // Fetch variables
     useEffect(() => {
@@ -72,7 +73,7 @@ export default function VariableTextarea({ value, onChange, placeholder, classNa
                     const rect = textareaRef.current.getBoundingClientRect();
                     setMenuPosition({
                         top: rect.bottom + 4,
-                        left: rect.left
+                        // left: rect.left
                     });
                 }
 
@@ -130,16 +131,81 @@ export default function VariableTextarea({ value, onChange, placeholder, classNa
         }
     };
 
-    // Close menu when clicking outside
+    // Close menu when clicking outside or update position on scroll
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if (showMenu && !textareaRef.current?.contains(e.target as Node)) {
+            if (showMenu && !textareaRef.current?.contains(e.target as Node) && !menuRef.current?.contains(e.target as Node)) {
                 setShowMenu(false);
             }
         };
 
+        const updatePosition = (e: Event) => {
+            if (showMenu && textareaRef.current) {
+                // Check if scroll is happening inside the dropdown menu
+                if (menuRef.current && menuRef.current.contains(e.target as Node)) {
+                    // Ignore scroll events from within the dropdown
+                    return;
+                }
+
+                const textarea = textareaRef.current;
+                const rect = textarea.getBoundingClientRect();
+
+                // Get current cursor position
+                const cursorPosition = textarea.selectionStart || 0;
+                const textBeforeCursor = textarea.value.substring(0, cursorPosition);
+
+                // Create a mirror div to calculate cursor position
+                const mirrorDiv = document.createElement('div');
+                const computedStyle = window.getComputedStyle(textarea);
+
+                // Copy textarea styles to mirror
+                mirrorDiv.style.position = 'absolute';
+                mirrorDiv.style.visibility = 'hidden';
+                mirrorDiv.style.whiteSpace = 'pre-wrap';
+                mirrorDiv.style.wordWrap = 'break-word';
+                mirrorDiv.style.font = computedStyle.font;
+                mirrorDiv.style.padding = computedStyle.padding;
+                mirrorDiv.style.border = computedStyle.border;
+                mirrorDiv.style.width = `${textarea.clientWidth}px`;
+                mirrorDiv.style.lineHeight = computedStyle.lineHeight;
+
+                // Set text up to cursor position
+                mirrorDiv.textContent = textBeforeCursor;
+
+                // Add span for cursor position
+                const cursorSpan = document.createElement('span');
+                cursorSpan.textContent = '|';
+                mirrorDiv.appendChild(cursorSpan);
+
+                document.body.appendChild(mirrorDiv);
+
+                // Get cursor position
+                const cursorRect = cursorSpan.getBoundingClientRect();
+                const textareaScrollTop = textarea.scrollTop;
+
+                // Clean up
+                document.body.removeChild(mirrorDiv);
+
+                // Calculate position relative to textarea
+                const relativeTop = cursorRect.top - rect.top + textareaScrollTop;
+                const relativeLeft = cursorRect.left - rect.left;
+
+                // Position menu at cursor location
+                setMenuPosition({
+                    top: rect.top + relativeTop + 20,
+                    // left: rect.left + relativeLeft
+                });
+            }
+        };
+
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        // Update position on scroll to keep dropdown aligned with textarea
+        window.addEventListener('scroll', updatePosition, true);
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            window.removeEventListener('scroll', updatePosition, true);
+        };
     }, [showMenu]);
 
     return (
@@ -157,6 +223,7 @@ export default function VariableTextarea({ value, onChange, placeholder, classNa
             {/* Variable Autocomplete Menu */}
             {showMenu && (
                 <div
+                    ref={menuRef}
                     className="fixed bg-[#0f1419] border border-gray-700/50 rounded-lg shadow-2xl w-80 max-h-64 overflow-y-auto z-[9999]"
                     style={{
                         top: `${menuPosition.top}px`,

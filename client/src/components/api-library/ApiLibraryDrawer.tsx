@@ -71,6 +71,7 @@ export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess }: 
                     response_mappings: [],
                     account_code: ''
                 });
+                setTestResponse(null);
             }
         }
     }, [isOpen, apiId]);

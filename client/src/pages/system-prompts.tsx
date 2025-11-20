@@ -14,9 +14,6 @@ import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -33,6 +30,7 @@ import {
   CheckCircle,
   RefreshCw,
   Info,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -84,6 +82,7 @@ function PromptModal({ open, onOpenChange, prompt, onSave, isLoading }: PromptMo
     is_active: false,
   });
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const { token } = useAuth();
   const { toast } = useToast();
 
@@ -94,6 +93,7 @@ function PromptModal({ open, onOpenChange, prompt, onSave, isLoading }: PromptMo
         prompt: prompt?.prompt || '',
         is_active: prompt?.is_active || false,
       });
+      setIsInitialized(false);
     }
   }, [prompt, open]);
 
@@ -155,15 +155,71 @@ function PromptModal({ open, onOpenChange, prompt, onSave, isLoading }: PromptMo
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" style={{ color: "white" }}>
-        <DialogHeader>
-          <DialogTitle>
-            {prompt ? 'Edit System Prompt' : 'Create New System Prompt'}
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      {/* Backdrop */}
+      {open && (
+        <div
+          className="fixed inset-0 bg-black/50 z-[100] transition-opacity duration-300"
+          onClick={() => onOpenChange(false)}
+        />
+      )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Drawer */}
+      <div
+        className={`fixed top-0 right-0 bottom-0 left-64 bg-[#0f1419] shadow-2xl z-[101] flex flex-col transition-transform duration-300 ease-out ${
+          open ? 'translate-x-0' : 'translate-x-full'
+        }`}
+        style={{ pointerEvents: open ? 'auto' : 'none' }}
+      >
+        {/* Header */}
+        <div className="flex-shrink-0 bg-[#0f1419] border-b border-gray-700/50 px-8 py-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-100">
+              {prompt ? 'Edit System Prompt' : 'Create New System Prompt'}
+            </h2>
+            <p className="text-sm text-gray-400 mt-1">
+              {prompt ? 'Update your system prompt configuration' : 'Configure a new system prompt for AI responses'}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+              className="border-gray-700 hover:bg-gray-800"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              onClick={handleSubmit}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isLoading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  {prompt ? 'Updating...' : 'Creating...'}
+                </>
+              ) : (
+                prompt ? 'Update Prompt' : 'Create Prompt'
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onOpenChange(false)}
+              className="text-gray-400 hover:text-gray-100 hover:bg-gray-800"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Form Content */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <form onSubmit={handleSubmit} className="px-8 py-6 space-y-6">
           <div>
             <Label htmlFor="title">Title</Label>
             <Input
@@ -225,29 +281,10 @@ function PromptModal({ open, onOpenChange, prompt, onSave, isLoading }: PromptMo
             <Label htmlFor="isActive">Set as active prompt</Label>
           </div>
 
-          <div className="flex justify-end space-x-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  {prompt ? 'Updating...' : 'Creating...'}
-                </>
-              ) : (
-                prompt ? 'Update Prompt' : 'Create Prompt'
-              )}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </form>
+        </div>
+      </div>
+    </>
   );
 }
 

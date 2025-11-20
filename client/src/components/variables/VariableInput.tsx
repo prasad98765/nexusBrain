@@ -23,9 +23,10 @@ export default function VariableInput({ value, onChange, placeholder, className 
     const [filteredVariables, setFilteredVariables] = useState<Variable[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedIndex, setSelectedIndex] = useState(0);
-    const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+    const [menuPosition, setMenuPosition] = useState({ top: 0 });
     const inputRef = useRef<HTMLInputElement>(null);
     const variableStartIndex = useRef<number>(-1);
+    const menuRef = useRef<HTMLDivElement>(null);
 
     // Fetch variables
     useEffect(() => {
@@ -105,7 +106,7 @@ export default function VariableInput({ value, onChange, placeholder, className 
 
                     setMenuPosition({
                         top: rect.bottom + 4,
-                        left: leftPosition
+                        // left: leftPosition
                     });
                 }
 
@@ -163,16 +164,75 @@ export default function VariableInput({ value, onChange, placeholder, className 
         }
     };
 
-    // Close menu when clicking outside
+    // Close menu when clicking outside or update position on scroll
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if (showMenu && !inputRef.current?.contains(e.target as Node)) {
+            if (showMenu && !inputRef.current?.contains(e.target as Node) && !menuRef.current?.contains(e.target as Node)) {
                 setShowMenu(false);
             }
         };
 
+        const updatePosition = (e: Event) => {
+            if (showMenu && inputRef.current) {
+                // Check if scroll is happening inside the dropdown menu
+                if (menuRef.current && menuRef.current.contains(e.target as Node)) {
+                    // Ignore scroll events from within the dropdown
+                    return;
+                }
+
+                const input = inputRef.current;
+                const rect = input.getBoundingClientRect();
+
+                // Create a temporary span to measure text width up to cursor
+                const span = document.createElement('span');
+                const computedStyle = window.getComputedStyle(input);
+
+                // Copy input styles to span for accurate measurement
+                span.style.position = 'absolute';
+                span.style.visibility = 'hidden';
+                span.style.whiteSpace = 'pre';
+                span.style.font = computedStyle.font;
+                span.style.padding = computedStyle.padding;
+                span.style.border = computedStyle.border;
+
+                // Get current cursor position
+                const cursorPosition = input.selectionStart || 0;
+                const textBeforeCursor = input.value.substring(0, cursorPosition);
+
+                // Set text up to cursor position
+                span.textContent = textBeforeCursor;
+                document.body.appendChild(span);
+
+                // Get width of text before cursor
+                const textWidth = span.getBoundingClientRect().width;
+                document.body.removeChild(span);
+
+                // Calculate horizontal position
+                const paddingLeft = parseInt(computedStyle.paddingLeft) || 0;
+                let leftPosition = rect.left + paddingLeft + textWidth;
+
+                // Ensure dropdown doesn't go off-screen on the right
+                const dropdownWidth = 320;
+                const viewportWidth = window.innerWidth;
+                if (leftPosition + dropdownWidth > viewportWidth) {
+                    leftPosition = viewportWidth - dropdownWidth - 10;
+                }
+
+                setMenuPosition({
+                    top: rect.bottom + 4,
+                    // left: leftPosition
+                });
+            }
+        };
+
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        // Update position on scroll to keep dropdown aligned with input
+        window.addEventListener('scroll', updatePosition, true);
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            window.removeEventListener('scroll', updatePosition, true);
+        };
     }, [showMenu]);
 
     return (
@@ -189,6 +249,7 @@ export default function VariableInput({ value, onChange, placeholder, className 
             {/* Variable Autocomplete Menu */}
             {showMenu && (
                 <div
+                    ref={menuRef}
                     className="fixed bg-[#0f1419] border border-gray-700/50 rounded-lg shadow-2xl w-80 max-h-64 overflow-y-auto z-[9999]"
                     style={{
                         top: `${menuPosition.top}px`,

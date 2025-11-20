@@ -1318,7 +1318,7 @@ def create_completion():
         # Get workspace_id from API token
             workspace_id = str(api_token.workspace_id)
             rag_top_k = data.get("rag_top_k", 3)
-            rag_threshold = data.get("rag_threshold", 0.50)
+            rag_threshold = data.get("rag_threshold", 0.75)
             
             # Get the current prompt (which may already have system prompt prepended)
             current_prompt = payload["prompt"]
@@ -2032,7 +2032,7 @@ def create_chat_completion():
             # Get workspace_id from API token
             workspace_id = str(api_token.workspace_id)
             rag_top_k = data.get("rag_top_k", 3)
-            rag_threshold = data.get("rag_threshold", 0.50)
+            rag_threshold = data.get("rag_threshold", 0.75)
             
             # Get the current messages (which may already have system prompt added)
             current_messages = payload["messages"]
