@@ -113,7 +113,7 @@ function FlowBuilderInner({ agentId, onBackClick }: FlowBuilderProps) {
   useEffect(() => {
     const loadFlow = async () => {
       try {
-        const response = await fetch(`/api/agents/${agentId}/flow`, {
+        const response = await fetch(`/api/flow-agents/${agentId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -122,8 +122,8 @@ function FlowBuilderInner({ agentId, onBackClick }: FlowBuilderProps) {
         });
         if (response.ok) {
           const data = await response.json();
-          if (data.flow && reactFlowInstance) {
-            const { nodes: loadedNodes, edges: loadedEdges } = data.flow;
+          if (data.flowData && reactFlowInstance) {
+            const { nodes: loadedNodes, edges: loadedEdges } = data.flowData;
             if (loadedNodes?.length > 0) {
               setNodes(loadedNodes);
               setEdges(loadedEdges || []);
@@ -138,20 +138,20 @@ function FlowBuilderInner({ agentId, onBackClick }: FlowBuilderProps) {
     if (agentId && reactFlowInstance) {
       loadFlow();
     }
-  }, [agentId, reactFlowInstance, setNodes, setEdges]);
+  }, [agentId, reactFlowInstance, setNodes, setEdges, token]);
 
   const saveFlow = async () => {
     if (!reactFlowInstance) return;
 
     const flow = reactFlowInstance.toObject();
     try {
-      const response = await fetch(`/api/agents/${agentId}/flow`, {
-        method: 'POST',
+      const response = await fetch(`/api/flow-agents/${agentId}/flow`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ flow }),
+        body: JSON.stringify({ flowData: flow }),
       });
 
       if (response.ok) {

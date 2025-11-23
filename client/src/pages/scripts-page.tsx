@@ -579,7 +579,7 @@ export default function ScriptsPage() {
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="flex items-center justify-between mb-6">
-              <TabsList className="grid max-w-4xl grid-cols-5 bg-slate-800">
+              <TabsList className="grid max-w-4xl grid-cols-4 bg-slate-800">
                 <TabsTrigger value="theme" className="data-[state=active]:bg-indigo-600">
                   <Palette className="w-4 h-4 mr-2" />
                   Customized Theme
@@ -591,10 +591,6 @@ export default function ScriptsPage() {
                 <TabsTrigger value="model-config" className="data-[state=active]:bg-indigo-600">
                   <Settings2 className="w-4 h-4 mr-2" />
                   Model Config
-                </TabsTrigger>
-                <TabsTrigger value="flow" className="data-[state=active]:bg-indigo-600">
-                  <Workflow className="w-4 h-4 mr-2" />
-                  Flow
                 </TabsTrigger>
                 <TabsTrigger value="script" className="data-[state=active]:bg-indigo-600">
                   <Code className="w-4 h-4 mr-2" />
@@ -1379,7 +1375,7 @@ export default function ScriptsPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="flow" className="space-y-6 mt-6">
+            {/* <TabsContent value="flow" className="space-y-6 mt-6">
               <Card className="bg-slate-800 border-slate-700">
                 <CardHeader>
                   <CardTitle className="text-slate-100">Visual Flow Builder</CardTitle>
@@ -1395,7 +1391,7 @@ export default function ScriptsPage() {
                   />
                 </CardContent>
               </Card>
-            </TabsContent>
+            </TabsContent> */}
 
             <TabsContent value="script" className="space-y-6 mt-6">
               <Card className="bg-slate-800 border-slate-700">

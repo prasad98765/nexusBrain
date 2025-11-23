@@ -284,3 +284,19 @@ class ApiLibraryRun(db.Model):
     
     # Relationships
     workspace = db.relationship('Workspace', backref='api_library_runs', lazy=True)
+
+class FlowAgent(db.Model):
+    __tablename__ = 'flow_agents'
+    
+    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid4()))
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    flow_data = db.Column(db.JSON)  # Store ReactFlow nodes and edges
+    workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+    configuration = db.Column(db.JSON)  # Store additional settings like model config, prompts
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    workspace = db.relationship('Workspace', backref='flow_agents', lazy=True)

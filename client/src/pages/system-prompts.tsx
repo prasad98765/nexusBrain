@@ -166,9 +166,8 @@ function PromptModal({ open, onOpenChange, prompt, onSave, isLoading }: PromptMo
 
       {/* Drawer */}
       <div
-        className={`fixed top-0 right-0 bottom-0 left-64 bg-[#0f1419] shadow-2xl z-[101] flex flex-col transition-transform duration-300 ease-out ${
-          open ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className={`fixed top-0 right-0 bottom-0 left-64 bg-[#0f1419] shadow-2xl z-[101] flex flex-col transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'
+          }`}
         style={{ pointerEvents: open ? 'auto' : 'none' }}
       >
         {/* Header */}
@@ -220,66 +219,67 @@ function PromptModal({ open, onOpenChange, prompt, onSave, isLoading }: PromptMo
         {/* Form Content */}
         <div className="flex-1 overflow-y-auto min-h-0">
           <form onSubmit={handleSubmit} className="px-8 py-6 space-y-6">
-          <div>
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              placeholder="Enter prompt title..."
-              required
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="prompt">System Prompt</Label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-gray-500 cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="bg-gray-900 border-gray-700 text-xs max-w-[250px]">
-                      <p>Type <span className="font-mono bg-gray-800 px-1 rounded">#</span> to insert variables into your prompt</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleEnhance}
-                disabled={isEnhancing || !formData?.prompt?.trim()}
-                className="flex items-center gap-2"
-              >
-                {isEnhancing ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4" />
-                )}
-                Enhance with AI
-              </Button>
+            <div>
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Enter prompt title..."
+                required
+              />
             </div>
-            <RichTextEditor
-              value={formData.prompt}
-              onChange={(value) => setFormData(prev => ({ ...prev, prompt: value }))}
-              placeholder="Enter your system prompt here... (Type # to insert variables)"
-              className="min-h-[200px]"
-            />
-          </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isActive"
+                checked={formData.is_active}
+                onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                className="rounded"
+              />
+              <Label htmlFor="isActive">Set as active prompt</Label>
+            </div>
 
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="isActive"
-              checked={formData.is_active}
-              onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
-              className="rounded"
-            />
-            <Label htmlFor="isActive">Set as active prompt</Label>
-          </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="prompt">System Prompt</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-gray-500 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="bg-gray-900 border-gray-700 text-xs max-w-[250px]">
+                        <p>Type <span className="font-mono bg-gray-800 px-1 rounded">#</span> to insert variables into your prompt</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEnhance}
+                  disabled={isEnhancing || !formData?.prompt?.trim()}
+                  className="flex items-center gap-2"
+                >
+                  {isEnhancing ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  Enhance with AI
+                </Button>
+              </div>
+              <RichTextEditor
+                value={formData.prompt}
+                onChange={(value) => setFormData(prev => ({ ...prev, prompt: value }))}
+                placeholder="Enter your system prompt here... (Type # to insert variables)"
+                className="min-h-[200px]"
+              />
+            </div>
+
 
           </form>
         </div>

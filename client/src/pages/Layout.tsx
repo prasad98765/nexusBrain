@@ -117,7 +117,7 @@ export default function Layout() {
             />
           </button>
 
-          <button
+          {/* <button
             className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${active === 'contacts' ? 'bg-slate-700' : ''
               }`}
             onClick={() => {
@@ -126,17 +126,6 @@ export default function Layout() {
             }}
           >
             <Users className={`h-5 w-5 ${active === 'contacts' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
-              }`} />
-          </button>
-          {/* <button
-            className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${active === 'flow-builder' ? 'bg-slate-700' : ''
-              }`}
-            onClick={() => {
-              setActive("flow-builder");
-              navigate("/nexus/flow-builder");
-            }}
-          >
-            <Workflow className={`h-5 w-5 ${active === 'flow-builder' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
               }`} />
           </button> */}
           <button
