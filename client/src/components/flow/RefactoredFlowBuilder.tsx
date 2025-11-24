@@ -87,7 +87,7 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
                 data:
                     type === 'button' || type === 'message'
                         ? {
-                            label: 'Button Node',
+                            label: 'Interactive Node',
                             message: 'What would you like to choose?',
                             buttons: [],
                         }
@@ -317,7 +317,7 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
                             <div>
                                 <h4 className="text-xs font-medium text-gray-500 uppercase mb-2 px-2">Input/Output</h4>
                                 <div className="space-y-1">
-                                    <ComponentItem label="Button Node" type="button" />
+                                    <ComponentItem label="Interactive Node" type="button" />
                                     <ComponentItem label="Input Node" type="input" />
                                 </div>
                             </div>

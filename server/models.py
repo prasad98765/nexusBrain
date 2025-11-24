@@ -188,6 +188,7 @@ class ApiUsageLog(db.Model):
     cached = db.Column(db.Boolean, default=False)  # Whether response was served from cache
     cache_type = db.Column(db.String(20), nullable=True)  # "exact" or "semantic"
     document_contexts = db.Column(db.Boolean, default=False)  # Whether RAG contexts were used
+    rag_document_names = db.Column(db.Text, nullable=True)  # Comma-separated list of RAG document names
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships

@@ -22,7 +22,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 # Async logging to prevent blocking
 def async_log_api_usage(api_token_id, workspace_id, endpoint, method, payload, response_data, status_code,
-                        response_time_ms, cached=False, cache_type=None, error_message=None, document_contexts=False):
+                        response_time_ms, cached=False, cache_type=None, error_message=None, document_contexts=False, rag_document_names=None):
     """Log API usage in a background thread to avoid blocking the main request."""
     app = current_app._get_current_object()
 
@@ -43,12 +43,12 @@ def async_log_api_usage(api_token_id, workspace_id, endpoint, method, payload, r
             workspace = Workspace.query.get(workspace_id) if workspace_id else None
 
             log_api_usage_background(api_token, workspace, endpoint, method, payload, response_data,
-                                   status_code, response_time_ms, cached, cache_type, error_message, req_meta, document_contexts)
+                                   status_code, response_time_ms, cached, cache_type, error_message, req_meta, document_contexts, rag_document_names)
 
     threading.Thread(target=_log_with_context, daemon=True).start()
 
 def log_api_usage_background(api_token, workspace, endpoint, method, payload, response_data, status_code,
-                           response_time_ms, cached=False, cache_type=None, error_message=None, request_meta=None, document_contexts=False):
+                           response_time_ms, cached=False, cache_type=None, error_message=None, request_meta=None, document_contexts=False, rag_document_names=None):
     """Background version of log_api_usage that handles its own DB operations."""
     try:
         # Extract model information from payload
@@ -156,7 +156,8 @@ def log_api_usage_background(api_token, workspace, endpoint, method, payload, re
             user_agent=user_agent,
             cached=cached,
             cache_type=cache_type,
-            document_contexts=document_contexts
+            document_contexts=document_contexts,
+            rag_document_names=rag_document_names
         )
         logger.info(f"Prepared log entry for API usage: {log_entry}")
         if not cached and usage_data.get('usage'):
@@ -1267,6 +1268,7 @@ def create_completion():
 
     # RAG Integration - augment prompt with retrieved context
     rag_contexts = []
+    rag_document_names = None  # Store document names for logging
     original_payload = payload.copy()  # Store original for caching
     document_contexts = False
     
@@ -1309,7 +1311,8 @@ def create_completion():
             response_time_ms=response_time_ms,
             cached=True,
             cache_type=cache_type,
-            document_contexts=document_contexts
+            document_contexts=document_contexts,
+            rag_document_names=rag_document_names
         )
 
         return jsonify(cached_response), 200
@@ -1318,7 +1321,7 @@ def create_completion():
         # Get workspace_id from API token
             workspace_id = str(api_token.workspace_id)
             rag_top_k = data.get("rag_top_k", 3)
-            rag_threshold = data.get("rag_threshold", 0.75)
+            rag_threshold = data.get("rag_threshold", 0.50)
             
             # Get the current prompt (which may already have system prompt prepended)
             current_prompt = payload["prompt"]
@@ -1337,7 +1340,15 @@ def create_completion():
                 # Keep original prompt for caching (without RAG context but with system prompt)
                 # Note: original_payload already has the system prompt if it was added
                 document_contexts = True
-                logger.info(f"Augmented prompt with {len(rag_contexts)} RAG contexts")
+                
+                # Extract unique document names from RAG contexts
+                doc_names = set()
+                for ctx in rag_contexts:
+                    if 'filename' in ctx and ctx['filename']:
+                        doc_names.add(ctx['filename'])
+                rag_document_names = ', '.join(sorted(doc_names)) if doc_names else None
+                
+                logger.info(f"Augmented prompt with {len(rag_contexts)} RAG contexts from documents: {rag_document_names}")
 
     # Cache miss - forward to OpenRouter
     if payload.get("stream"):
@@ -1460,7 +1471,8 @@ def create_completion():
                     response_time_ms=response_time_ms,
                     cached=False,
                     cache_type=None,
-                    document_contexts=document_contexts
+                    document_contexts=document_contexts,
+                    rag_document_names=rag_document_names
                 )
 
             # Return a new Response with our wrapped generator
@@ -1521,7 +1533,8 @@ def create_completion():
         response_time_ms=response_time_ms,
         cached=False,
         error_message=error_message,
-        document_contexts=document_contexts
+        document_contexts=document_contexts,
+        rag_document_names=rag_document_names
     )
 
     return response, status_code
@@ -1808,6 +1821,7 @@ def create_chat_completion():
 
     # RAG Integration - augment messages with retrieved context
     rag_contexts = []
+    rag_document_names = None  # Store document names for logging
     original_payload = payload.copy()  # Store original for caching
     document_contexts = False
     
@@ -2023,7 +2037,8 @@ def create_chat_completion():
             response_time_ms=response_time_ms,
             cached=True,
             cache_type=cache_type,
-            document_contexts=document_contexts
+            document_contexts=document_contexts,
+            rag_document_names=rag_document_names
         )
 
         return jsonify(cached_response), 200
@@ -2032,7 +2047,7 @@ def create_chat_completion():
             # Get workspace_id from API token
             workspace_id = str(api_token.workspace_id)
             rag_top_k = data.get("rag_top_k", 3)
-            rag_threshold = data.get("rag_threshold", 0.75)
+            rag_threshold = data.get("rag_threshold", 0.50)
             
             # Get the current messages (which may already have system prompt added)
             current_messages = payload["messages"]
@@ -2060,7 +2075,15 @@ def create_chat_completion():
                 # Keep original messages for caching (without RAG context but with system prompt)
                 # Note: original_payload already has the system prompt if it was added
                 document_contexts = True
-                logger.info(f"✅ Conversational RAG: Augmented chat with {len(rag_contexts)} contexts")
+                
+                # Extract unique document names from RAG contexts
+                doc_names = set()
+                for ctx in rag_contexts:
+                    if 'filename' in ctx and ctx['filename']:
+                        doc_names.add(ctx['filename'])
+                rag_document_names = ', '.join(sorted(doc_names)) if doc_names else None
+                
+                logger.info(f"✅ Conversational RAG: Augmented chat with {len(rag_contexts)} contexts from documents: {rag_document_names}")
                 
                 # Log RAG answer if available (for debugging/monitoring)
                 if rag_answer:
@@ -2216,7 +2239,8 @@ def create_chat_completion():
                     response_time_ms=response_time_ms,
                     cached=False,
                     cache_type=None,
-                    document_contexts=document_contexts
+                    document_contexts=document_contexts,
+                    rag_document_names=rag_document_names
                 )
                 
                 # Send related questions as a final SSE event
@@ -2378,7 +2402,8 @@ def create_chat_completion():
         response_time_ms=response_time_ms,
         cached=False,
         error_message=error_message,
-        document_contexts=document_contexts
+        document_contexts=document_contexts,
+        rag_document_names=rag_document_names
     )
 
     return response, status_code

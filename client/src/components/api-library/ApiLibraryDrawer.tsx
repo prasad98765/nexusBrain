@@ -37,9 +37,10 @@ interface ApiLibraryDrawerProps {
     onClose: () => void;
     apiId?: string | null;
     onSuccess: () => void;
+    fullWidth?: boolean; // New prop to control drawer width
 }
 
-export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess }: ApiLibraryDrawerProps) {
+export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess, fullWidth = false }: ApiLibraryDrawerProps) {
     const [formData, setFormData] = useState<ApiFormData | null>(null);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -281,11 +282,14 @@ export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess }: 
             {/* Drawer - Traditional drawer with left margin */}
             <div
                 className={cn(
-                    "fixed top-0 right-0 bottom-0 left-64 bg-[#0f1419] shadow-2xl z-[101] flex flex-col",
+                    "fixed top-0 right-0 bottom-0 bg-[#0f1419] shadow-2xl z-[101] flex flex-col",
                     "transition-transform duration-300 ease-out",
                     isOpen ? "translate-x-0" : "translate-x-full"
                 )}
-                style={{ pointerEvents: isOpen ? 'auto' : 'none' }}
+                style={{
+                    pointerEvents: isOpen ? 'auto' : 'none',
+                    width: fullWidth ? '300%' : 'calc(100% - 16rem)'
+                }}
             >
                 {/* Header with Save/Cancel */}
                 <div className="flex-shrink-0 flex items-center justify-between px-8 py-5 border-b border-gray-700/50 bg-[#0f1419]">

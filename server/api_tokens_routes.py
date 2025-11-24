@@ -1,6 +1,6 @@
 import hashlib
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Dict, Any
 
 from flask import Blueprint, request, jsonify
@@ -354,9 +354,17 @@ def get_usage_logs():
         offset = (page - 1) * limit
         logs = query.order_by(ApiUsageLog.created_at.desc()).offset(offset).limit(limit).all()
         
-        # Format response
+        # Format response with IST timezone conversion (12-hour format)
+        ist_offset = timedelta(hours=5, minutes=30)
         logs_data = []
         for log in logs:
+            # Convert UTC to IST
+            utc_time = log.created_at.replace(tzinfo=timezone.utc) if log.created_at.tzinfo is None else log.created_at
+            ist_time = utc_time.astimezone(timezone(ist_offset))
+            
+            # Format as 12-hour time (DD/MM/YYYY hh:mm:ss AM/PM IST)
+            formatted_time = ist_time.strftime('%d/%m/%Y %I:%M:%S %p IST')
+            
             logs_data.append({
                 'id': log.id,
                 'tokenId': log.token_id,
@@ -383,8 +391,9 @@ def get_usage_logs():
                 'userAgent': log.user_agent,
                 'cached': log.cached,
                 'cacheType': log.cache_type,
-                'createdAt': log.created_at.isoformat(),
-                "documentContexts": log.document_contexts
+                'createdAt': formatted_time,
+                "documentContexts": log.document_contexts,
+                "ragDocumentNames": log.rag_document_names
             })
         
         # Calculate total pages

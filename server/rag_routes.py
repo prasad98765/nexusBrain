@@ -273,6 +273,33 @@ def delete_document(filename):
         logger.error(f"Delete error: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
+@rag_bp.route('/rag/documents/<filename>/content', methods=['GET'])
+@require_auth
+def get_document_content(filename):
+    """
+    Retrieve the content of a specific document
+    """
+    try:
+        workspace_id = request.user.get('workspace_id')
+        
+        if not workspace_id:
+            return jsonify({'error': 'Workspace ID required'}), 401
+        
+        # Get document content from RAG service
+        content, error = rag_service.get_document_content(workspace_id, filename)
+        
+        if error:
+            return jsonify({'error': error}), 404
+        
+        return jsonify({
+            'filename': filename,
+            'content': content
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Get document content error: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
 @rag_bp.route('/rag/debug', methods=['POST'])
 @require_auth
 def debug_rag():

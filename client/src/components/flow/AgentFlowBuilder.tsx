@@ -24,6 +24,9 @@ import { apiClient } from '@/lib/apiClient';
 import ButtonNode from '@/components/flow/MessageNode';
 import AINode from '@/components/flow/AINode';
 import InputNode from '@/components/flow/InputNode';
+import ApiLibraryNode from '@/components/flow/ApiLibraryNode';
+import KnowledgeBaseNode from '@/components/flow/KnowledgeBaseNode';
+import EngineNode from '@/components/flow/EngineNode';
 import NodeConfigPanel from '@/components/flow/NodeConfigPanel';
 
 const nodeTypes: NodeTypes = {
@@ -31,6 +34,9 @@ const nodeTypes: NodeTypes = {
     message: ButtonNode, // Support legacy 'message' type
     ai: AINode,
     input: InputNode,
+    apiLibrary: ApiLibraryNode,
+    knowledgeBase: KnowledgeBaseNode,
+    engine: EngineNode,
 };
 
 const initialNodes: Node[] = [];
@@ -46,7 +52,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-    const [editingNode, setEditingNode] = useState<{ id: string; type: 'button' | 'input' | 'ai' } | null>(null);
+    const [editingNode, setEditingNode] = useState<{ id: string; type: 'button' | 'input' | 'ai' | 'apiLibrary' | 'knowledgeBase' } | null>(null);
     const [isLocked, setIsLocked] = useState(false);
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
     const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
@@ -54,7 +60,24 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
     const { user } = useAuth();
 
     const onConnect = useCallback(
-        (params: Connection) => setEdges((eds) => addEdge({ ...params, type: 'smoothstep', animated: true }, eds)),
+        (params: Connection) => {
+            // Determine edge style based on connection type
+            let edgeStyle = { stroke: '#4b5563', strokeWidth: 2 };
+            let animated = true;
+            
+            // If connecting to Language Model's Knowledge Base input (id: 'input')
+            if (params.targetHandle === 'input') {
+                edgeStyle = { stroke: '#6366f1', strokeWidth: 2 }; // Indigo color for KB connections
+                animated = true;
+            }
+            
+            setEdges((eds) => addEdge({ 
+                ...params, 
+                type: 'smoothstep', 
+                animated,
+                style: edgeStyle
+            }, eds));
+        },
         [setEdges]
     );
 
@@ -86,7 +109,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                 data:
                     type === 'button' || type === 'message'
                         ? {
-                            label: 'Button Node',
+                            label: 'Interactive Node',
                             message: 'What would you like to choose?',
                             buttons: [],
                         }
@@ -99,9 +122,30 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                             }
                             : type === 'ai'
                                 ? {
-                                    label: 'OpenAI',
+                                    label: 'Language Model',
+                                    model: 'meta-llama/llama-3.3-8b-instruct:free',
+                                    maxTokens: 300,
+                                    temperature: 0.7,
+                                    systemPrompt: '',
                                 }
-                                : {},
+                                : type === 'engine'
+                                    ? {
+                                        label: 'Engine',
+                                    }
+                                : type === 'apiLibrary'
+                                    ? {
+                                        label: 'API Library',
+                                        apiLibraryId: null,
+                                        apiName: '',
+                                        apiMethod: '',
+                                    }
+                                    : type === 'knowledgeBase'
+                                        ? {
+                                            label: 'Knowledge Base',
+                                            selectedDocuments: [],
+                                            documentCount: 0,
+                                        }
+                                        : {},
             };
 
             setNodes((nds) => nds.concat(newNode));
@@ -317,14 +361,22 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                             <div>
                                 <h4 className="text-xs font-medium text-gray-500 uppercase mb-2 px-2">Input/Output</h4>
                                 <div className="space-y-1">
-                                    <ComponentItem label="Button Node" type="button" />
+                                    <ComponentItem label="Interactive Node" type="button" />
                                     <ComponentItem label="Input Node" type="input" />
                                 </div>
                             </div>
                             <div>
                                 <h4 className="text-xs font-medium text-gray-500 uppercase mb-2 px-2">Processing</h4>
                                 <div className="space-y-1">
-                                    <ComponentItem label="OpenAI" type="ai" />
+                                    <ComponentItem label="Language Model" type="ai" />
+                                    <ComponentItem label="Engine" type="engine" />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-medium text-gray-500 uppercase mb-2 px-2">Integration</h4>
+                                <div className="space-y-1">
+                                    <ComponentItem label="API Library" type="apiLibrary" />
+                                    <ComponentItem label="Knowledge Base" type="knowledgeBase" />
                                 </div>
                             </div>
                         </div>

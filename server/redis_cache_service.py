@@ -26,7 +26,7 @@ class RedisCacheService:
     def __init__(
         self,
         redis_url: Optional[str] = os.getenv("REDIS_URL"),
-        similarity_threshold: float = 0.75,
+        similarity_threshold: float = 0.50,
         embedding_model: str = "all-MiniLM-L6-v2",
     ):
         self.redis_url = redis_url
@@ -242,7 +242,7 @@ def get_cache_service(cache_threshold: Optional[float] = None) -> RedisCacheServ
         if cache_threshold is not None and not (0.1 <= cache_threshold <= 0.99):
             logger.warning(f"Invalid cache_threshold {cache_threshold}, must be between 0.1 and 0.99. Using default.")
             cache_threshold = None
-        cache_service = RedisCacheService(similarity_threshold=cache_threshold if cache_threshold else 0.75)
+        cache_service = RedisCacheService(similarity_threshold=cache_threshold if cache_threshold else 0.50)
     elif cache_threshold is not None and cache_threshold != cache_service.similarity_threshold:
         logger.info(f"Updating similarity threshold from {cache_service.similarity_threshold} to {cache_threshold}")
         cache_service.similarity_threshold = cache_threshold

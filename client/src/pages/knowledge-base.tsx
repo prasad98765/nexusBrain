@@ -19,7 +19,9 @@ import {
     Sparkles,
     Trash2,
     Calendar,
-    RefreshCw
+    RefreshCw,
+    Eye,
+    X
 } from 'lucide-react';
 import {
     Dialog,
@@ -70,6 +72,15 @@ export default function KnowledgeBasePage() {
     const [deletingDoc, setDeletingDoc] = useState<string | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deletingEntry, setDeletingEntry] = useState<any>(null);
+    
+    // Tab state for filtering
+    const [activeTab, setActiveTab] = useState<'file' | 'text'>('file');
+
+    // View document state
+    const [viewingDocument, setViewingDocument] = useState<any | null>(null);
+    const [viewDialogOpen, setViewDialogOpen] = useState(false);
+    const [documentContent, setDocumentContent] = useState<string>('');
+    const [loadingContent, setLoadingContent] = useState(false);
 
     const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30 MB total
     const ALLOWED_TYPES = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'text/csv'];
@@ -171,24 +182,27 @@ export default function KnowledgeBasePage() {
             if (response.ok) {
                 const uploadedCount = data.uploaded_files?.length || 1;
                 const failedCount = data.failed_files?.length || 0;
-                
+
                 setUploadProgress({
                     type: failedCount > 0 ? 'error' : 'success',
                     message: data.message || `Successfully uploaded ${uploadedCount} file(s)`,
                     chunks: data.total_chunks || data.chunks,
                 });
-                
+
                 toast({
                     title: failedCount > 0 ? "⚠️ Partial Upload" : "✅ Upload Successful",
                     description: `${uploadedCount} file(s) indexed into ${data.total_chunks || data.chunks} chunks${failedCount > 0 ? `, ${failedCount} failed` : ''}`,
                     variant: failedCount > 0 ? "destructive" : "default",
                 });
-                
+
                 setSelectedFiles([]);
                 if (fileInputRef.current) {
                     fileInputRef.current.value = '';
                 }
-                fetchDocuments();
+                // Refresh document list with a small delay to ensure Qdrant indexing is complete
+                setTimeout(() => {
+                    fetchDocuments();
+                }, 500);
             } else {
                 setUploadProgress({
                     type: 'error',
@@ -248,8 +262,10 @@ export default function KnowledgeBasePage() {
                 });
                 setRawText('');
                 setTextTitle('');
-                // Refresh document list
-                fetchDocuments();
+                // Refresh document list with a small delay to ensure Qdrant indexing is complete
+                setTimeout(() => {
+                    fetchDocuments();
+                }, 500);
             } else {
                 setUploadProgress({
                     type: 'error',
@@ -344,6 +360,33 @@ export default function KnowledgeBasePage() {
         }
     };
 
+    const handleViewDocument = async (doc: any) => {
+        setViewingDocument(doc);
+        setViewDialogOpen(true);
+        setLoadingContent(true);
+        setDocumentContent('');
+
+        try {
+            const response = await fetch(`/api/rag/documents/${encodeURIComponent(doc.filename)}/content`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setDocumentContent(data.content || 'No content available');
+            } else {
+                const data = await response.json();
+                setDocumentContent('Failed to load content: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            setDocumentContent('Network error: Failed to load document content');
+        } finally {
+            setLoadingContent(false);
+        }
+    };
+
     const formatDate = (timestamp: string) => {
         if (!timestamp) return 'Unknown';
         try {
@@ -358,6 +401,24 @@ export default function KnowledgeBasePage() {
             return 'Unknown';
         }
     };
+    
+    // Helper function to determine if a document is a file upload or plain text
+    const isFileUpload = (filename: string) => {
+        // Check if filename has a file extension from allowed types
+        const extension = filename.split('.').pop()?.toLowerCase();
+        return extension && ALLOWED_EXTENSIONS.includes(extension);
+    };
+    
+    // Filter documents based on active tab
+    const filteredDocuments = documents.filter(doc => {
+        if (activeTab === 'file') {
+            // Show only file uploads (documents with valid file extensions)
+            return isFileUpload(doc.filename);
+        } else {
+            // Show only plain text entries (documents without file extensions)
+            return !isFileUpload(doc.filename);
+        }
+    });
     // Add 
     //   <ConfirmDeleteDialog
     //   open={deleteDialogOpen}
@@ -394,7 +455,7 @@ export default function KnowledgeBasePage() {
                 </div>
 
                 {/* Upload Section */}
-                <Tabs defaultValue="file" className="w-full">
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'file' | 'text')} className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="file">Upload File</TabsTrigger>
                         <TabsTrigger value="text">Paste Text</TabsTrigger>
@@ -591,9 +652,13 @@ export default function KnowledgeBasePage() {
                 {/* Document List */}
                 <Card className="bg-slate-800/50 border-slate-700">
                     <CardHeader>
-                        <CardTitle className="text-slate-100">Uploaded Documents</CardTitle>
+                        <CardTitle className="text-slate-100">
+                            {activeTab === 'file' ? 'Uploaded Files' : 'Plain Text Entries'}
+                        </CardTitle>
                         <CardDescription className="text-slate-400">
-                            View and manage your knowledge base documents
+                            {activeTab === 'file' 
+                                ? 'View and manage your uploaded document files' 
+                                : 'View and manage your plain text knowledge entries'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -601,23 +666,35 @@ export default function KnowledgeBasePage() {
                             <div className="flex items-center justify-center p-8">
                                 <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
                             </div>
-                        ) : documents.length === 0 ? (
+                        ) : filteredDocuments.length === 0 ? (
                             <div className="text-center p-8 text-slate-400">
                                 <Database className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                                <p>No documents uploaded yet</p>
-                                <p className="text-sm mt-1">Upload a document to get started</p>
+                                {activeTab === 'file' ? (
+                                    <>
+                                        <p>No files uploaded yet</p>
+                                        <p className="text-sm mt-1">Upload a document file to get started</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p>No plain text entries yet</p>
+                                        <p className="text-sm mt-1">Add plain text content to get started</p>
+                                    </>
+                                )}
                             </div>
                         ) : (
                             <div className="space-y-2">
-                                {documents.map((doc) => (
+                                {filteredDocuments.map((doc) => (
                                     <div
                                         key={doc.filename}
-                                        className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg hover:bg-slate-900/70 transition-colors"
+                                        className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg hover:bg-slate-900/70 transition-colors group"
                                     >
-                                        <div className="flex items-center gap-3 flex-1">
+                                        <div
+                                            className="flex items-center gap-3 flex-1 cursor-pointer"
+                                            onClick={() => handleViewDocument(doc)}
+                                        >
                                             <FileText className="h-5 w-5 text-indigo-400" />
                                             <div className="flex-1">
-                                                <p className="text-slate-200 font-medium">{doc.filename}</p>
+                                                <p className="text-slate-200 font-medium group-hover:text-indigo-400 transition-colors">{doc.filename}</p>
                                                 <div className="flex items-center gap-4 mt-1">
                                                     <span className="text-xs text-slate-400">
                                                         {doc.chunks} chunks
@@ -628,13 +705,17 @@ export default function KnowledgeBasePage() {
                                                     </span>
                                                 </div>
                                             </div>
+                                            <Eye className="h-4 w-4 text-slate-500 group-hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-all" />
                                         </div>
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => handleDeletionConfirm(doc)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeletionConfirm(doc);
+                                            }}
                                             disabled={deletingDoc === doc.filename}
-                                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 ml-2"
                                         >
                                             {deletingDoc === doc.filename ? (
                                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -648,6 +729,57 @@ export default function KnowledgeBasePage() {
                         )}
                     </CardContent>
                 </Card>
+
+                {/* View Document Dialog */}
+                <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+                    <DialogContent className="max-w-3xl max-h-[80vh] bg-slate-800 border-slate-700">
+                        <DialogHeader>
+                            <div className="flex items-center justify-between">
+                                <DialogTitle className="text-xl font-semibold text-slate-100 flex items-center gap-2">
+                                    <FileText className="h-5 w-5 text-indigo-400" />
+                                    {viewingDocument?.filename}
+                                </DialogTitle>
+                                {/* <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setViewDialogOpen(false)}
+                                    className="text-slate-400 hover:text-slate-200"
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button> */}
+                            </div>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            {viewingDocument && (
+                                <div className="flex items-center gap-4 text-sm text-slate-400 pb-2 border-b border-slate-700">
+                                    <span className="flex items-center gap-1">
+                                        <Database className="h-3 w-3" />
+                                        {viewingDocument.chunks} chunks
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                        <Calendar className="h-3 w-3" />
+                                        {formatDate(viewingDocument.timestamp)}
+                                    </span>
+                                </div>
+                            )}
+
+                            <div className="max-h-[500px] overflow-y-auto">
+                                {loadingContent ? (
+                                    <div className="flex items-center justify-center p-12">
+                                        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+                                    </div>
+                                ) : (
+                                    <div className="bg-slate-900/50 rounded-lg p-6 border border-slate-700">
+                                        <pre className="text-slate-300 text-sm whitespace-pre-wrap font-mono leading-relaxed">
+                                            {documentContent}
+                                        </pre>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
                 {/* Add ConfirmDeleteDialog for document deletion confirmation */}
                 <ConfirmDeleteDialog
                     open={deleteDialogOpen}

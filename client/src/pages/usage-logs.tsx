@@ -103,6 +103,7 @@ interface UsageLog {
   cached: boolean;
   cacheType: string;
   documentContexts: boolean;
+  ragDocumentNames: string;
   createdAt: string;
 }
 
@@ -317,6 +318,19 @@ function LogDetailsModal({ log, open, onOpenChange }: LogDetailsModalProps) {
                     {log.documentContexts ? 'Used' : 'Not Used'}
                   </Badge>
                 </div>
+                {log.documentContexts && log.ragDocumentNames && (
+                  <div className="flex flex-col gap-1 mt-2">
+                    <span className="text-muted-foreground">RAG Documents:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {log.ragDocumentNames.split(', ').map((docName, idx) => (
+                        <Badge key={idx} variant="outline" className="bg-purple-600/10 text-purple-300 border-purple-600/30">
+                          <span className="mr-1">📚</span>
+                          {docName}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -790,7 +804,7 @@ export default function UsageLogsPage() {
               logsData?.logs.map((log) => (
                 <TableRow key={log.id} className="hover:bg-muted/50">
                   <TableCell className="font-mono text-xs">
-                    {new Date(log.createdAt).toLocaleString()}
+                    {log.createdAt}
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">

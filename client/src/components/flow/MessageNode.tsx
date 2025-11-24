@@ -54,7 +54,7 @@ const validateUrl = (url: string): boolean => {
 export default function ButtonNode({ id, data, selected }: NodeProps<ButtonNodeData>) {
     const [isMinimized, setIsMinimized] = useState(data.isMinimized || false);
     const [isEditingLabel, setIsEditingLabel] = useState(false);
-    const [labelValue, setLabelValue] = useState(data.label || 'Button Node');
+    const [labelValue, setLabelValue] = useState(data.label || 'Interactive Node');
 
     const handleDelete = () => {
         // Will be handled by parent component
@@ -96,7 +96,7 @@ export default function ButtonNode({ id, data, selected }: NodeProps<ButtonNodeD
         if (e.key === 'Enter') {
             handleLabelSave();
         } else if (e.key === 'Escape') {
-            setLabelValue(data.label || 'Button Node');
+            setLabelValue(data.label || 'Interactive Node');
             setIsEditingLabel(false);
         }
     };
@@ -127,7 +127,7 @@ export default function ButtonNode({ id, data, selected }: NodeProps<ButtonNodeD
                             />
                         ) : (
                             <span className="text-sm font-semibold text-gray-100">
-                                {data.label || 'Button Node'}
+                                {data.label || 'Interactive Node'}
                             </span>
                         )}
                     </div>

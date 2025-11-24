@@ -579,33 +579,71 @@ class RAGService:
     
     def list_documents(self, workspace_id: str) -> List[Dict[str, Any]]:
         """
-        List all documents for a workspace
+        List all documents for a workspace (includes both uploaded files and plain text entries)
         Returns: List of documents with metadata
         """
         if not self.qdrant_client:
+            logger.warning("Qdrant client not available")
             return []
         
         try:
+            from qdrant_client.models import Filter, FieldCondition, MatchValue
+            
             # Scroll through all points for this workspace
             documents = {}
-            scroll_result = self.qdrant_client.scroll(
-                collection_name=self.collection_name,
-                scroll_filter={
-                    "must": [
-                        {"key": "workspace_id", "match": {"value": workspace_id}}
-                    ]
-                },
-                limit=1000,
-                with_payload=True,
-                with_vectors=False
+            
+            # Create proper filter
+            workspace_filter = Filter(
+                must=[
+                    FieldCondition(
+                        key="workspace_id",
+                        match=MatchValue(value=workspace_id)
+                    )
+                ]
             )
             
-            points = scroll_result[0]  # First element is the list of points
+            logger.info(f"Fetching documents for workspace: {workspace_id}")
             
-            # Group chunks by filename
-            for point in points:
+            # Use pagination to get ALL points (not limited to 1000)
+            offset = None
+            all_points = []
+            batch_count = 0
+            
+            while True:
+                scroll_result = self.qdrant_client.scroll(
+                    collection_name=self.collection_name,
+                    scroll_filter=workspace_filter,
+                    limit=1000,
+                    offset=offset,
+                    with_payload=True,
+                    with_vectors=False
+                )
+                
+                points = scroll_result[0] if scroll_result else []
+                next_offset = scroll_result[1] if len(scroll_result) > 1 else None
+                
+                all_points.extend(points)
+                batch_count += 1
+                
+                logger.info(f"Batch {batch_count}: Retrieved {len(points)} chunks (total so far: {len(all_points)})")
+                
+                # If no more points or no next offset, we're done
+                if not points or next_offset is None:
+                    break
+                
+                offset = next_offset
+            
+            logger.info(f"Retrieved {len(all_points)} total chunks from Qdrant across {batch_count} batches")
+            
+            # Group chunks by filename (works for both uploaded files and plain text entries)
+            for point in all_points:
                 filename = point.payload.get("filename")
                 timestamp = point.payload.get("timestamp")
+                
+                # Skip points without filename (shouldn't happen, but defensive check)
+                if not filename:
+                    logger.warning(f"Found point without filename: {point.id}")
+                    continue
                 
                 if filename not in documents:
                     documents[filename] = {
@@ -616,15 +654,20 @@ class RAGService:
                     }
                 documents[filename]["chunks"] += 1
             
-            # Convert to list and sort by timestamp
+            # Convert to list and sort by timestamp (newest first)
             doc_list = list(documents.values())
             doc_list.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
             
-            logger.info(f"Found {len(doc_list)} documents for workspace {workspace_id}")
+            logger.info(f"Found {len(doc_list)} documents for workspace {workspace_id}:")
+            for doc in doc_list:
+                logger.info(f"  - {doc['filename']} ({doc['chunks']} chunks)")
+            
             return doc_list
             
         except Exception as e:
             logger.error(f"Failed to list documents: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return []
     
     def delete_document(self, workspace_id: str, filename: str) -> Tuple[bool, Optional[str]]:
@@ -665,6 +708,72 @@ class RAGService:
             error_msg = f"Failed to delete document: {str(e)}"
             logger.error(error_msg)
             return False, error_msg
+    
+    def get_document_content(self, workspace_id: str, filename: str) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Retrieve the full content of a document by combining all its chunks
+        Returns: (content, error_message)
+        """
+        if not self.qdrant_client:
+            return None, "RAG service not available"
+        
+        try:
+            from qdrant_client.models import Filter, FieldCondition, MatchValue
+            
+            # Create filter to get all chunks of this document
+            doc_filter = Filter(
+                must=[
+                    FieldCondition(
+                        key="workspace_id",
+                        match=MatchValue(value=workspace_id)
+                    ),
+                    FieldCondition(
+                        key="filename",
+                        match=MatchValue(value=filename)
+                    )
+                ]
+            )
+            
+            # Retrieve all points for this document
+            scroll_result = self.qdrant_client.scroll(
+                collection_name=self.collection_name,
+                scroll_filter=doc_filter,
+                limit=1000,  # Maximum chunks per document
+                with_payload=True,
+                with_vectors=False
+            )
+            
+            points = scroll_result[0] if scroll_result else []
+            
+            if not points:
+                return None, f"Document '{filename}' not found"
+            
+            # Sort chunks by chunk_index if available
+            sorted_points = sorted(
+                points,
+                key=lambda p: p.payload.get('chunk_index', 0)
+            )
+            
+            # Combine all chunks into full content
+            chunks_text = []
+            for point in sorted_points:
+                chunk_text = point.payload.get('text', '')
+                if chunk_text:
+                    chunks_text.append(chunk_text)
+            
+            if not chunks_text:
+                return None, "Document content is empty"
+            
+            # Join chunks with double newline for readability
+            full_content = '\n\n'.join(chunks_text)
+            
+            logger.info(f"Retrieved content for document '{filename}' ({len(chunks_text)} chunks)")
+            return full_content, None
+            
+        except Exception as e:
+            error_msg = f"Failed to retrieve document content: {str(e)}"
+            logger.error(error_msg)
+            return None, error_msg
 
 # Global RAG service instance
 rag_service = RAGService()
