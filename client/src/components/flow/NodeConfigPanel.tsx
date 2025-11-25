@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Trash2, GripVertical, Upload, Link as LinkIcon, Settings2, Image as ImageIcon, Video, FileText, Info, ExternalLink, Database, Eye, CheckSquare, Square, Loader2, RefreshCw, Sparkles, Search } from 'lucide-react';
+import { X, Plus, Trash2, GripVertical, Upload, Link as LinkIcon, Settings2, Image as ImageIcon, Video, FileText, Info, ExternalLink, Database, Eye, CheckSquare, Square, Loader2, RefreshCw, Sparkles, Search, Globe, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,14 +55,18 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
     // Knowledge Base states
     const [kbDocuments, setKbDocuments] = useState<any[]>([]);
     const [loadingKbDocs, setLoadingKbDocs] = useState(false);
-    const [kbViewTab, setKbViewTab] = useState<'file' | 'text'>('file');
-    const [kbUploadTab, setKbUploadTab] = useState<'file' | 'text'>('file');
+    const [kbViewTab, setKbViewTab] = useState<'file' | 'text' | 'url'>('file');
+    const [kbUploadTab, setKbUploadTab] = useState<'file' | 'text' | 'url'>('file');
     const [selectedKbDocs, setSelectedKbDocs] = useState<string[]>([]);
     const [kbRawText, setKbRawText] = useState('');
     const [kbTextTitle, setKbTextTitle] = useState('');
     const [kbUploading, setKbUploading] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const kbFileInputRef = useRef<HTMLInputElement>(null);
+    // URL crawl states
+    const [kbCrawlUrl, setKbCrawlUrl] = useState('');
+    const [kbCrawling, setKbCrawling] = useState(false);
+    const [crawlLimitReached, setCrawlLimitReached] = useState(false);
 
     // AI Model states
     const [availableModels, setAvailableModels] = useState<Array<{ id: string; name: string }>>([]);
@@ -139,6 +143,12 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                 const data = await response.json();
                 setKbDocuments(data.documents || []);
             }
+            // Also check crawl limit
+            const crawlResponse = await apiClient.get('/api/rag/crawled-urls');
+            if (crawlResponse.ok) {
+                const crawlData = await crawlResponse.json();
+                setCrawlLimitReached(crawlData.limit_reached || false);
+            }
         } catch (error) {
             console.error('Failed to fetch KB documents:', error);
             toast({
@@ -185,9 +195,12 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
     const filteredKbDocuments = kbDocuments.filter(doc => {
         if (kbViewTab === 'file') {
             return isFileUpload(doc.filename);
-        } else {
-            return !isFileUpload(doc.filename);
+        } else if (kbViewTab === 'text') {
+            return !isFileUpload(doc.filename) && !doc.filename.startsWith('url_crawl_');
+        } else if (kbViewTab === 'url') {
+            return doc.filename.startsWith('url_crawl_');
         }
+        return false;
     });
 
     const handleKbDocToggle = (filename: string) => {
@@ -310,6 +323,64 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
             });
         } finally {
             setKbUploading(false);
+        }
+    };
+
+    const handleKbUrlCrawl = async () => {
+        if (!kbCrawlUrl.trim()) return;
+
+        // Validate URL format
+        if (!kbCrawlUrl.startsWith('http://') && !kbCrawlUrl.startsWith('https://')) {
+            toast({
+                title: 'Invalid URL',
+                description: 'URL must start with http:// or https://',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        setKbCrawling(true);
+        try {
+            const response = await fetch('/api/rag/crawl-url', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: kbCrawlUrl,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                toast({
+                    title: '✅ URL Crawled',
+                    description: `Content indexed into ${data.chunks} chunks`,
+                });
+                setKbCrawlUrl('');
+                setTimeout(() => {
+                    fetchKbDocuments();
+                }, 500);
+            } else {
+                if (response.status === 403) {
+                    setCrawlLimitReached(true);
+                }
+                toast({
+                    title: 'Crawl Failed',
+                    description: data.message || data.error || 'Failed to crawl URL',
+                    variant: 'destructive',
+                });
+            }
+        } catch (error) {
+            toast({
+                title: 'Network Error',
+                description: 'Failed to connect to server',
+                variant: 'destructive',
+            });
+        } finally {
+            setKbCrawling(false);
         }
     };
 
@@ -930,6 +1001,16 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                         <FileText className="h-3.5 w-3.5 inline mr-1.5" />
                                         Plain Text
                                     </button>
+                                    <button
+                                        onClick={() => setKbViewTab('url')}
+                                        className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all ${kbViewTab === 'url'
+                                                ? 'bg-purple-600 text-white shadow-lg'
+                                                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
+                                            }`}
+                                    >
+                                        <Globe className="h-3.5 w-3.5 inline mr-1.5" />
+                                        URLs
+                                    </button>
                                 </div>
 
                                 {/* Select All */}
@@ -959,7 +1040,7 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                         </div>
                                     ) : filteredKbDocuments.length === 0 ? (
                                         <div className="text-center py-8 text-gray-500 text-sm">
-                                            No {kbViewTab === 'file' ? 'files' : 'plain text entries'} found
+                                            No {kbViewTab === 'file' ? 'files' : kbViewTab === 'text' ? 'plain text entries' : 'URL crawls'} found
                                         </div>
                                     ) : (
                                         filteredKbDocuments.map((doc) => {
@@ -980,7 +1061,11 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                                             <Square className="h-4 w-4 text-gray-500" />
                                                         )}
                                                     </div>
-                                                    <FileText className="h-4 w-4 text-purple-400 flex-shrink-0" />
+                                                    {doc.filename.startsWith('url_crawl_') ? (
+                                                        <Globe className="h-4 w-4 text-purple-400 flex-shrink-0" />
+                                                    ) : (
+                                                        <FileText className="h-4 w-4 text-purple-400 flex-shrink-0" />
+                                                    )}
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-sm text-gray-200 truncate font-medium">{doc.filename}</p>
                                                         <p className="text-xs text-gray-500">{doc.chunks} chunks</p>
@@ -1021,6 +1106,16 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                             }`}
                                     >
                                         Paste Text
+                                    </button>
+                                    <button
+                                        onClick={() => setKbUploadTab('url')}
+                                        className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all ${kbUploadTab === 'url'
+                                                ? 'bg-emerald-600 text-white shadow-lg'
+                                                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
+                                            }`}
+                                    >
+                                        <Globe className="h-3.5 w-3.5 inline mr-1.5" />
+                                        Crawl URL
                                     </button>
                                 </div>
 
@@ -1098,6 +1193,58 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                                 <><Upload className="h-4 w-4 mr-2" /> Index Text</>
                                             )}
                                         </Button>
+                                    </div>
+                                )}
+
+                                {/* URL Crawl */}
+                                {kbUploadTab === 'url' && (
+                                    <div className="space-y-3">
+                                        {crawlLimitReached ? (
+                                            <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+                                                <div className="flex items-start gap-3">
+                                                    <AlertCircle className="h-5 w-5 text-orange-400 flex-shrink-0 mt-0.5" />
+                                                    <div className="space-y-2">
+                                                        <h4 className="text-sm font-medium text-orange-300">URL Crawl Limit Reached</h4>
+                                                        <p className="text-xs text-gray-400">
+                                                            You have already crawled one URL. To crawl additional URLs, please contact us at{' '}
+                                                            <a
+                                                                href="mailto:support@nexusaihub.co.in"
+                                                                className="text-orange-400 hover:text-orange-300 underline"
+                                                            >
+                                                                support@nexusaihub.co.in
+                                                            </a>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div>
+                                                    <Label className="text-xs text-gray-400 mb-1.5 block">Website URL</Label>
+                                                    <Input
+                                                        value={kbCrawlUrl}
+                                                        onChange={(e) => setKbCrawlUrl(e.target.value)}
+                                                        placeholder="https://example.com"
+                                                        className="bg-[#0f1419] border-gray-600/50 text-gray-200"
+                                                        disabled={kbCrawling}
+                                                    />
+                                                </div>
+                                                <Button
+                                                    onClick={handleKbUrlCrawl}
+                                                    disabled={kbCrawling || !kbCrawlUrl.trim()}
+                                                    className="w-full bg-emerald-600 hover:bg-emerald-700"
+                                                >
+                                                    {kbCrawling ? (
+                                                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Crawling...</>
+                                                    ) : (
+                                                        <><Globe className="h-4 w-4 mr-2" /> Crawl Website</>
+                                                    )}
+                                                </Button>
+                                                <p className="text-xs text-gray-500 text-center">
+                                                    Only the main content will be extracted and indexed
+                                                </p>
+                                            </>
+                                        )}
                                     </div>
                                 )}
                             </div>

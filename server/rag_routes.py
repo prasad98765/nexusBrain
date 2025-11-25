@@ -4,6 +4,8 @@ RAG Routes for document upload and management
 import os
 import tempfile
 import logging
+import requests
+import hashlib
 from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
 from .auth_utils import require_auth
@@ -17,6 +19,8 @@ rag_bp = Blueprint('rag', __name__)
 MAX_FILE_SIZE = 30 * 1024 * 1024  # 30 MB total for all files
 ALLOWED_EXTENSIONS = {'pdf', 'docx', 'txt', 'pptx', 'csv'}
 UPLOAD_FOLDER = tempfile.gettempdir()
+FIRECRAWL_API_KEY = 'fc-74999f84259c4614bf86a5ff4e46fb61'
+FIRECRAWL_API_URL = 'https://api.firecrawl.dev/v1/scrape'
 
 def allowed_file(filename):
     """Check if file extension is allowed"""
@@ -252,6 +256,7 @@ def search_documents():
 def delete_document(filename):
     """
     Delete a document and all its chunks
+    Note: URL crawls (url_crawl_*) can be deleted to allow re-crawling
     """
     try:
         workspace_id = request.user.get('workspace_id')
@@ -264,6 +269,10 @@ def delete_document(filename):
         
         if error:
             return jsonify({'error': error}), 500
+        
+        # If deleting a URL crawl, reset the limit flag
+        if filename.startswith('url_crawl_'):
+            logger.info(f"URL crawl deleted: {filename} - user can now crawl a new URL")
         
         return jsonify({
             'message': f'Document "{filename}" deleted successfully'
@@ -350,3 +359,152 @@ def debug_rag():
         import traceback
         logger.error(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
+
+@rag_bp.route('/rag/crawl-url', methods=['POST'])
+@require_auth
+def crawl_url():
+    """
+    Crawl a single URL using Firecrawl API and store in Qdrant
+    Limit: One URL crawl per workspace
+    """
+    try:
+        workspace_id = request.user.get('workspace_id')
+        data = request.get_json()
+        
+        if not workspace_id:
+            return jsonify({'error': 'Workspace ID required'}), 401
+        
+        if not data or 'url' not in data:
+            return jsonify({'error': 'URL is required'}), 400
+        
+        url = data.get('url', '').strip()
+        
+        # Validate URL format
+        if not url.startswith(('http://', 'https://')):
+            return jsonify({'error': 'Invalid URL format. Must start with http:// or https://'}), 400
+        
+        # Check if workspace already has a crawled URL
+        documents = rag_service.list_documents(workspace_id)
+        existing_urls = [doc for doc in documents if doc.get('filename', '').startswith('url_crawl_')]
+        
+        if existing_urls:
+            return jsonify({
+                'error': 'URL crawl limit reached',
+                'message': 'You have already crawled one URL. To crawl additional URLs, please contact support@nexusaihub.co.in',
+                'existing_crawl': existing_urls[0].get('filename')
+            }), 403
+        
+        # Call Firecrawl API
+        logger.info(f"Crawling URL: {url}")
+        
+        try:
+            firecrawl_response = requests.post(
+                FIRECRAWL_API_URL,
+                headers={
+                    'Authorization': f'Bearer {FIRECRAWL_API_KEY}',
+                    'Content-Type': 'application/json'
+                },
+                json={
+                    'url': url,
+                    'formats': ['markdown', 'html'],
+                    'onlyMainContent': True,
+                    'includeTags': [],
+                    'excludeTags': ['nav', 'footer', 'header'],
+                    'waitFor': 0
+                },
+                timeout=60
+            )
+            
+            if firecrawl_response.status_code != 200:
+                error_data = firecrawl_response.json() if firecrawl_response.headers.get('content-type', '').startswith('application/json') else {}
+                error_msg = error_data.get('error', f'Firecrawl API returned status {firecrawl_response.status_code}')
+                logger.error(f"Firecrawl API error: {error_msg}")
+                return jsonify({'error': f'Failed to crawl URL: {error_msg}'}), 500
+            
+            crawl_data = firecrawl_response.json()
+            
+            # Extract content (prefer markdown, fallback to html)
+            content = ''
+            if crawl_data.get('data', {}).get('markdown'):
+                content = crawl_data['data']['markdown']
+            elif crawl_data.get('data', {}).get('html'):
+                content = crawl_data['data']['html']
+            else:
+                return jsonify({'error': 'No content extracted from URL'}), 500
+            
+            if not content.strip():
+                return jsonify({'error': 'URL returned empty content'}), 400
+            
+            # Generate unique filename for the crawled URL
+            filename = f"url_crawl_{hashlib.md5(url.encode()).hexdigest()[:12]}.txt"
+            
+            # Limit content size to prevent token overflow
+            # Approximate: 1 token ≈ 4 characters, target max 40K tokens = 160KB
+            max_content_length = 40000  # characters (~10K tokens)
+            if len(content) > max_content_length:
+                logger.warning(f"Content too large ({len(content)} chars), truncating to {max_content_length}")
+                content = content[:max_content_length]
+                # Add truncation notice
+                content += "\n\n[Note: Content truncated due to size limits]"
+            
+            logger.info(f"Processing content: {len(content)} characters (~{len(content)//4} tokens)")
+            
+            # Process the crawled content using RAG service with smaller chunk size
+            # Use smaller chunks for URL content to avoid token limits
+            chunks_count, error = rag_service.process_raw_text(
+                text=content,
+                workspace_id=workspace_id,
+                title=filename
+            )
+            
+            if error:
+                return jsonify({'error': f'Failed to process crawled content: {error}'}), 500
+            
+            logger.info(f"Successfully crawled and indexed URL: {url} ({chunks_count} chunks)")
+            
+            return jsonify({
+                'message': 'URL crawled and indexed successfully',
+                'url': url,
+                'filename': filename,
+                'chunks': chunks_count,
+                'content_length': len(content),
+                'title': crawl_data.get('data', {}).get('title', 'Unknown')
+            }), 200
+            
+        except requests.Timeout:
+            return jsonify({'error': 'URL crawl timeout. Please try a different URL.'}), 504
+        except requests.RequestException as e:
+            logger.error(f"Firecrawl request error: {e}")
+            return jsonify({'error': f'Failed to connect to Firecrawl API: {str(e)}'}), 500
+        
+    except Exception as e:
+        logger.error(f"URL crawl error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({'error': 'Internal server error'}), 500
+
+@rag_bp.route('/rag/crawled-urls', methods=['GET'])
+@require_auth
+def get_crawled_urls():
+    """
+    Get list of crawled URLs for the workspace
+    """
+    try:
+        workspace_id = request.user.get('workspace_id')
+        
+        if not workspace_id:
+            return jsonify({'error': 'Workspace ID required'}), 401
+        
+        # Get all documents and filter for URL crawls
+        documents = rag_service.list_documents(workspace_id)
+        crawled_urls = [doc for doc in documents if doc.get('filename', '').startswith('url_crawl_')]
+        
+        return jsonify({
+            'crawled_urls': crawled_urls,
+            'count': len(crawled_urls),
+            'limit_reached': len(crawled_urls) >= 1
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Get crawled URLs error: {e}")
+        return jsonify({'error': 'Internal server error'}), 500

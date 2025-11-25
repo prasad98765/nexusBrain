@@ -178,6 +178,7 @@ export interface ApiUsageLog {
   cached?: boolean;  // Whether response was served from cache
   cacheType?: string;  // "exact" or "semantic"
   documentContexts?: boolean;  // Whether RAG contexts were used
+  ragDocumentNames?: string;  // Comma-separated list of RAG document names
   createdAt: string;
 }
 

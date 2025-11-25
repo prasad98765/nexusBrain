@@ -21,7 +21,9 @@ import {
     Calendar,
     RefreshCw,
     Eye,
-    X
+    X,
+    Globe,
+    ExternalLink
 } from 'lucide-react';
 import {
     Dialog,
@@ -74,7 +76,13 @@ export default function KnowledgeBasePage() {
     const [deletingEntry, setDeletingEntry] = useState<any>(null);
     
     // Tab state for filtering
-    const [activeTab, setActiveTab] = useState<'file' | 'text'>('file');
+    const [activeTab, setActiveTab] = useState<'file' | 'text' | 'url'>('file');
+
+    // URL crawl state
+    const [crawlUrl, setCrawlUrl] = useState('');
+    const [crawling, setCrawling] = useState(false);
+    const [crawledUrls, setCrawledUrls] = useState<any[]>([]);
+    const [crawlLimitReached, setCrawlLimitReached] = useState(false);
 
     // View document state
     const [viewingDocument, setViewingDocument] = useState<any | null>(null);
@@ -89,6 +97,7 @@ export default function KnowledgeBasePage() {
     // Load documents on mount
     useEffect(() => {
         fetchDocuments();
+        fetchCrawledUrls();
     }, [token]);
 
     const fetchDocuments = async () => {
@@ -110,6 +119,26 @@ export default function KnowledgeBasePage() {
             console.error('Failed to fetch documents:', error);
         } finally {
             setLoadingDocs(false);
+        }
+    };
+
+    const fetchCrawledUrls = async () => {
+        if (!token) return;
+
+        try {
+            const response = await fetch('/api/rag/crawled-urls', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setCrawledUrls(data.crawled_urls || []);
+                setCrawlLimitReached(data.limit_reached || false);
+            }
+        } catch (error) {
+            console.error('Failed to fetch crawled URLs:', error);
         }
     };
 
@@ -292,6 +321,82 @@ export default function KnowledgeBasePage() {
         }
     };
 
+    const handleUrlCrawl = async () => {
+        if (!crawlUrl.trim() || !token) return;
+
+        // Validate URL format
+        if (!crawlUrl.startsWith('http://') && !crawlUrl.startsWith('https://')) {
+            toast({
+                title: "Invalid URL",
+                description: 'URL must start with http:// or https://',
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setCrawling(true);
+        setUploadProgress({ type: null, message: '' });
+
+        try {
+            const response = await fetch('/api/rag/crawl-url', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: crawlUrl,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setUploadProgress({
+                    type: 'success',
+                    message: `Successfully crawled "${data.url}"`,
+                    chunks: data.chunks,
+                });
+                toast({
+                    title: "✅ URL Crawled",
+                    description: `Content indexed into ${data.chunks} chunks`,
+                });
+                setCrawlUrl('');
+                // Refresh lists
+                setTimeout(() => {
+                    fetchDocuments();
+                    fetchCrawledUrls();
+                }, 500);
+            } else {
+                // Handle limit reached error
+                if (response.status === 403) {
+                    setCrawlLimitReached(true);
+                }
+                setUploadProgress({
+                    type: 'error',
+                    message: data.message || data.error || 'Crawl failed',
+                });
+                toast({
+                    title: "Crawl Failed",
+                    description: data.message || data.error || 'Failed to crawl URL',
+                    variant: "destructive",
+                });
+            }
+        } catch (error) {
+            setUploadProgress({
+                type: 'error',
+                message: 'Network error. Please try again.',
+            });
+            toast({
+                title: "Network Error",
+                description: 'Failed to connect to server',
+                variant: "destructive",
+            });
+        } finally {
+            setCrawling(false);
+        }
+    };
+
     const getFileIcon = (file: File) => {
         const extension = file.name.split('.').pop()?.toLowerCase();
         switch (extension) {
@@ -325,11 +430,23 @@ export default function KnowledgeBasePage() {
             });
 
             if (response.ok) {
+                // Check if it was a URL crawl
+                const isUrlCrawl = filename.startsWith('url_crawl_');
+                
                 toast({
                     title: "✅ Document Deleted",
-                    description: `Successfully removed "${filename}"`,
+                    description: isUrlCrawl 
+                        ? `Successfully removed URL crawl. You can now crawl a new URL.`
+                        : `Successfully removed "${filename}"`,
                 });
+                
+                // Reset crawl limit if URL was deleted
+                if (isUrlCrawl) {
+                    setCrawlLimitReached(false);
+                }
+                
                 fetchDocuments();
+                fetchCrawledUrls();
                 setDeleteDialogOpen(false);
                 setDeletingEntry(null);
 
@@ -414,10 +531,14 @@ export default function KnowledgeBasePage() {
         if (activeTab === 'file') {
             // Show only file uploads (documents with valid file extensions)
             return isFileUpload(doc.filename);
-        } else {
-            // Show only plain text entries (documents without file extensions)
-            return !isFileUpload(doc.filename);
+        } else if (activeTab === 'text') {
+            // Show only plain text entries (documents without file extensions and not URL crawls)
+            return !isFileUpload(doc.filename) && !doc.filename.startsWith('url_crawl_');
+        } else if (activeTab === 'url') {
+            // Show only URL crawls
+            return doc.filename.startsWith('url_crawl_');
         }
+        return false;
     });
     // Add 
     //   <ConfirmDeleteDialog
@@ -455,10 +576,14 @@ export default function KnowledgeBasePage() {
                 </div>
 
                 {/* Upload Section */}
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'file' | 'text')} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'file' | 'text' | 'url')} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="file">Upload File</TabsTrigger>
                         <TabsTrigger value="text">Paste Text</TabsTrigger>
+                        <TabsTrigger value="url">
+                            <Globe className="h-4 w-4 mr-2" />
+                            Crawl URL
+                        </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="file">
@@ -647,18 +772,138 @@ export default function KnowledgeBasePage() {
                             </CardContent>
                         </Card>
                     </TabsContent>
+
+                    <TabsContent value="url">
+                        <Card className="bg-slate-800/50 border-slate-700">
+                            <CardHeader>
+                                <CardTitle className="text-slate-100 flex items-center gap-2">
+                                    <Globe className="h-5 w-5 text-indigo-400" />
+                                    Crawl Website URL
+                                </CardTitle>
+                                <CardDescription className="text-slate-400">
+                                    Crawl and index content from a single URL
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {crawlLimitReached ? (
+                                    <div className="p-6 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+                                        <div className="flex items-start gap-3">
+                                            <AlertCircle className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
+                                            <div>
+                                                <h4 className="font-semibold text-orange-400 mb-2">URL Crawl Limit Reached</h4>
+                                                <p className="text-sm text-slate-300 mb-3">
+                                                    You have already crawled one URL for this workspace.
+                                                </p>
+                                                <p className="text-sm text-slate-400">
+                                                    To crawl additional URLs, please contact us at{' '}
+                                                    <a 
+                                                        href="mailto:support@nexusaihub.co.in" 
+                                                        className="text-indigo-400 hover:text-indigo-300 underline"
+                                                    >
+                                                        support@nexusaihub.co.in
+                                                    </a>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="crawl-url" className="text-slate-300">
+                                                Website URL
+                                            </Label>
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                                                    <Input
+                                                        id="crawl-url"
+                                                        type="url"
+                                                        value={crawlUrl}
+                                                        onChange={(e) => setCrawlUrl(e.target.value)}
+                                                        placeholder="https://example.com"
+                                                        className="bg-slate-900 border-slate-600 text-slate-100 pl-10"
+                                                        disabled={crawling}
+                                                    />
+                                                </div>
+                                                <Button
+                                                    onClick={handleUrlCrawl}
+                                                    disabled={crawling || !crawlUrl.trim()}
+                                                    className="bg-indigo-600 hover:bg-indigo-700 px-6"
+                                                >
+                                                    {crawling ? (
+                                                        <>
+                                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                            Crawling...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Globe className="mr-2 h-4 w-4" />
+                                                            Crawl
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            </div>
+                                            <p className="text-xs text-slate-400">
+                                                Enter a valid URL to crawl and index its content (limit: 1 URL per workspace)
+                                            </p>
+                                        </div>
+
+                                        {uploadProgress.type && (
+                                            <div className={`flex items-start gap-3 p-4 rounded-lg ${uploadProgress.type === 'success'
+                                                ? 'bg-green-500/10 border border-green-500/20'
+                                                : 'bg-red-500/10 border border-red-500/20'
+                                                }`}>
+                                                {uploadProgress.type === 'success' ? (
+                                                    <CheckCircle2 className="h-5 w-5 text-green-400 mt-0.5" />
+                                                ) : (
+                                                    <AlertCircle className="h-5 w-5 text-red-400 mt-0.5" />
+                                                )}
+                                                <div>
+                                                    <p className={uploadProgress.type === 'success' ? 'text-green-400' : 'text-red-400'}>
+                                                        {uploadProgress.message}
+                                                    </p>
+                                                    {uploadProgress.chunks && (
+                                                        <p className="text-sm text-slate-400 mt-1">
+                                                            Content split into {uploadProgress.chunks} chunks for optimal retrieval
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                                            <div className="flex items-start gap-3">
+                                                <ExternalLink className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                                                <div className="text-xs text-slate-300 space-y-1">
+                                                    <p className="font-medium text-blue-400">How URL Crawling Works:</p>
+                                                    <ul className="list-disc list-inside space-y-1 text-slate-400">
+                                                        <li>Firecrawl extracts main content from the URL</li>
+                                                        <li>Content is processed and split into searchable chunks</li>
+                                                        <li>Indexed into your knowledge base for AI retrieval</li>
+                                                        <li>Limited to 1 URL per workspace</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
                 </Tabs>
 
                 {/* Document List */}
                 <Card className="bg-slate-800/50 border-slate-700">
                     <CardHeader>
                         <CardTitle className="text-slate-100">
-                            {activeTab === 'file' ? 'Uploaded Files' : 'Plain Text Entries'}
+                            {activeTab === 'file' ? 'Uploaded Files' : activeTab === 'text' ? 'Plain Text Entries' : 'Crawled URLs'}
                         </CardTitle>
                         <CardDescription className="text-slate-400">
                             {activeTab === 'file' 
                                 ? 'View and manage your uploaded document files' 
-                                : 'View and manage your plain text knowledge entries'}
+                                : activeTab === 'text'
+                                ? 'View and manage your plain text knowledge entries'
+                                : 'View your crawled website content'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -674,10 +919,15 @@ export default function KnowledgeBasePage() {
                                         <p>No files uploaded yet</p>
                                         <p className="text-sm mt-1">Upload a document file to get started</p>
                                     </>
-                                ) : (
+                                ) : activeTab === 'text' ? (
                                     <>
                                         <p>No plain text entries yet</p>
                                         <p className="text-sm mt-1">Add plain text content to get started</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p>No URLs crawled yet</p>
+                                        <p className="text-sm mt-1">Crawl a website URL to get started</p>
                                     </>
                                 )}
                             </div>
@@ -707,6 +957,7 @@ export default function KnowledgeBasePage() {
                                             </div>
                                             <Eye className="h-4 w-4 text-slate-500 group-hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-all" />
                                         </div>
+                                        {/* Show delete button for all tabs, but with special handling for URL crawls */}
                                         <Button
                                             variant="ghost"
                                             size="sm"
