@@ -67,6 +67,7 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
     const [kbCrawlUrl, setKbCrawlUrl] = useState('');
     const [kbCrawling, setKbCrawling] = useState(false);
     const [crawlLimitReached, setCrawlLimitReached] = useState(false);
+    const [kbCrawlMode, setKbCrawlMode] = useState<'single' | 'multi'>('single');
 
     // AI Model states
     const [availableModels, setAvailableModels] = useState<Array<{ id: string; name: string }>>([]);
@@ -349,20 +350,32 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                 },
                 body: JSON.stringify({
                     url: kbCrawlUrl,
+                    mode: kbCrawlMode,
                 }),
             });
 
             const data = await response.json();
 
             if (response.ok) {
-                toast({
-                    title: '✅ URL Crawled',
-                    description: `Content indexed into ${data.chunks} chunks`,
-                });
-                setKbCrawlUrl('');
-                setTimeout(() => {
-                    fetchKbDocuments();
-                }, 500);
+                if (kbCrawlMode === 'single') {
+                    toast({
+                        title: '✅ URL Crawled',
+                        description: `Content indexed into ${data.chunks} chunks`,
+                    });
+                    setKbCrawlUrl('');
+                    setTimeout(() => {
+                        fetchKbDocuments();
+                    }, 500);
+                } else {
+                    toast({
+                        title: '🔄 Crawl Started',
+                        description: 'Crawling all pages from the website. Check back in a few minutes.',
+                    });
+                    setKbCrawlUrl('');
+                    setTimeout(() => {
+                        fetchKbDocuments();
+                    }, 5000);
+                }
             } else {
                 if (response.status === 403) {
                     setCrawlLimitReached(true);
@@ -1220,6 +1233,33 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                         ) : (
                                             <>
                                                 <div>
+                                                    <Label className="text-xs text-gray-400 mb-1.5 block">Crawl Mode</Label>
+                                                    <div className="flex gap-2 mb-3">
+                                                        <button
+                                                            onClick={() => setKbCrawlMode('single')}
+                                                            disabled={kbCrawling}
+                                                            className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-all ${
+                                                                kbCrawlMode === 'single'
+                                                                    ? 'bg-emerald-600/20 border-emerald-500 text-emerald-300'
+                                                                    : 'bg-[#0f1419] border-gray-600 text-gray-400 hover:border-gray-500'
+                                                            } ${kbCrawling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                        >
+                                                            Single Page
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setKbCrawlMode('multi')}
+                                                            disabled={kbCrawling}
+                                                            className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-all ${
+                                                                kbCrawlMode === 'multi'
+                                                                    ? 'bg-emerald-600/20 border-emerald-500 text-emerald-300'
+                                                                    : 'bg-[#0f1419] border-gray-600 text-gray-400 hover:border-gray-500'
+                                                            } ${kbCrawling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                        >
+                                                            All Pages
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div>
                                                     <Label className="text-xs text-gray-400 mb-1.5 block">Website URL</Label>
                                                     <Input
                                                         value={kbCrawlUrl}
@@ -1241,7 +1281,10 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                                     )}
                                                 </Button>
                                                 <p className="text-xs text-gray-500 text-center">
-                                                    Only the main content will be extracted and indexed
+                                                    {kbCrawlMode === 'single' 
+                                                        ? 'Crawl a single page immediately'
+                                                        : 'Crawl all pages from the website (async)'
+                                                    }
                                                 </p>
                                             </>
                                         )}

@@ -23,7 +23,8 @@ import {
     Eye,
     X,
     Globe,
-    ExternalLink
+    ExternalLink,
+    Search
 } from 'lucide-react';
 import {
     Dialog,
@@ -74,7 +75,7 @@ export default function KnowledgeBasePage() {
     const [deletingDoc, setDeletingDoc] = useState<string | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deletingEntry, setDeletingEntry] = useState<any>(null);
-    
+
     // Tab state for filtering
     const [activeTab, setActiveTab] = useState<'file' | 'text' | 'url'>('file');
 
@@ -83,6 +84,19 @@ export default function KnowledgeBasePage() {
     const [crawling, setCrawling] = useState(false);
     const [crawledUrls, setCrawledUrls] = useState<any[]>([]);
     const [crawlLimitReached, setCrawlLimitReached] = useState(false);
+    const [crawlMode, setCrawlMode] = useState<'single' | 'multi' | 'selective'>('single');
+    const [crawlJobId, setCrawlJobId] = useState<string | null>(null);
+    const [crawlStatus, setCrawlStatus] = useState<any>(null);
+    const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
+
+    // Selective crawling state
+    const [showPageSelector, setShowPageSelector] = useState(false);
+    const [discoveryId, setDiscoveryId] = useState<string | null>(null);
+    const [discoveredPages, setDiscoveredPages] = useState<any[]>([]);
+    const [selectedPages, setSelectedPages] = useState<Set<string>>(new Set());
+    const [discovering, setDiscovering] = useState(false);
+    const [crawlingSelected, setCrawlingSelected] = useState(false);
+    const [pageSearchQuery, setPageSearchQuery] = useState('');
 
     // View document state
     const [viewingDocument, setViewingDocument] = useState<any | null>(null);
@@ -334,8 +348,15 @@ export default function KnowledgeBasePage() {
             return;
         }
 
+        // If selective mode, trigger page discovery instead
+        if (crawlMode === 'selective') {
+            handleDiscoverPages();
+            return;
+        }
+
         setCrawling(true);
         setUploadProgress({ type: null, message: '' });
+        setCrawlStatus(null);
 
         try {
             const response = await fetch('/api/rag/crawl-url', {
@@ -346,27 +367,41 @@ export default function KnowledgeBasePage() {
                 },
                 body: JSON.stringify({
                     url: crawlUrl,
+                    mode: crawlMode,
                 }),
             });
 
             const data = await response.json();
 
             if (response.ok) {
-                setUploadProgress({
-                    type: 'success',
-                    message: `Successfully crawled "${data.url}"`,
-                    chunks: data.chunks,
-                });
-                toast({
-                    title: "✅ URL Crawled",
-                    description: `Content indexed into ${data.chunks} chunks`,
-                });
-                setCrawlUrl('');
-                // Refresh lists
-                setTimeout(() => {
-                    fetchDocuments();
-                    fetchCrawledUrls();
-                }, 500);
+                if (crawlMode === 'single') {
+                    // Single page - immediate response
+                    setUploadProgress({
+                        type: 'success',
+                        message: `Successfully crawled "${data.url}"`,
+                        chunks: data.chunks,
+                    });
+                    toast({
+                        title: "✅ URL Crawled",
+                        description: `Content indexed into ${data.chunks} chunks`,
+                    });
+                    setCrawlUrl('');
+                    setCrawling(false);
+                    // Refresh lists
+                    setTimeout(() => {
+                        fetchDocuments();
+                        fetchCrawledUrls();
+                    }, 500);
+                } else {
+                    // Multi-page - async job started
+                    setCrawlJobId(data.job_id);
+                    toast({
+                        title: "🔄 Crawl Started",
+                        description: `Crawling all pages from the website. This may take a few minutes...`,
+                    });
+                    // Start polling for status
+                    startPollingCrawlStatus(data.job_id);
+                }
             } else {
                 // Handle limit reached error
                 if (response.status === 403) {
@@ -381,6 +416,7 @@ export default function KnowledgeBasePage() {
                     description: data.message || data.error || 'Failed to crawl URL',
                     variant: "destructive",
                 });
+                setCrawling(false);
             }
         } catch (error) {
             setUploadProgress({
@@ -392,8 +428,264 @@ export default function KnowledgeBasePage() {
                 description: 'Failed to connect to server',
                 variant: "destructive",
             });
-        } finally {
             setCrawling(false);
+        }
+    };
+
+    const startPollingCrawlStatus = (jobId: string) => {
+        // Clear any existing poll interval
+        if (pollInterval) {
+            clearInterval(pollInterval);
+        }
+
+        // Poll every 3 seconds
+        const interval = setInterval(() => {
+            checkCrawlStatus(jobId);
+        }, 3000);
+
+        setPollInterval(interval);
+
+        // Also check immediately
+        checkCrawlStatus(jobId);
+    };
+
+    const checkCrawlStatus = async (jobId: string) => {
+        if (!token) return;
+
+        try {
+            const response = await fetch(`/api/rag/crawl-status/${jobId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setCrawlStatus(data);
+
+                if (data.status === 'completed' && data.processed) {
+                    // Crawl is complete and processed
+                    if (pollInterval) {
+                        clearInterval(pollInterval);
+                        setPollInterval(null);
+                    }
+                    setCrawling(false);
+                    setCrawlUrl('');
+                    setCrawlJobId(null);
+
+                    toast({
+                        title: "✅ Crawl Complete",
+                        description: `Indexed ${data.pages_crawled} pages (${data.total_chunks} chunks). ${data.pages_failed} pages failed.`,
+                    });
+
+                    // Refresh document list
+                    setTimeout(() => {
+                        fetchDocuments();
+                        fetchCrawledUrls();
+                    }, 500);
+                } else if (data.status === 'failed') {
+                    // Crawl failed
+                    if (pollInterval) {
+                        clearInterval(pollInterval);
+                        setPollInterval(null);
+                    }
+                    setCrawling(false);
+                    setCrawlJobId(null);
+
+                    toast({
+                        title: "Crawl Failed",
+                        description: 'The crawl job failed. Please try again.',
+                        variant: "destructive",
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error checking crawl status:', error);
+        }
+    };
+
+    // Cleanup poll interval on unmount
+    useEffect(() => {
+        return () => {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+            }
+        };
+    }, [pollInterval]);
+
+    const handleDiscoverPages = async () => {
+        if (!crawlUrl.trim() || !token) return;
+
+        // Validate URL format
+        if (!crawlUrl.startsWith('http://') && !crawlUrl.startsWith('https://')) {
+            toast({
+                title: "Invalid URL",
+                description: 'URL must start with http:// or https://',
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setDiscovering(true);
+        setUploadProgress({ type: null, message: '' });
+
+        try {
+            const response = await fetch('/api/rag/discover-pages', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: crawlUrl,
+                    max_pages: 1000
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setDiscoveryId(data.discovery_id);
+                setDiscoveredPages(data.pages);
+                setSelectedPages(new Set());
+                setShowPageSelector(true);
+                toast({
+                    title: "📋 Pages Discovered",
+                    description: `Found ${data.total_pages} pages. Select which ones to crawl.`,
+                });
+            } else {
+                toast({
+                    title: "Discovery Failed",
+                    description: data.error || 'Failed to discover pages',
+                    variant: "destructive",
+                });
+            }
+        } catch (error) {
+            toast({
+                title: "Network Error",
+                description: 'Failed to connect to server',
+                variant: "destructive",
+            });
+        } finally {
+            setDiscovering(false);
+        }
+    };
+
+    const handleTogglePage = (url: string) => {
+        setSelectedPages(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(url)) {
+                newSet.delete(url);
+            } else {
+                newSet.add(url);
+            }
+            return newSet;
+        });
+    };
+
+    const handleSelectAllPages = () => {
+        if (selectedPages.size === discoveredPages.length) {
+            setSelectedPages(new Set());
+        } else {
+            setSelectedPages(new Set(discoveredPages.map(p => p.url)));
+        }
+    };
+
+    const handleSelectAllFiltered = () => {
+        const filtered = getFilteredPages();
+        const filteredUrls = new Set(filtered.map(p => p.url));
+        
+        // Check if all filtered pages are already selected
+        const allFilteredSelected = filtered.every(p => selectedPages.has(p.url));
+        
+        if (allFilteredSelected) {
+            // Deselect all filtered pages
+            setSelectedPages(prev => {
+                const newSet = new Set(prev);
+                filtered.forEach(p => newSet.delete(p.url));
+                return newSet;
+            });
+        } else {
+            // Select all filtered pages
+            setSelectedPages(prev => {
+                const newSet = new Set(prev);
+                filtered.forEach(p => newSet.add(p.url));
+                return newSet;
+            });
+        }
+    };
+
+    const getFilteredPages = () => {
+        if (!pageSearchQuery.trim()) {
+            return discoveredPages;
+        }
+        
+        const query = pageSearchQuery.toLowerCase();
+        return discoveredPages.filter(page => {
+            const titleMatch = page.title.toLowerCase().includes(query);
+            const urlMatch = page.url.toLowerCase().includes(query);
+            return titleMatch || urlMatch;
+        });
+    };
+
+    const handleCrawlSelectedPages = async () => {
+        if (selectedPages.size === 0 || !token || !discoveryId) return;
+
+        setCrawlingSelected(true);
+        setUploadProgress({ type: null, message: '' });
+
+        try {
+            const response = await fetch('/api/rag/crawl-selected-pages', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    discovery_id: discoveryId,
+                    selected_urls: Array.from(selectedPages)
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                toast({
+                    title: "✅ Crawl Complete",
+                    description: `Indexed ${data.pages_crawled} pages (${data.total_chunks} chunks). ${data.pages_failed} failed.`,
+                });
+
+                // Reset state
+                setShowPageSelector(false);
+                setDiscoveryId(null);
+                setDiscoveredPages([]);
+                setSelectedPages(new Set());
+                setCrawlUrl('');
+                setPageSearchQuery('');
+
+                // Refresh document list
+                setTimeout(() => {
+                    fetchDocuments();
+                    fetchCrawledUrls();
+                }, 500);
+            } else {
+                if (response.status === 403) {
+                    setCrawlLimitReached(true);
+                }
+                toast({
+                    title: "Crawl Failed",
+                    description: data.message || data.error || 'Failed to crawl selected pages',
+                    variant: "destructive",
+                });
+            }
+        } catch (error) {
+            toast({
+                title: "Network Error",
+                description: 'Failed to connect to server',
+                variant: "destructive",
+            });
+        } finally {
+            setCrawlingSelected(false);
         }
     };
 
@@ -432,19 +724,19 @@ export default function KnowledgeBasePage() {
             if (response.ok) {
                 // Check if it was a URL crawl
                 const isUrlCrawl = filename.startsWith('url_crawl_');
-                
+
                 toast({
                     title: "✅ Document Deleted",
-                    description: isUrlCrawl 
+                    description: isUrlCrawl
                         ? `Successfully removed URL crawl. You can now crawl a new URL.`
                         : `Successfully removed "${filename}"`,
                 });
-                
+
                 // Reset crawl limit if URL was deleted
                 if (isUrlCrawl) {
                     setCrawlLimitReached(false);
                 }
-                
+
                 fetchDocuments();
                 fetchCrawledUrls();
                 setDeleteDialogOpen(false);
@@ -518,14 +810,14 @@ export default function KnowledgeBasePage() {
             return 'Unknown';
         }
     };
-    
+
     // Helper function to determine if a document is a file upload or plain text
     const isFileUpload = (filename: string) => {
         // Check if filename has a file extension from allowed types
         const extension = filename.split('.').pop()?.toLowerCase();
         return extension && ALLOWED_EXTENSIONS.includes(extension);
     };
-    
+
     // Filter documents based on active tab
     const filteredDocuments = documents.filter(doc => {
         if (activeTab === 'file') {
@@ -781,7 +1073,7 @@ export default function KnowledgeBasePage() {
                                     Crawl Website URL
                                 </CardTitle>
                                 <CardDescription className="text-slate-400">
-                                    Crawl and index content from a single URL
+                                    Crawl single page or entire website with progress tracking
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -796,8 +1088,8 @@ export default function KnowledgeBasePage() {
                                                 </p>
                                                 <p className="text-sm text-slate-400">
                                                     To crawl additional URLs, please contact us at{' '}
-                                                    <a 
-                                                        href="mailto:support@nexusaihub.co.in" 
+                                                    <a
+                                                        href="mailto:support@nexusaihub.co.in"
                                                         className="text-indigo-400 hover:text-indigo-300 underline"
                                                     >
                                                         support@nexusaihub.co.in
@@ -808,6 +1100,76 @@ export default function KnowledgeBasePage() {
                                     </div>
                                 ) : (
                                     <>
+                                        {/* Crawl Mode Selection */}
+                                        <div className="space-y-2">
+                                            <Label className="text-slate-300">Crawl Mode</Label>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <button
+                                                    onClick={() => setCrawlMode('single')}
+                                                    disabled={crawling || discovering}
+                                                    className={`p-3 rounded-lg border-2 transition-all ${crawlMode === 'single'
+                                                        ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
+                                                        : 'bg-slate-800 border-slate-600 text-slate-400 hover:border-slate-500'
+                                                        } ${(crawling || discovering) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                >
+                                                    <div className="text-sm font-medium">Single Page</div>
+                                                    <div className="text-xs mt-1 opacity-80">Crawl one URL</div>
+                                                </button>
+                                                <button
+                                                    onClick={() => setCrawlMode('multi')}
+                                                    disabled={crawling || discovering}
+                                                    className={`p-3 rounded-lg border-2 transition-all ${crawlMode === 'multi'
+                                                        ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
+                                                        : 'bg-slate-800 border-slate-600 text-slate-400 hover:border-slate-500'
+                                                        } ${(crawling || discovering) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                >
+                                                    <div className="text-sm font-medium">Multi-Page</div>
+                                                    <div className="text-xs mt-1 opacity-80">Crawl all pages</div>
+                                                </button>
+                                                <button
+                                                    onClick={() => setCrawlMode('selective')}
+                                                    disabled={crawling || discovering}
+                                                    className={`p-3 rounded-lg border-2 transition-all ${crawlMode === 'selective'
+                                                        ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
+                                                        : 'bg-slate-800 border-slate-600 text-slate-400 hover:border-slate-500'
+                                                        } ${(crawling || discovering) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                >
+                                                    <div className="text-sm font-medium">Select Pages</div>
+                                                    <div className="text-xs mt-1 opacity-80">Choose specific</div>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Mode-specific info boxes */}
+                                        {crawlMode === 'multi' && (
+                                            <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+                                                <div className="flex items-start gap-2">
+                                                    <AlertCircle className="h-4 w-4 text-orange-400 mt-0.5 flex-shrink-0" />
+                                                    <div className="text-xs text-slate-300">
+                                                        <p className="font-medium text-orange-400 mb-1">Multi-Page Crawling Note</p>
+                                                        <p className="text-slate-400">
+                                                            Multi-page crawling uses Firecrawl API credits. If credits are exhausted, the system will automatically fall back to single-page mode. For best results with limited credits, use <strong>Single Page</strong> mode.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {crawlMode === 'selective' && (
+                                            <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                                                <div className="flex items-start gap-2">
+                                                    <CheckCircle2 className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                                                    <div className="text-xs text-slate-300">
+                                                        <p className="font-medium text-blue-400 mb-1">Selective Crawling</p>
+                                                        <p className="text-slate-400">
+                                                            First, we'll discover all pages on the website. Then you can select exactly which pages to crawl and index. This conserves API credits and gives you full control.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* URL Input */}
                                         <div className="space-y-2">
                                             <Label htmlFor="crawl-url" className="text-slate-300">
                                                 Website URL
@@ -827,27 +1189,106 @@ export default function KnowledgeBasePage() {
                                                 </div>
                                                 <Button
                                                     onClick={handleUrlCrawl}
-                                                    disabled={crawling || !crawlUrl.trim()}
+                                                    disabled={(crawling || discovering) || !crawlUrl.trim()}
                                                     className="bg-indigo-600 hover:bg-indigo-700 px-6"
                                                 >
-                                                    {crawling ? (
+                                                    {(crawling || discovering) ? (
                                                         <>
                                                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                            Crawling...
+                                                            {discovering ? 'Discovering...' : crawlMode === 'single' ? 'Crawling...' : 'Processing...'}
                                                         </>
                                                     ) : (
                                                         <>
                                                             <Globe className="mr-2 h-4 w-4" />
-                                                            Crawl
+                                                            {crawlMode === 'selective' ? 'Discover Pages' : 'Crawl'}
                                                         </>
                                                     )}
                                                 </Button>
                                             </div>
                                             <p className="text-xs text-slate-400">
-                                                Enter a valid URL to crawl and index its content (limit: 1 URL per workspace)
+                                                {crawlMode === 'single'
+                                                    ? 'Enter a URL to crawl and index a single page'
+                                                    : 'Enter the base URL to crawl all pages from the website'
+                                                }
                                             </p>
                                         </div>
 
+                                        {/* Crawl Status (for multi-page crawls) */}
+                                        {crawling && crawlMode === 'multi' && crawlStatus && (
+                                            <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-lg space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <Loader2 className="h-4 w-4 text-indigo-400 animate-spin" />
+                                                        <span className="text-sm font-medium text-indigo-300">
+                                                            Crawl in Progress
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-xs text-slate-400">
+                                                        {crawlStatus.status}
+                                                    </span>
+                                                </div>
+
+                                                {/* Progress bar */}
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center justify-between text-xs">
+                                                        <span className="text-slate-400">Pages: {crawlStatus.completed_pages || 0} / {crawlStatus.total_pages || '?'}</span>
+                                                        <span className="text-slate-400">
+                                                            {crawlStatus.total_pages > 0
+                                                                ? `${Math.round((crawlStatus.completed_pages / crawlStatus.total_pages) * 100)}%`
+                                                                : 'Processing...'
+                                                            }
+                                                        </span>
+                                                    </div>
+                                                    <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full bg-indigo-500 transition-all duration-300"
+                                                            style={{
+                                                                width: crawlStatus.total_pages > 0
+                                                                    ? `${(crawlStatus.completed_pages / crawlStatus.total_pages) * 100}%`
+                                                                    : '0%'
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* Stats */}
+                                                <div className="grid grid-cols-3 gap-3 text-xs">
+                                                    <div className="bg-slate-800/50 p-2 rounded">
+                                                        <div className="text-slate-400">Indexed</div>
+                                                        <div className="text-green-400 font-semibold">{crawlStatus.pages_crawled || 0}</div>
+                                                    </div>
+                                                    <div className="bg-slate-800/50 p-2 rounded">
+                                                        <div className="text-slate-400">Failed</div>
+                                                        <div className="text-red-400 font-semibold">{crawlStatus.pages_failed || 0}</div>
+                                                    </div>
+                                                    <div className="bg-slate-800/50 p-2 rounded">
+                                                        <div className="text-slate-400">Chunks</div>
+                                                        <div className="text-indigo-400 font-semibold">{crawlStatus.total_chunks || 0}</div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Page details */}
+                                                {crawlStatus.crawl_details && crawlStatus.crawl_details.length > 0 && (
+                                                    <div className="max-h-40 overflow-y-auto space-y-1">
+                                                        {crawlStatus.crawl_details.map((detail: any, idx: number) => (
+                                                            <div key={idx} className="flex items-center gap-2 text-xs p-2 bg-slate-800/30 rounded">
+                                                                {detail.status === 'success' ? (
+                                                                    <CheckCircle2 className="h-3 w-3 text-green-400 flex-shrink-0" />
+                                                                ) : (
+                                                                    <AlertCircle className="h-3 w-3 text-red-400 flex-shrink-0" />
+                                                                )}
+                                                                <span className="truncate flex-1 text-slate-300">{detail.title || detail.url}</span>
+                                                                <span className={detail.status === 'success' ? 'text-green-400' : 'text-red-400'}>
+                                                                    {detail.chunks || 0} chunks
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Success/Error Messages */}
                                         {uploadProgress.type && (
                                             <div className={`flex items-start gap-3 p-4 rounded-lg ${uploadProgress.type === 'success'
                                                 ? 'bg-green-500/10 border border-green-500/20'
@@ -871,16 +1312,18 @@ export default function KnowledgeBasePage() {
                                             </div>
                                         )}
 
+                                        {/* Info Box */}
                                         <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                                             <div className="flex items-start gap-3">
                                                 <ExternalLink className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
                                                 <div className="text-xs text-slate-300 space-y-1">
                                                     <p className="font-medium text-blue-400">How URL Crawling Works:</p>
                                                     <ul className="list-disc list-inside space-y-1 text-slate-400">
-                                                        <li>Firecrawl extracts main content from the URL</li>
+                                                        <li><strong>Single Mode (Recommended):</strong> Crawls one page immediately using 1 API credit</li>
+                                                        <li><strong>Multi Mode:</strong> Attempts to crawl all pages (may fail if API credits exhausted)</li>
+                                                        <li>Firecrawl extracts main content, excluding nav/footer/header</li>
                                                         <li>Content is processed and split into searchable chunks</li>
-                                                        <li>Indexed into your knowledge base for AI retrieval</li>
-                                                        <li>Limited to 1 URL per workspace</li>
+                                                        <li>System automatically falls back to single page if multi-page fails</li>
                                                     </ul>
                                                 </div>
                                             </div>
@@ -899,11 +1342,11 @@ export default function KnowledgeBasePage() {
                             {activeTab === 'file' ? 'Uploaded Files' : activeTab === 'text' ? 'Plain Text Entries' : 'Crawled URLs'}
                         </CardTitle>
                         <CardDescription className="text-slate-400">
-                            {activeTab === 'file' 
-                                ? 'View and manage your uploaded document files' 
+                            {activeTab === 'file'
+                                ? 'View and manage your uploaded document files'
                                 : activeTab === 'text'
-                                ? 'View and manage your plain text knowledge entries'
-                                : 'View your crawled website content'}
+                                    ? 'View and manage your plain text knowledge entries'
+                                    : 'View your crawled website content'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -1038,6 +1481,173 @@ export default function KnowledgeBasePage() {
                     onConfirm={handleDeleteDocument}
                     isDeleting={false}
                 />
+
+                {/* Page Selector Dialog */}
+                <Dialog open={showPageSelector} onOpenChange={setShowPageSelector}>
+                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+                        <DialogHeader>
+                            <DialogTitle className="text-xl font-semibold text-slate-100 flex items-center gap-2">
+                                <Globe className="h-5 w-5 text-indigo-400" />
+                                Select Pages to Crawl
+                            </DialogTitle>
+                            <p className="text-sm text-slate-400 mt-2">
+                                Found {discoveredPages.length} pages. Select the ones you want to crawl and index.
+                            </p>
+                        </DialogHeader>
+
+                        <div className="flex-1 overflow-hidden flex flex-col space-y-4">
+                            {/* Search Input */}
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                                <Input
+                                    value={pageSearchQuery}
+                                    onChange={(e) => setPageSearchQuery(e.target.value)}
+                                    placeholder="Search pages by title or URL..."
+                                    className="bg-slate-900 border-slate-600 text-slate-100 pl-10 pr-10"
+                                />
+                                {pageSearchQuery && (
+                                    <button
+                                        onClick={() => setPageSearchQuery('')}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Select All / Stats */}
+                            <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+                                <div className="flex items-center gap-4">
+                                    {pageSearchQuery ? (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleSelectAllFiltered}
+                                            className="text-slate-300 border-slate-600 hover:bg-slate-700"
+                                        >
+                                            {(() => {
+                                                const filtered = getFilteredPages();
+                                                const allFilteredSelected = filtered.every(p => selectedPages.has(p.url));
+                                                return allFilteredSelected ? (
+                                                    <><CheckCircle2 className="h-4 w-4 mr-2" /> Deselect Filtered</>
+                                                ) : (
+                                                    <><CheckCircle2 className="h-4 w-4 mr-2" /> Select Filtered</>
+                                                );
+                                            })()}
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleSelectAllPages}
+                                            className="text-slate-300 border-slate-600 hover:bg-slate-700"
+                                        >
+                                            {selectedPages.size === discoveredPages.length ? (
+                                                <><CheckCircle2 className="h-4 w-4 mr-2" /> Deselect All</>
+                                            ) : (
+                                                <><CheckCircle2 className="h-4 w-4 mr-2" /> Select All</>
+                                            )}
+                                        </Button>
+                                    )}
+                                    <span className="text-sm text-slate-400">
+                                        {selectedPages.size} of {discoveredPages.length} pages selected
+                                        {pageSearchQuery && (
+                                            <span className="ml-2 text-indigo-400">
+                                                ({getFilteredPages().length} matches)
+                                            </span>
+                                        )}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Page List */}
+                            <div className="flex-1 overflow-y-auto space-y-2 pr-2">
+                                {(() => {
+                                    const filteredPages = getFilteredPages();
+                                    
+                                    if (filteredPages.length === 0) {
+                                        return (
+                                            <div className="flex flex-col items-center justify-center py-12 text-slate-500">
+                                                <Search className="h-12 w-12 mb-3 opacity-50" />
+                                                <p className="text-sm">No pages match your search</p>
+                                                <p className="text-xs mt-1">Try a different search term</p>
+                                            </div>
+                                        );
+                                    }
+                                    
+                                    return filteredPages.map((page, index) => {
+                                        const isSelected = selectedPages.has(page.url);
+                                        const originalIndex = discoveredPages.findIndex(p => p.url === page.url);
+                                        
+                                        return (
+                                            <div
+                                                key={page.url}
+                                                onClick={() => handleTogglePage(page.url)}
+                                                className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${isSelected
+                                                    ? 'bg-indigo-600/20 border-indigo-500'
+                                                    : 'bg-slate-800/30 border-slate-700 hover:border-slate-600 hover:bg-slate-800/50'
+                                                    }`}
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    <div className="mt-0.5">
+                                                        {isSelected ? (
+                                                            <CheckCircle2 className="h-5 w-5 text-indigo-400" />
+                                                        ) : (
+                                                            <div className="h-5 w-5 rounded border-2 border-slate-600" />
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="text-xs font-medium text-slate-500">#{originalIndex + 1}</span>
+                                                            <h4 className="text-sm font-medium text-slate-200 truncate">
+                                                                {page.title}
+                                                            </h4>
+                                                        </div>
+                                                        <p className="text-xs text-slate-400 truncate">{page.url}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    });
+                                })()}
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center justify-between gap-3 pt-4 border-t border-slate-700">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        setShowPageSelector(false);
+                                        setDiscoveredPages([]);
+                                        setSelectedPages(new Set());
+                                        setDiscoveryId(null);
+                                        setPageSearchQuery('');
+                                    }}
+                                    className="text-slate-300 border-slate-600 hover:bg-slate-700"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={handleCrawlSelectedPages}
+                                    disabled={selectedPages.size === 0 || crawlingSelected}
+                                    className="bg-indigo-600 hover:bg-indigo-700"
+                                >
+                                    {crawlingSelected ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Crawling {selectedPages.size} pages...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Globe className="mr-2 h-4 w-4" />
+                                            Crawl {selectedPages.size} Selected Page{selectedPages.size !== 1 ? 's' : ''}
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
 
         </div>
