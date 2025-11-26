@@ -1,0 +1,457 @@
+/**
+ * Agent Preview Panel Component
+ * 
+ * Displays an interactive chat preview using server-driven step-by-step execution.
+ * The server controls the flow and tells the client what to display at each step.
+ */
+
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Send, Loader2, Bot, User, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useAuth } from '@/hooks/useAuth';
+
+interface Message {
+    role: 'user' | 'assistant' | 'interactive';
+    content: string;
+    timestamp: Date;
+    buttons?: Array<{ id: string; label: string; actionType: string; actionValue?: string }>;
+}
+
+interface StepState {
+    user_data: Record<string, any>;
+    messages: Array<{ role: string; content: string }>;
+    workspace_id?: string;
+    agent_id?: string;
+    conversation_id?: string;
+}
+
+interface UISchema {
+    type: 'interactive' | 'input' | 'processing' | 'complete' | 'info';
+    message?: string;
+    buttons?: Array<{ id: string; label: string; actionType: string; actionValue?: string }>;
+    label?: string;
+    inputType?: string;
+    placeholder?: string;
+    expects_input: boolean;
+}
+
+interface AgentPreviewPanelProps {
+    agentId: string;
+    agentName?: string;
+    onClose: () => void;
+}
+
+export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClose }: AgentPreviewPanelProps) {
+    const { token } = useAuth();
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [inputMessage, setInputMessage] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
+    const [nextNodeId, setNextNodeId] = useState<string | null>(null);
+    const [flowState, setFlowState] = useState<StepState>({
+        user_data: {},
+        messages: []
+    });
+    const [uiSchema, setUiSchema] = useState<UISchema | null>(null);
+    const [isComplete, setIsComplete] = useState(false);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const isAutoProceeding = useRef(false);
+
+    // Initialize flow by executing first step
+    useEffect(() => {
+        initializeFlow();
+    }, [agentId]);
+
+    const initializeFlow = async () => {
+        setIsLoading(true);
+        try {
+            // Start the flow - server will determine first node
+            const response = await fetch('/api/langgraph/step', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    agent_id: agentId,
+                    user_input: '',
+                    user_data: {},
+                    messages: []
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                handleStepResponse(data);
+            } else {
+                // Fallback welcome message
+                setMessages([{
+                    role: 'assistant',
+                    content: data.response || `Hello! I'm ${agentName}. How can I help you today?`,
+                    timestamp: new Date()
+                }]);
+            }
+        } catch (error) {
+            console.error('Failed to initialize flow:', error);
+            setMessages([{
+                role: 'assistant',
+                content: `Hello! I'm ${agentName}. How can I help you today?`,
+                timestamp: new Date()
+            }]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Handle response from step execution
+    const handleStepResponse = (data: any) => {
+        console.log('[AgentPreviewPanel] handleStepResponse:', {
+            current_node_id: data.current_node_id,
+            next_node_id: data.next_node_id,
+            ui_schema: data.ui_schema,
+            expects_input: data.ui_schema?.expects_input,
+            is_complete: data.is_complete,
+            isAutoProceeding: isAutoProceeding.current
+        });
+
+        setCurrentNodeId(data.current_node_id);
+        setNextNodeId(data.next_node_id);
+        setFlowState(data.state || { user_data: {}, messages: [] });
+        setUiSchema(data.ui_schema);
+        setIsComplete(data.is_complete || false);
+
+        // Display message based on UI schema
+        if (data.ui_schema && data.response) {
+            const newMessage: Message = {
+                role: data.ui_schema.type === 'interactive' ? 'interactive' : 'assistant',
+                content: data.response,
+                timestamp: new Date(),
+                buttons: data.ui_schema.buttons
+            };
+            setMessages(prev => [...prev, newMessage]);
+        }
+
+        // Auto-proceed if expects_input is false
+        const shouldAutoProceed = data.ui_schema && 
+                                 data.ui_schema.expects_input === false && 
+                                 data.next_node_id && 
+                                 !data.is_complete && 
+                                 !isAutoProceeding.current;
+        
+        console.log('[AgentPreviewPanel] Should auto-proceed?', shouldAutoProceed, {
+            has_ui_schema: !!data.ui_schema,
+            expects_input: data.ui_schema?.expects_input,
+            has_next_node: !!data.next_node_id,
+            is_complete: data.is_complete,
+            is_auto_proceeding: isAutoProceeding.current
+        });
+
+        if (shouldAutoProceed) {
+            console.log('[AgentPreviewPanel] Auto-proceeding to next node:', data.next_node_id);
+            isAutoProceeding.current = true;
+            // Use a small delay to allow the message to be displayed first
+            setTimeout(() => {
+                console.log('[AgentPreviewPanel] Executing next step');
+                // Execute with the next_node_id from the response data, not state
+                executeNextStepDirect(data.next_node_id, '', data.state);
+                isAutoProceeding.current = false;
+            }, 500);
+        }
+    };
+
+    // Execute next step directly with node_id (for auto-proceed)
+    const executeNextStepDirect = async (nodeId: string, userInput: string, state: StepState) => {
+        console.log('[AgentPreviewPanel] executeNextStepDirect called:', { nodeId, userInput });
+        
+        if (!nodeId || isComplete) {
+            console.log('[AgentPreviewPanel] Skipping execution - no node or flow complete');
+            return;
+        }
+
+        setIsLoading(true);
+
+        try {
+            console.log('[AgentPreviewPanel] Sending request to /api/langgraph/step');
+            const response = await fetch('/api/langgraph/step', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    agent_id: agentId,
+                    node_id: nodeId,
+                    user_input: userInput,
+                    user_data: state.user_data,
+                    messages: state.messages,
+                    conversation_id: state.conversation_id
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                handleStepResponse(data);
+            } else {
+                const errorMessage: Message = {
+                    role: 'assistant',
+                    content: data.response || 'I encountered an error processing your request.',
+                    timestamp: new Date()
+                };
+                setMessages(prev => [...prev, errorMessage]);
+            }
+        } catch (error) {
+            console.error('Step execution error:', error);
+            const errorMessage: Message = {
+                role: 'assistant',
+                content: 'Connection error. Please check your network and try again.',
+                timestamp: new Date()
+            };
+            setMessages(prev => [...prev, errorMessage]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Execute next step with user input
+    const executeNextStep = async (userInput: string) => {
+        console.log('[AgentPreviewPanel] executeNextStep called:', { 
+            userInput, 
+            nextNodeId, 
+            isComplete,
+            willExecute: !(!nextNodeId || isComplete)
+        });
+        
+        if (!nextNodeId || isComplete) {
+            console.log('[AgentPreviewPanel] Skipping execution - no next node or flow complete');
+            return;
+        }
+
+        setIsLoading(true);
+
+        try {
+            console.log('[AgentPreviewPanel] Sending request to /api/langgraph/step');
+            const response = await fetch('/api/langgraph/step', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    agent_id: agentId,
+                    node_id: nextNodeId,
+                    user_input: userInput,
+                    user_data: flowState.user_data,
+                    messages: flowState.messages,
+                    conversation_id: flowState.conversation_id
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                handleStepResponse(data);
+            } else {
+                const errorMessage: Message = {
+                    role: 'assistant',
+                    content: data.response || 'I encountered an error processing your request.',
+                    timestamp: new Date()
+                };
+                setMessages(prev => [...prev, errorMessage]);
+            }
+        } catch (error) {
+            console.error('Step execution error:', error);
+            const errorMessage: Message = {
+                role: 'assistant',
+                content: 'Connection error. Please check your network and try again.',
+                timestamp: new Date()
+            };
+            setMessages(prev => [...prev, errorMessage]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Handle button click from interactive message
+    const handleButtonClick = (button: { id: string; label: string; actionType: string; actionValue?: string }) => {
+        // Add user's choice as a message
+        const userMessage: Message = {
+            role: 'user',
+            content: button.label,
+            timestamp: new Date()
+        };
+        setMessages(prev => [...prev, userMessage]);
+
+        // Execute next step with button label as input
+        executeNextStep(button.label);
+    };
+
+    // Handle text input send
+    const handleSendMessage = async () => {
+        if (!inputMessage.trim() || isLoading) return;
+
+        const userMessage: Message = {
+            role: 'user',
+            content: inputMessage,
+            timestamp: new Date()
+        };
+
+        setMessages(prev => [...prev, userMessage]);
+        const userInput = inputMessage;
+        setInputMessage('');
+
+        // Execute next step with user input
+        executeNextStep(userInput);
+    };
+
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage();
+        }
+    };
+
+    // Auto-scroll to bottom
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    return (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+            <div className="bg-[#0a0e14] border border-gray-700 rounded-lg shadow-2xl w-full max-w-2xl h-[600px] flex flex-col">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-700">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                            <Sparkles className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-100">Agent Preview</h3>
+                            <p className="text-xs text-gray-400">{agentName}</p>
+                        </div>
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-white hover:bg-gray-800"
+                    >
+                        <X className="h-5 w-5" />
+                    </Button>
+                </div>
+
+                {/* Messages Area */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {messages.map((message, index) => (
+                        <div
+                            key={index}
+                            className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
+                            {(message.role === 'assistant' || message.role === 'interactive') && (
+                                <div className="flex-shrink-0">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                                        <Bot className="h-4 w-4 text-white" />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="max-w-[70%]">
+                                <div
+                                    className={`rounded-lg p-3 ${message.role === 'user'
+                                        ? 'bg-indigo-600 text-white'
+                                        : 'bg-gray-800 text-gray-100'
+                                        }`}
+                                >
+                                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                    <p className="text-xs opacity-60 mt-1">
+                                        {message.timestamp.toLocaleTimeString([], {
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </p>
+                                </div>
+
+                                {/* Interactive Buttons */}
+                                {message.role === 'interactive' && message.buttons && message.buttons.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {message.buttons.map((button, btnIndex) => (
+                                            <Button
+                                                key={btnIndex}
+                                                onClick={() => handleButtonClick(button)}
+                                                size="sm"
+                                                variant="outline"
+                                                className="border-indigo-500 text-indigo-400 hover:bg-indigo-500/10"
+                                            >
+                                                {button.label}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {message.role === 'user' && (
+                                <div className="flex-shrink-0">
+                                    <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">
+                                        <User className="h-4 w-4 text-gray-300" />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+
+                    {isLoading && (
+                        <div className="flex gap-3 justify-start">
+                            <div className="flex-shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                                    <Bot className="h-4 w-4 text-white" />
+                                </div>
+                            </div>
+                            <div className="bg-gray-800 rounded-lg p-3">
+                                <div className="flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin text-indigo-400" />
+                                    <span className="text-sm text-gray-400">Thinking...</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div ref={messagesEndRef} />
+                </div>
+
+                {/* Input Area */}
+                <div className="border-t border-gray-700 p-4">
+                    <div className="flex gap-2">
+                        <Input
+                            value={inputMessage}
+                            onChange={(e) => setInputMessage(e.target.value)}
+                            onKeyDown={handleKeyPress}
+                            placeholder={isComplete ? "Flow completed" : (uiSchema?.expects_input === false ? "Processing..." : "Type your message...")}
+                            disabled={isLoading || isComplete || uiSchema?.expects_input === false}
+                            className="bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
+                        />
+                        <Button
+                            onClick={handleSendMessage}
+                            disabled={isLoading || !inputMessage.trim() || isComplete || uiSchema?.expects_input === false}
+                            className="bg-indigo-600 hover:bg-indigo-700"
+                        >
+                            {isLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Send className="h-4 w-4" />
+                            )}
+                        </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                        {isComplete
+                            ? "Flow completed"
+                            : uiSchema?.expects_input === false
+                                ? "Auto-proceeding to next step..."
+                                : "Press Enter to send • This is a preview of your agent's behavior"}
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+}

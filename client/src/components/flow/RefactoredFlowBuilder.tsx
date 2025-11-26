@@ -16,7 +16,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 
 import { Button } from '@/components/ui/button';
-import { Save, Minimize2, Maximize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock } from 'lucide-react';
+import { Save, Minimize2, Maximize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { apiClient } from '@/lib/apiClient';
@@ -26,6 +26,7 @@ import ButtonNode from '@/components/flow/MessageNode';
 import AINode from '@/components/flow/AINode';
 import InputNode from '@/components/flow/InputNode';
 import NodeConfigPanel from '@/components/flow/NodeConfigPanel';
+import AgentPreviewPanel from '@/components/flow/AgentPreviewPanel';
 
 const nodeTypes: NodeTypes = {
     button: ButtonNode,
@@ -49,6 +50,7 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [editingNode, setEditingNode] = useState<{ id: string; type: 'button' | 'input' | 'ai' } | null>(null);
     const [isLocked, setIsLocked] = useState(false);
+    const [showPreview, setShowPreview] = useState(false);
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
     const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
     const { toast } = useToast();
@@ -282,6 +284,15 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
+                    <Button 
+                        onClick={() => setShowPreview(true)} 
+                        size="sm" 
+                        variant="outline"
+                        className="border-indigo-600 text-indigo-400 hover:bg-indigo-600/10 hover:text-indigo-300"
+                    >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Preview
+                    </Button>
                     <Button onClick={saveFlow} size="sm" className="bg-green-600 hover:bg-green-700 text-white">
                         <Save className="h-4 w-4 mr-2" />
                         Save
@@ -406,6 +417,15 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
                     nodeData={nodes.find((n) => n.id === editingNode.id)?.data}
                     onClose={() => setEditingNode(null)}
                     onSave={handleSaveNodeConfig}
+                />
+            )}
+
+            {/* Agent Preview Panel */}
+            {showPreview && (
+                <AgentPreviewPanel
+                    agentId={workspaceId}
+                    agentName="Script Flow Agent"
+                    onClose={() => setShowPreview(false)}
                 />
             )}
         </div>

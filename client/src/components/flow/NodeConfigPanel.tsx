@@ -33,7 +33,7 @@ import {
 
 interface NodeConfigPanelProps {
     nodeId: string | null;
-    nodeType: 'button' | 'input' | 'ai' | 'apiLibrary' | 'knowledgeBase' | null;
+    nodeType: 'button' | 'input' | 'ai' | 'apiLibrary' | 'knowledgeBase' | 'engine' | null;
     nodeData: any;
     onClose: () => void;
     onSave: (data: any) => void;
@@ -997,8 +997,8 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                     <button
                                         onClick={() => setKbViewTab('file')}
                                         className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all ${kbViewTab === 'file'
-                                                ? 'bg-purple-600 text-white shadow-lg'
-                                                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
+                                            ? 'bg-purple-600 text-white shadow-lg'
+                                            : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
                                             }`}
                                     >
                                         <FileText className="h-3.5 w-3.5 inline mr-1.5" />
@@ -1007,8 +1007,8 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                     <button
                                         onClick={() => setKbViewTab('text')}
                                         className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all ${kbViewTab === 'text'
-                                                ? 'bg-purple-600 text-white shadow-lg'
-                                                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
+                                            ? 'bg-purple-600 text-white shadow-lg'
+                                            : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
                                             }`}
                                     >
                                         <FileText className="h-3.5 w-3.5 inline mr-1.5" />
@@ -1017,8 +1017,8 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                     <button
                                         onClick={() => setKbViewTab('url')}
                                         className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all ${kbViewTab === 'url'
-                                                ? 'bg-purple-600 text-white shadow-lg'
-                                                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
+                                            ? 'bg-purple-600 text-white shadow-lg'
+                                            : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
                                             }`}
                                     >
                                         <Globe className="h-3.5 w-3.5 inline mr-1.5" />
@@ -1063,8 +1063,8 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                                     key={doc.filename}
                                                     onClick={() => handleKbDocToggle(doc.filename)}
                                                     className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${isSelected
-                                                            ? 'bg-purple-900/20 border-purple-500/50 shadow-lg'
-                                                            : 'bg-[#0f1419] border-gray-700/50 hover:border-gray-600 hover:bg-gray-800/30'
+                                                        ? 'bg-purple-900/20 border-purple-500/50 shadow-lg'
+                                                        : 'bg-[#0f1419] border-gray-700/50 hover:border-gray-600 hover:bg-gray-800/30'
                                                         }`}
                                                 >
                                                     <div className="flex-shrink-0">
@@ -1105,8 +1105,8 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                     <button
                                         onClick={() => setKbUploadTab('file')}
                                         className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all ${kbUploadTab === 'file'
-                                                ? 'bg-emerald-600 text-white shadow-lg'
-                                                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
+                                            ? 'bg-emerald-600 text-white shadow-lg'
+                                            : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
                                             }`}
                                     >
                                         Upload File
@@ -1114,8 +1114,8 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                     <button
                                         onClick={() => setKbUploadTab('text')}
                                         className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all ${kbUploadTab === 'text'
-                                                ? 'bg-emerald-600 text-white shadow-lg'
-                                                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
+                                            ? 'bg-emerald-600 text-white shadow-lg'
+                                            : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
                                             }`}
                                     >
                                         Paste Text
@@ -1123,8 +1123,8 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                     <button
                                         onClick={() => setKbUploadTab('url')}
                                         className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all ${kbUploadTab === 'url'
-                                                ? 'bg-emerald-600 text-white shadow-lg'
-                                                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
+                                            ? 'bg-emerald-600 text-white shadow-lg'
+                                            : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
                                             }`}
                                     >
                                         <Globe className="h-3.5 w-3.5 inline mr-1.5" />
@@ -1238,22 +1238,20 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                                         <button
                                                             onClick={() => setKbCrawlMode('single')}
                                                             disabled={kbCrawling}
-                                                            className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-all ${
-                                                                kbCrawlMode === 'single'
+                                                            className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-all ${kbCrawlMode === 'single'
                                                                     ? 'bg-emerald-600/20 border-emerald-500 text-emerald-300'
                                                                     : 'bg-[#0f1419] border-gray-600 text-gray-400 hover:border-gray-500'
-                                                            } ${kbCrawling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                                } ${kbCrawling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                                                         >
                                                             Single Page
                                                         </button>
                                                         <button
                                                             onClick={() => setKbCrawlMode('multi')}
                                                             disabled={kbCrawling}
-                                                            className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-all ${
-                                                                kbCrawlMode === 'multi'
+                                                            className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-all ${kbCrawlMode === 'multi'
                                                                     ? 'bg-emerald-600/20 border-emerald-500 text-emerald-300'
                                                                     : 'bg-[#0f1419] border-gray-600 text-gray-400 hover:border-gray-500'
-                                                            } ${kbCrawling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                                } ${kbCrawling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                                                         >
                                                             All Pages
                                                         </button>
@@ -1281,7 +1279,7 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                                     )}
                                                 </Button>
                                                 <p className="text-xs text-gray-500 text-center">
-                                                    {kbCrawlMode === 'single' 
+                                                    {kbCrawlMode === 'single'
                                                         ? 'Crawl a single page immediately'
                                                         : 'Crawl all pages from the website (async)'
                                                     }
@@ -1444,6 +1442,20 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                 onChange={(variableId) => setConfig({ ...config, save_response_variable_id: variableId })}
                                 label="Save Response To"
                             />
+                        </>
+                    )}
+
+                    {/* Engine Node Config */}
+                    {nodeType === 'engine' && (
+                        <>
+                            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                                <div className="p-4 bg-gradient-to-br from-orange-900/20 to-orange-800/10 rounded-full mb-4 ring-1 ring-orange-500/20">
+                                    <Settings2 className="h-10 w-10 text-orange-400" />
+                                </div>
+                                <h3 className="text-gray-200 font-semibold mb-2">Engine Node</h3>
+                                <p className="text-gray-400 text-sm">Execution endpoint for the flow</p>
+                                <p className="text-gray-600 text-xs mt-2">This node automatically processes all collected data and generates the final output</p>
+                            </div>
                         </>
                     )}
                 </div>

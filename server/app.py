@@ -69,6 +69,7 @@ def create_app():
     from server.variable_routes import variable_bp
     from server.api_library_routes import api_library_bp
     from server.flow_agents_routes import flow_agents_bp
+    from server.langgraph_routes import langgraph_bp
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(workspace_bp, url_prefix='/api')
     app.register_blueprint(conversation_bp, url_prefix='/api')
@@ -88,6 +89,7 @@ def create_app():
     app.register_blueprint(variable_bp, url_prefix='/api')
     app.register_blueprint(api_library_bp, url_prefix='/api')
     app.register_blueprint(flow_agents_bp, url_prefix='/api')
+    app.register_blueprint(langgraph_bp, url_prefix='/api')
     app.register_blueprint(static_bp)
     
     # Import send_file
