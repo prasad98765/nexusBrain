@@ -51,7 +51,8 @@ def execute_flow_step():
             "user_input": str,         # Optional: User's input for this step
             "user_data": dict,         # Optional: Previously collected data
             "messages": list,          # Optional: Previous conversation messages
-            "conversation_id": str     # Optional: Conversation ID for context
+            "conversation_id": str,    # Optional: Conversation ID for context
+            "button_action": dict      # Optional: Button action with button_index, action_type, action_value
         }
     
     Response:
@@ -128,7 +129,8 @@ def execute_flow_step():
             messages=data.get('messages', []),
             workspace_id=workspace_id,
             agent_id=agent_id,
-            conversation_id=data.get('conversation_id')
+            conversation_id=data.get('conversation_id'),
+            button_action=data.get('button_action')  # Pass button action to service
         )
         
         return jsonify(result), 200

@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { executeButtonAction } from '@/utils/buttonActions';
 
 interface Message {
     role: 'user' | 'assistant' | 'interactive';
@@ -153,9 +154,14 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
 
         // Display message based on UI schema
         if (data.ui_schema && data.response) {
+            // For input nodes, prefer placeholder text over response
+            const messageContent = data.ui_schema.type === 'input' && data.ui_schema.placeholder
+                ? data.ui_schema.placeholder
+                : data.response;
+            
             const newMessage: Message = {
                 role: data.ui_schema.type === 'interactive' ? 'interactive' : 'assistant',
-                content: data.response,
+                content: messageContent,
                 timestamp: new Date(),
                 buttons: data.ui_schema.buttons,
                 media: data.ui_schema.media
@@ -304,8 +310,74 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
         }
     };
 
+    // Execute next step with button action
+    const executeNextStepWithButton = async (button: { id: string; label: string; actionType: string; actionValue?: string }, buttonIndex: number) => {
+        console.log('[AgentPreviewPanel] executeNextStepWithButton called:', {
+            button,
+            buttonIndex,
+            currentNodeId,
+            isComplete
+        });
+
+        if (!currentNodeId || isComplete) {
+            console.log('[AgentPreviewPanel] Skipping execution - no current node or flow complete');
+            return;
+        }
+
+        setIsLoading(true);
+
+        try {
+            console.log('[AgentPreviewPanel] Sending button action to /api/langgraph/step');
+            const response = await fetch('/api/langgraph/step', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    agent_id: agentId,
+                    node_id: currentNodeId,
+                    user_input: button.label,
+                    user_data: flowState.user_data,
+                    messages: flowState.messages,
+                    conversation_id: flowState.conversation_id,
+                    button_action: {
+                        button_index: buttonIndex,
+                        action_type: button.actionType,
+                        action_value: button.actionValue
+                    }
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                handleStepResponse(data);
+            } else {
+                const errorMessage: Message = {
+                    role: 'assistant',
+                    content: data.response || 'I encountered an error processing your request.',
+                    timestamp: new Date()
+                };
+                setMessages(prev => [...prev, errorMessage]);
+            }
+        } catch (error) {
+            console.error('Step execution error:', error);
+            const errorMessage: Message = {
+                role: 'assistant',
+                content: 'Connection error. Please check your network and try again.',
+                timestamp: new Date()
+            };
+            setMessages(prev => [...prev, errorMessage]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     // Handle button click from interactive message
-    const handleButtonClick = (button: { id: string; label: string; actionType: string; actionValue?: string }) => {
+    const handleButtonClick = (button: { id: string; label: string; actionType: string; actionValue?: string }, buttonIndex: number) => {
+        console.log('[AgentPreviewPanel] Button clicked:', { button, buttonIndex });
+
         // Add user's choice as a message
         const userMessage: Message = {
             role: 'user',
@@ -314,8 +386,20 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
         };
         setMessages(prev => [...prev, userMessage]);
 
-        // Execute next step with button label as input
-        executeNextStep(button.label);
+        // Execute client-side button actions (call, email, URL)
+        // These actions happen before continuing the flow
+        if (button.actionType === 'call_number' && button.actionValue) {
+            executeButtonAction(button.actionType, button.actionValue);
+        } else if (button.actionType === 'send_email' && button.actionValue) {
+            executeButtonAction(button.actionType, button.actionValue);
+        } else if (button.actionType === 'open_url' && button.actionValue) {
+            executeButtonAction(button.actionType, button.actionValue);
+        }
+
+        // Always proceed to next step, passing button action info to server
+        // Server will determine next node based on action type
+        console.log('[AgentPreviewPanel] Proceeding to next step with button action');
+        executeNextStepWithButton(button, buttonIndex);
     };
 
     // Handle text input send
@@ -567,7 +651,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                                                 {message.buttons.map((button, btnIndex) => (
                                                     <Button
                                                         key={btnIndex}
-                                                        onClick={() => handleButtonClick(button)}
+                                                        onClick={() => handleButtonClick(button, btnIndex)}
                                                         size="sm"
                                                         variant="outline"
                                                         className="border-indigo-500 text-indigo-400 hover:bg-indigo-500/10"

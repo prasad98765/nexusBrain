@@ -223,21 +223,79 @@ def get_node_label_map(flow_nodes: List[Dict[str, Any]]) -> Dict[str, str]:
     return label_map
 
 
-
-def find_next_node_id(current_node_id: str, edges: List[Dict[str, Any]]) -> Optional[str]:
+def get_variable_key_for_node(node_id: str, node_config: Dict[str, Any]) -> str:
     """
-    Find the next node ID based on current node and edges.
+    Get the variable key to use for storing data from a node.
+    Prioritizes: save_response_variable_id > label > node_id
+    
+    Args:
+        node_id: Node identifier
+        node_config: Node configuration data
+        
+    Returns:
+        Variable key to use for storage
+    """
+    return (
+        node_config.get('save_response_variable_id') or
+        node_config.get('label') or
+        node_id
+    )
+
+
+
+def find_next_node_id(current_node_id: str, edges: List[Dict[str, Any]], button_action: Optional[Dict[str, Any]] = None) -> Optional[str]:
+    """
+    Find the next node ID based on current node, edges, and optional button action.
+    Supports button-specific routing via button index.
     
     Args:
         current_node_id: Current node ID
         edges: List of edge connections
+        button_action: Optional button action info with button_index, action_type, action_value
         
     Returns:
         Next node ID or None if at end of flow
     """
+    logger.info(f"[ROUTING] Finding next node from {current_node_id} with button_action: {button_action}")
+    
+    # If button action provided and action type is 'connect_to_node'
+    if button_action and button_action.get('action_type') == 'connect_to_node':
+        button_index = button_action.get('button_index')
+        if button_index is not None:
+            # Expected sourceHandle format: "button-0", "button-1", etc.
+            expected_source_handle = f"button-{button_index}"
+            logger.info(f"[ROUTING] Looking for edge with sourceHandle: {expected_source_handle}")
+            
+            # Look for edge with matching sourceHandle
+            for edge in edges:
+                if edge.get('source') == current_node_id:
+                    source_handle = edge.get('sourceHandle')
+                    if source_handle == expected_source_handle:
+                        target = edge.get('target')
+                        logger.info(f"[ROUTING] Found matching edge: {current_node_id} -> {target} via {source_handle}")
+                        return target
+            
+            logger.warning(f"[ROUTING] No edge found for button index {button_index} (sourceHandle: {expected_source_handle}), falling back to default routing")
+        else:
+            logger.warning(f"[ROUTING] button_index is None in button_action, falling back to default routing")
+    
+    # Default routing: find first edge from this node without sourceHandle
     for edge in edges:
         if edge.get('source') == current_node_id:
-            return edge.get('target')
+            # Prefer edges without sourceHandle for default routing
+            if not edge.get('sourceHandle'):
+                target = edge.get('target')
+                logger.info(f"[ROUTING] Using default edge (no sourceHandle): {current_node_id} -> {target}")
+                return target
+    
+    # If no edge without sourceHandle found, use any edge as fallback
+    for edge in edges:
+        if edge.get('source') == current_node_id:
+            target = edge.get('target')
+            logger.info(f"[ROUTING] Using fallback edge: {current_node_id} -> {target}")
+            return target
+    
+    logger.info(f"[ROUTING] No next node found from {current_node_id}")
     return None
 
 
@@ -482,18 +540,22 @@ def build_step_execution_graph(
                     label = node_config.get('label', 'Please provide your input')
                     input_type = node_config.get('inputType', 'text')
                     placeholder = node_config.get('placeholder', 'Enter your response')
-                    response = f"{label}"
+                    # Use placeholder for response message, strip HTML tags
+                    placeholder_text = strip_html_tags(placeholder)
+                    response = placeholder_text
                     
                     ui_schema = {
                         'type': 'input',
                         'label': label,
                         'inputType': input_type,
-                        'placeholder': placeholder,
+                        'placeholder': placeholder_text,
                         'expects_input': True
                     }
                     
                     if user_input:
-                        user_data[current_node_id] = user_input
+                        # Get variable key for storage (prioritize save_response_variable_id > label > node_id)
+                        variable_key = get_variable_key_for_node(current_node_id, node_config)
+                        user_data[variable_key] = user_input
                         lc_messages.append(HumanMessage(content=user_input))
                     
                     lc_messages.append(AIMessage(content=response))
@@ -651,7 +713,8 @@ def execute_single_node(
     messages: List[Dict[str, Any]] = None,
     workspace_id: Optional[str] = None,
     agent_id: Optional[str] = None,
-    conversation_id: Optional[str] = None
+    conversation_id: Optional[str] = None,
+    button_action: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     Execute a single node using LangGraph WITH memory persistence via MemorySaver.
@@ -667,6 +730,7 @@ def execute_single_node(
         workspace_id: Workspace identifier
         agent_id: Agent identifier
         conversation_id: Conversation identifier (used as thread_id for checkpointing)
+        button_action: Optional button action with button_id, action_type, action_value
         
     Returns:
         Dictionary with:
@@ -678,6 +742,8 @@ def execute_single_node(
         - is_complete: Whether flow is finished
     """
     logger.info(f"[STEP EXECUTION] Executing single node: {node_id} using LangGraph with MemorySaver")
+    if button_action:
+        logger.info(f"[STEP EXECUTION] Button action received: {button_action}")
     
     try:
         # Find the current node
@@ -796,8 +862,99 @@ def execute_single_node(
         
         logger.info(f"[STEP EXECUTION] Node {node_id} execution complete")
         
-        # Find next node (but don't execute it)
-        next_node_id = find_next_node_id(node_id, flow_edges)
+        # Find next node based on button action (if provided)
+        if button_action and button_action.get('action_type') == 'connect_to_node':
+            logger.info(f"[BUTTON ROUTING] Button 'connect_to_node' clicked, finding connected node")
+            # Find the connected node from edge
+            next_node_id = find_next_node_id(node_id, flow_edges, button_action)
+            
+            if next_node_id:
+                logger.info(f"[BUTTON ROUTING] Found connected node: {next_node_id}, executing it now")
+                # Find the next node
+                next_node = None
+                for node in flow_nodes:
+                    if node.get('id') == next_node_id:
+                        next_node = node
+                        break
+                
+                if next_node:
+                    # Execute the connected node and get its config
+                    logger.info(f"[BUTTON ROUTING] Executing connected node {next_node_id}")
+                    next_node_executor = get_node_executor(agent_id, next_node_id)
+                    
+                    # Prepare state for next node execution
+                    next_state: StepExecutionState = {
+                        'node_id': next_node_id,
+                        'user_input': '',
+                        'user_data': result.get('user_data', {}),
+                        'messages': result.get('messages', []),
+                        'response': '',
+                        'ui_schema': {},
+                        'next_node_id': None,
+                        'is_complete': False,
+                        'workspace_id': workspace_id,
+                        'agent_id': agent_id,
+                        'conversation_id': conversation_id
+                    }
+                    
+                    if next_node_executor and callable(next_node_executor):
+                        next_result = next_node_executor(next_state)
+                    else:
+                        next_result = execute_node_logic(
+                            node_id=next_node_id,
+                            current_node=next_node,
+                            user_input='',
+                            user_data=next_state['user_data'],
+                            messages=next_state['messages'],
+                            flow_nodes=flow_nodes
+                        )
+                    
+                    # Save state after executing connected node
+                    try:
+                        compiled_graph.update_state(config, next_result)
+                        logger.info(f"[MEMORY CACHE] State saved after executing connected node {next_node_id}")
+                    except Exception as save_err:
+                        logger.warning(f"[MEMORY CACHE] Could not save state: {save_err}")
+                    
+                    # Find next node after the connected node
+                    final_next_node_id = find_next_node_id(next_node_id, flow_edges)
+                    next_node_type = next_node.get('type')
+                    is_complete = final_next_node_id is None or next_node_type == 'engine'
+                    
+                    logger.info(f"[BUTTON ROUTING] Connected node executed. Current: {next_node_id}, Next: {final_next_node_id}, Complete: {is_complete}")
+                    
+                    # Return the connected node's config
+                    return {
+                        'success': True,
+                        'current_node_id': next_node_id,
+                        'current_node': {
+                            'id': next_node.get('id'),
+                            'type': next_node.get('type'),
+                            'label': next_node.get('data', {}).get('label', '')
+                        },
+                        'next_node_id': final_next_node_id,
+                        'state': {
+                            'user_data': next_result.get('user_data', {}),
+                            'messages': next_result.get('messages', []),
+                            'workspace_id': workspace_id,
+                            'agent_id': agent_id,
+                            'conversation_id': conversation_id
+                        },
+                        'ui_schema': next_result.get('ui_schema', {}),
+                        'response': next_result.get('response', ''),
+                        'is_complete': is_complete,
+                        'thread_id': thread_id
+                    }
+                else:
+                    logger.warning(f"[BUTTON ROUTING] Connected node {next_node_id} not found in flow")
+            else:
+                logger.warning(f"[BUTTON ROUTING] No edge found for button action, using default routing")
+        
+        # For non-connect_to_node actions or if connect failed, use default routing
+        if button_action:
+            next_node_id = find_next_node_id(node_id, flow_edges, button_action)
+        else:
+            next_node_id = find_next_node_id(node_id, flow_edges)
         
         # Check if flow is complete
         node_type = current_node.get('type')
@@ -900,18 +1057,22 @@ def execute_node_logic(
         label = node_config.get('label', 'Please provide your input')
         input_type = node_config.get('inputType', 'text')
         placeholder = node_config.get('placeholder', 'Enter your response')
-        response = f"{label}"
+        # Use placeholder for response message, strip HTML tags
+        placeholder_text = strip_html_tags(placeholder)
+        response = placeholder_text
         
         ui_schema = {
             'type': 'input',
             'label': label,
             'inputType': input_type,
-            'placeholder': placeholder,
+            'placeholder': placeholder_text,
             'expects_input': True
         }
         
         if user_input:
-            user_data[node_id] = user_input
+            # Get variable key for storage (prioritize save_response_variable_id > label > node_id)
+            variable_key = get_variable_key_for_node(node_id, node_config)
+            user_data[variable_key] = user_input
             lc_messages.append(HumanMessage(content=user_input))
         
         lc_messages.append(AIMessage(content=response))
