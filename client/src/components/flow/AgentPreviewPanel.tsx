@@ -20,6 +20,11 @@ interface Message {
     content: string;
     timestamp: Date;
     buttons?: Array<{ id: string; label: string; actionType: string; actionValue?: string }>;
+    media?: {
+        type: 'image' | 'video' | 'document';
+        url: string;
+        name?: string;
+    };
 }
 
 interface StepState {
@@ -60,10 +65,6 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
     });
     const [uiSchema, setUiSchema] = useState<UISchema | null>(null);
     const [isComplete, setIsComplete] = useState(false);
-    const [conversationId, setConversationId] = useState<string>('');
-    const [showDebugPanel, setShowDebugPanel] = useState(false);
-    const [debugData, setDebugData] = useState<any>(null);
-    const [debugLoading, setDebugLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const isAutoProceeding = useRef(false);
 
@@ -75,6 +76,23 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
     const initializeFlow = async () => {
         setIsLoading(true);
         try {
+            // Clear cache to ensure fresh graph build
+            try {
+                await fetch('/api/langgraph/clear-cache', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        agent_id: agentId
+                    })
+                });
+                console.log('[AgentPreviewPanel] Cache cleared for agent:', agentId);
+            } catch (cacheError) {
+                console.warn('[AgentPreviewPanel] Failed to clear cache:', cacheError);
+            }
+
             // Start the flow - server will determine first node
             const response = await fetch('/api/langgraph/step', {
                 method: 'POST',
@@ -132,13 +150,6 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
         setUiSchema(data.ui_schema);
         setIsComplete(data.is_complete || false);
 
-        // Capture conversation ID for debugging
-        if (data.state?.conversation_id) {
-            console.log('[Debug] Conversation ID captured:', data.state.conversation_id);
-            setConversationId(data.state.conversation_id);
-        } else {
-            console.log('[Debug] No conversation ID in response:', data.state);
-        }
 
         // Display message based on UI schema
         if (data.ui_schema && data.response) {
@@ -146,7 +157,8 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                 role: data.ui_schema.type === 'interactive' ? 'interactive' : 'assistant',
                 content: data.response,
                 timestamp: new Date(),
-                buttons: data.ui_schema.buttons
+                buttons: data.ui_schema.buttons,
+                media: data.ui_schema.media
             };
             setMessages(prev => [...prev, newMessage]);
         }
@@ -332,115 +344,115 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
     };
 
     // Fetch debug data
-    const fetchDebugData = async () => {
-        if (!conversationId || !token) {
-            console.log('[Debug] Cannot fetch debug data:', { conversationId, hasToken: !!token });
-            return;
-        }
+    // const fetchDebugData = async () => {
+    //     if (!conversationId || !token) {
+    //         console.log('[Debug] Cannot fetch debug data:', { conversationId, hasToken: !!token });
+    //         return;
+    //     }
 
-        console.log('[Debug] Fetching debug data for conversation:', conversationId);
-        setDebugLoading(true);
-        try {
-            const [stateRes, historyRes, memoryRes] = await Promise.all([
-                fetch('/api/langgraph/debug/state', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        agent_id: agentId,
-                        conversation_id: conversationId
-                    })
-                }),
-                fetch('/api/langgraph/debug/history', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        agent_id: agentId,
-                        conversation_id: conversationId
-                    })
-                }),
-                fetch('/api/langgraph/debug/memory', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        agent_id: agentId,
-                        conversation_id: conversationId
-                    })
-                })
-            ]);
+    //     console.log('[Debug] Fetching debug data for conversation:', conversationId);
+    //     setDebugLoading(true);
+    //     try {
+    //         const [stateRes, historyRes, memoryRes] = await Promise.all([
+    //             fetch('/api/langgraph/debug/state', {
+    //                 method: 'POST',
+    //                 headers: {
+    //                     'Authorization': `Bearer ${token}`,
+    //                     'Content-Type': 'application/json'
+    //                 },
+    //                 body: JSON.stringify({
+    //                     agent_id: agentId,
+    //                     conversation_id: conversationId
+    //                 })
+    //             }),
+    //             fetch('/api/langgraph/debug/history', {
+    //                 method: 'POST',
+    //                 headers: {
+    //                     'Authorization': `Bearer ${token}`,
+    //                     'Content-Type': 'application/json'
+    //                 },
+    //                 body: JSON.stringify({
+    //                     agent_id: agentId,
+    //                     conversation_id: conversationId
+    //                 })
+    //             }),
+    //             fetch('/api/langgraph/debug/memory', {
+    //                 method: 'POST',
+    //                 headers: {
+    //                     'Authorization': `Bearer ${token}`,
+    //                     'Content-Type': 'application/json'
+    //                 },
+    //                 body: JSON.stringify({
+    //                     agent_id: agentId,
+    //                     conversation_id: conversationId
+    //                 })
+    //             })
+    //         ]);
 
-            console.log('[Debug] Response statuses:', {
-                state: stateRes.status,
-                history: historyRes.status,
-                memory: memoryRes.status
-            });
+    //         console.log('[Debug] Response statuses:', {
+    //             state: stateRes.status,
+    //             history: historyRes.status,
+    //             memory: memoryRes.status
+    //         });
 
-            const state = await stateRes.json();
-            const history = await historyRes.json();
-            const memory = await memoryRes.json();
+    //         const state = await stateRes.json();
+    //         const history = await historyRes.json();
+    //         const memory = await memoryRes.json();
 
-            console.log('[Debug] Fetched data:', { state, history, memory });
+    //         console.log('[Debug] Fetched data:', { state, history, memory });
 
-            setDebugData({
-                state: state.state || {},
-                checkpoints: history.checkpoints || [],
-                memory: memory.summary || {}
-            });
-        } catch (error) {
-            console.error('[Debug] Failed to fetch debug data:', error);
-        } finally {
-            setDebugLoading(false);
-        }
-    };
+    //         setDebugData({
+    //             state: state.state || {},
+    //             checkpoints: history.checkpoints || [],
+    //             memory: memory.summary || {}
+    //         });
+    //     } catch (error) {
+    //         console.error('[Debug] Failed to fetch debug data:', error);
+    //     } finally {
+    //         setDebugLoading(false);
+    //     }
+    // };
 
     // Replay from checkpoint
-    const handleReplayCheckpoint = async (checkpointId: string) => {
-        if (!conversationId || !token) return;
+    // const handleReplayCheckpoint = async (checkpointId: string) => {
+    //     if (!conversationId || !token) return;
 
-        try {
-            const response = await fetch('/api/langgraph/debug/replay', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    conversation_id: conversationId,
-                    checkpoint_id: checkpointId,
-                    agent_id: agentId
-                })
-            });
+    //     try {
+    //         const response = await fetch('/api/langgraph/debug/replay', {
+    //             method: 'POST',
+    //             headers: {
+    //                 'Content-Type': 'application/json',
+    //                 'Authorization': `Bearer ${token}`
+    //             },
+    //             body: JSON.stringify({
+    //                 conversation_id: conversationId,
+    //                 checkpoint_id: checkpointId,
+    //                 agent_id: agentId
+    //             })
+    //         });
 
-            const data = await response.json();
-            if (data.success) {
-                // Reload the conversation from the checkpoint
-                setFlowState(data.state);
-                setMessages(data.state.messages || []);
-                setCurrentNodeId(data.current_node);
-                setIsComplete(false);
-                toast({
-                    title: 'Success',
-                    description: 'Successfully replayed to checkpoint'
-                });
-                fetchDebugData();
-            }
-        } catch (error) {
-            console.error('Failed to replay checkpoint:', error);
-            toast({
-                title: 'Error',
-                description: 'Failed to replay checkpoint',
-                variant: 'destructive'
-            });
-        }
-    };
+    //         const data = await response.json();
+    //         if (data.success) {
+    //             // Reload the conversation from the checkpoint
+    //             setFlowState(data.state);
+    //             setMessages(data.state.messages || []);
+    //             setCurrentNodeId(data.current_node);
+    //             setIsComplete(false);
+    //             toast({
+    //                 title: 'Success',
+    //                 description: 'Successfully replayed to checkpoint'
+    //             });
+    //             fetchDebugData();
+    //         }
+    //     } catch (error) {
+    //         console.error('Failed to replay checkpoint:', error);
+    //         toast({
+    //             title: 'Error',
+    //             description: 'Failed to replay checkpoint',
+    //             variant: 'destructive'
+    //         });
+    //     }
+    // };
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -448,11 +460,11 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
     }, [messages]);
 
     // Fetch debug data when conversation starts
-    useEffect(() => {
-        if (conversationId && showDebugPanel) {
-            fetchDebugData();
-        }
-    }, [conversationId, showDebugPanel]);
+    // useEffect(() => {
+    //     if (conversationId && showDebugPanel) {
+    //         fetchDebugData();
+    //     }
+    // }, [conversationId, showDebugPanel]);
 
     return (
         <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
@@ -469,20 +481,6 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        {/* {conversationId && ( */}
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setShowDebugPanel(!showDebugPanel)}
-                            className={`${showDebugPanel
-                                ? 'bg-indigo-600 text-white border-indigo-600'
-                                : 'text-gray-400 hover:text-white hover:bg-gray-800'
-                                }`}
-                        >
-                            <Bug className="h-4 w-4 mr-1" />
-                            Debug
-                        </Button>
-                        {/* )} */}
                         <Button
                             variant="ghost"
                             size="sm"
@@ -497,7 +495,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                 {/* Main Content Area */}
                 <div className="flex-1 flex overflow-hidden">
                     {/* Chat Area */}
-                    <div className={`flex flex-col ${showDebugPanel ? 'w-1/2 border-r border-gray-700' : 'w-full'}`}>
+                    <div className="flex flex-col w-full">
                         {/* Messages */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
                             {messages.map((message, index) => (
@@ -520,6 +518,40 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                                                 : 'bg-gray-800 text-gray-100'
                                                 }`}
                                         >
+                                            {/* Render media if available */}
+                                            {message.media && message.media.type === 'image' && message.media.url && (
+                                                <div className="mb-2">
+                                                    <img
+                                                        src={message.media.url}
+                                                        alt={message.media.name || 'Message image'}
+                                                        className="w-full max-w-xs rounded-md border border-gray-600"
+                                                        onError={(e) => {
+                                                            (e.target as HTMLImageElement).style.display = 'none';
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+                                            {message.media && message.media.type === 'video' && message.media.url && (
+                                                <div className="mb-2">
+                                                    <video
+                                                        src={message.media.url}
+                                                        controls
+                                                        className="w-full max-w-xs rounded-md border border-gray-600"
+                                                    />
+                                                </div>
+                                            )}
+                                            {message.media && message.media.type === 'document' && message.media.url && (
+                                                <div className="mb-2 p-2 bg-gray-700 rounded-md border border-gray-600">
+                                                    <a
+                                                        href={message.media.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                                                    >
+                                                        📄 {message.media.name || 'Document'}
+                                                    </a>
+                                                </div>
+                                            )}
                                             <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                                             <p className="text-xs opacity-60 mt-1">
                                                 {message?.timestamp?.toLocaleTimeString([], {
@@ -608,184 +640,6 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                             </p>
                         </div>
                     </div>
-
-                    {/* Debug Panel */}
-                    {showDebugPanel && (
-                        <div className="w-1/2 flex flex-col bg-[#0d1117]">
-                            <Tabs defaultValue="checkpoints" className="flex-1 flex flex-col">
-                                <div className="border-b border-gray-700 px-4 pt-3">
-                                    <TabsList className="bg-gray-800/50">
-                                        <TabsTrigger value="checkpoints" className="text-xs">
-                                            <History className="h-3 w-3 mr-1" />
-                                            Checkpoints
-                                        </TabsTrigger>
-                                        <TabsTrigger value="state" className="text-xs">
-                                            <Database className="h-3 w-3 mr-1" />
-                                            State
-                                        </TabsTrigger>
-                                        <TabsTrigger value="memory" className="text-xs">
-                                            <RefreshCw className="h-3 w-3 mr-1" />
-                                            Memory
-                                        </TabsTrigger>
-                                    </TabsList>
-                                </div>
-
-                                <ScrollArea className="flex-1">
-                                    {/* Checkpoints Tab */}
-                                    <TabsContent value="checkpoints" className="p-4 space-y-3 m-0">
-                                        {debugLoading ? (
-                                            <div className="flex items-center justify-center py-8">
-                                                <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
-                                            </div>
-                                        ) : debugData?.checkpoints && debugData.checkpoints.length > 0 ? (
-                                            <>
-                                                <div className="flex items-center justify-between mb-3">
-                                                    <h4 className="text-sm font-medium text-gray-300">Timeline</h4>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={fetchDebugData}
-                                                        className="h-7 text-xs"
-                                                    >
-                                                        <RefreshCw className="h-3 w-3 mr-1" />
-                                                        Refresh
-                                                    </Button>
-                                                </div>
-                                                {debugData.checkpoints.map((checkpoint: any, idx: number) => (
-                                                    <div
-                                                        key={checkpoint.checkpoint_id}
-                                                        className="bg-gray-800/50 rounded-lg p-3 space-y-2 border border-gray-700"
-                                                    >
-                                                        <div className="flex items-start justify-between">
-                                                            <div className="flex items-center gap-2">
-                                                                <div className={`w-2 h-2 rounded-full ${idx === 0 ? 'bg-green-500' : 'bg-gray-500'
-                                                                    }`} />
-                                                                <span className="text-xs font-mono text-gray-400">
-                                                                    {checkpoint.checkpoint_id.slice(0, 8)}
-                                                                </span>
-                                                            </div>
-                                                            <Badge variant={idx === 0 ? 'default' : 'secondary'} className="text-xs">
-                                                                {idx === 0 ? 'Current' : `Step ${debugData.checkpoints.length - idx}`}
-                                                            </Badge>
-                                                        </div>
-
-                                                        <div className="text-xs text-gray-400">
-                                                            <div>Node: <span className="text-indigo-400">{checkpoint.node_id}</span></div>
-                                                            <div>Time: {new Date(checkpoint.timestamp * 1000).toLocaleTimeString()}</div>
-                                                        </div>
-
-                                                        {idx > 0 && (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                onClick={() => handleReplayCheckpoint(checkpoint.checkpoint_id)}
-                                                                className="w-full h-7 text-xs border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/10"
-                                                            >
-                                                                <RefreshCw className="h-3 w-3 mr-1" />
-                                                                Replay from here
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </>
-                                        ) : (
-                                            <div className="text-center py-8 text-gray-500 text-sm">
-                                                No checkpoints yet. Start a conversation to see the execution timeline.
-                                            </div>
-                                        )}
-                                    </TabsContent>
-
-                                    {/* State Tab */}
-                                    <TabsContent value="state" className="p-4 m-0">
-                                        {debugLoading ? (
-                                            <div className="flex items-center justify-center py-8">
-                                                <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
-                                            </div>
-                                        ) : debugData?.state ? (
-                                            <div className="space-y-3">
-                                                <div className="flex items-center justify-between">
-                                                    <h4 className="text-sm font-medium text-gray-300">Current State</h4>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={fetchDebugData}
-                                                        className="h-7 text-xs"
-                                                    >
-                                                        <RefreshCw className="h-3 w-3 mr-1" />
-                                                        Refresh
-                                                    </Button>
-                                                </div>
-                                                <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
-                                                    <pre className="text-xs text-gray-300 overflow-x-auto whitespace-pre-wrap">
-                                                        {JSON.stringify(debugData.state, null, 2)}
-                                                    </pre>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="text-center py-8 text-gray-500 text-sm">
-                                                No state data available
-                                            </div>
-                                        )}
-                                    </TabsContent>
-
-                                    {/* Memory Tab */}
-                                    <TabsContent value="memory" className="p-4 m-0">
-                                        {debugLoading ? (
-                                            <div className="flex items-center justify-center py-8">
-                                                <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
-                                            </div>
-                                        ) : debugData?.memory ? (
-                                            <div className="space-y-3">
-                                                <div className="flex items-center justify-between">
-                                                    <h4 className="text-sm font-medium text-gray-300">Memory Summary</h4>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={fetchDebugData}
-                                                        className="h-7 text-xs"
-                                                    >
-                                                        <RefreshCw className="h-3 w-3 mr-1" />
-                                                        Refresh
-                                                    </Button>
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
-                                                        <div className="text-xs text-gray-400 mb-1">Total Messages</div>
-                                                        <div className="text-lg font-semibold text-indigo-400">
-                                                            {debugData.memory.total_messages || 0}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
-                                                        <div className="text-xs text-gray-400 mb-1">User Data Keys</div>
-                                                        <div className="text-xs text-gray-300 mt-1">
-                                                            {debugData.memory.user_data_keys?.length > 0
-                                                                ? debugData.memory.user_data_keys.join(', ')
-                                                                : 'None'}
-                                                        </div>
-                                                    </div>
-
-                                                    {debugData.memory.last_node && (
-                                                        <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
-                                                            <div className="text-xs text-gray-400 mb-1">Last Executed Node</div>
-                                                            <div className="text-xs font-mono text-indigo-400">
-                                                                {debugData.memory.last_node}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="text-center py-8 text-gray-500 text-sm">
-                                                No memory data available
-                                            </div>
-                                        )}
-                                    </TabsContent>
-                                </ScrollArea>
-                            </Tabs>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

@@ -344,250 +344,6 @@ def clear_graph_cache(agent_id: Optional[str] = None):
         logger.info("[GRAPH CACHE] Cleared all cached graphs, node executors, and checkpoint history")
 
 
-# ============================================================================
-# ADVANCED MEMORY & DEBUGGING FEATURES
-# ============================================================================
-
-def get_conversation_state(
-    agent_id: str,
-    conversation_id: str,
-    flow_nodes: List[Dict[str, Any]],
-    flow_edges: List[Dict[str, Any]]
-) -> Optional[Dict[str, Any]]:
-    """
-    ✅ TRANSPARENCY: Get full explicit state for a conversation.
-    Retrieves the current state from checkpoint memory.
-    
-    Args:
-        agent_id: Agent identifier
-        conversation_id: Conversation/thread identifier
-        flow_nodes: Flow node configurations
-        flow_edges: Flow edge configurations
-        
-    Returns:
-        Complete state dictionary or None if not found
-    """
-    try:
-        compiled_graph = get_or_build_graph(agent_id, flow_nodes, flow_edges)
-        config = {"configurable": {"thread_id": conversation_id}}
-        
-        checkpoint_state = compiled_graph.get_state(config)
-        if checkpoint_state and checkpoint_state.values:
-            logger.info(f"[STATE TRANSPARENCY] Retrieved full state for conversation {conversation_id}")
-            return {
-                "state": checkpoint_state.values,
-                "next_node": checkpoint_state.next,
-                "metadata": checkpoint_state.metadata,
-                "created_at": checkpoint_state.created_at,
-                "parent_config": checkpoint_state.parent_config
-            }
-        return None
-    except Exception as e:
-        logger.error(f"[STATE TRANSPARENCY] Error retrieving state: {e}")
-        return None
-
-
-def get_checkpoint_history(
-    agent_id: str,
-    conversation_id: str,
-    flow_nodes: List[Dict[str, Any]],
-    flow_edges: List[Dict[str, Any]]
-) -> List[Dict[str, Any]]:
-    """
-    ⭐ TIME TRAVEL: Get all checkpoints for a conversation to enable replay and debugging.
-    Retrieves the full history of state changes.
-    
-    Args:
-        agent_id: Agent identifier
-        conversation_id: Conversation/thread identifier
-        flow_nodes: Flow node configurations
-        flow_edges: Flow edge configurations
-        
-    Returns:
-        List of all checkpoints in chronological order
-    """
-    try:
-        compiled_graph = get_or_build_graph(agent_id, flow_nodes, flow_edges)
-        config = {"configurable": {"thread_id": conversation_id}}
-        
-        # Get all state snapshots (checkpoints)
-        history = []
-        for state_snapshot in compiled_graph.get_state_history(config):
-            history.append({
-                "checkpoint_id": state_snapshot.config.get("configurable", {}).get("checkpoint_id"),
-                "state": state_snapshot.values,
-                "next_node": state_snapshot.next,
-                "metadata": state_snapshot.metadata,
-                "created_at": state_snapshot.created_at,
-                "parent_config": state_snapshot.parent_config
-            })
-        
-        logger.info(f"[TIME TRAVEL] Retrieved {len(history)} checkpoints for conversation {conversation_id}")
-        return history
-    except Exception as e:
-        logger.error(f"[TIME TRAVEL] Error retrieving checkpoint history: {e}")
-        return []
-
-
-def replay_from_checkpoint(
-    agent_id: str,
-    conversation_id: str,
-    checkpoint_id: str,
-    flow_nodes: List[Dict[str, Any]],
-    flow_edges: List[Dict[str, Any]]
-) -> Optional[Dict[str, Any]]:
-    """
-    ⭐ REPLAY: Restore conversation to a specific checkpoint for debugging.
-    Enables time-travel debugging by rolling back to any previous state.
-    
-    Args:
-        agent_id: Agent identifier
-        conversation_id: Conversation/thread identifier
-        checkpoint_id: Specific checkpoint to restore
-        flow_nodes: Flow node configurations
-        flow_edges: Flow edge configurations
-        
-    Returns:
-        Restored state or None if checkpoint not found
-    """
-    try:
-        compiled_graph = get_or_build_graph(agent_id, flow_nodes, flow_edges)
-        base_config = {"configurable": {"thread_id": conversation_id}}
-        
-        # Find the specific checkpoint
-        for state_snapshot in compiled_graph.get_state_history(base_config):
-            snapshot_checkpoint_id = state_snapshot.config.get("configurable", {}).get("checkpoint_id")
-            if snapshot_checkpoint_id == checkpoint_id:
-                # Restore this checkpoint as current state
-                compiled_graph.update_state(state_snapshot.config, state_snapshot.values)
-                logger.info(f"[REPLAY] Restored conversation {conversation_id} to checkpoint {checkpoint_id}")
-                return {
-                    "state": state_snapshot.values,
-                    "next_node": state_snapshot.next,
-                    "metadata": state_snapshot.metadata
-                }
-        
-        logger.warning(f"[REPLAY] Checkpoint {checkpoint_id} not found")
-        return None
-    except Exception as e:
-        logger.error(f"[REPLAY] Error replaying checkpoint: {e}")
-        return None
-
-
-def get_conversation_graph_visualization(
-    agent_id: str,
-    conversation_id: str,
-    flow_nodes: List[Dict[str, Any]],
-    flow_edges: List[Dict[str, Any]]
-) -> Dict[str, Any]:
-    """
-    ⭐ DEBUGGING: Get visual representation of conversation flow with execution path.
-    Shows which nodes were executed and the current state.
-    
-    Args:
-        agent_id: Agent identifier
-        conversation_id: Conversation/thread identifier
-        flow_nodes: Flow node configurations
-        flow_edges: Flow edge configurations
-        
-    Returns:
-        Graph visualization data with execution path
-    """
-    try:
-        compiled_graph = get_or_build_graph(agent_id, flow_nodes, flow_edges)
-        config = {"configurable": {"thread_id": conversation_id}}
-        
-        # Get current state
-        current_state = compiled_graph.get_state(config)
-        
-        # Get execution history
-        history = get_checkpoint_history(agent_id, conversation_id, flow_nodes, flow_edges)
-        
-        # Build execution path
-        execution_path = []
-        for checkpoint in history:
-            if checkpoint["state"].get("node_id"):
-                execution_path.append({
-                    "node_id": checkpoint["state"]["node_id"],
-                    "timestamp": checkpoint["created_at"],
-                    "response": checkpoint["state"].get("response", "")
-                })
-        
-        logger.info(f"[VISUALIZATION] Generated graph visualization with {len(execution_path)} executed nodes")
-        
-        return {
-            "nodes": flow_nodes,
-            "edges": flow_edges,
-            "execution_path": execution_path,
-            "current_node": current_state.values.get("node_id") if current_state else None,
-            "current_state": current_state.values if current_state else None
-        }
-    except Exception as e:
-        logger.error(f"[VISUALIZATION] Error generating visualization: {e}")
-        return {"nodes": flow_nodes, "edges": flow_edges, "execution_path": [], "error": str(e)}
-
-
-def get_long_term_memory_summary(
-    agent_id: str,
-    conversation_id: str,
-    flow_nodes: List[Dict[str, Any]],
-    flow_edges: List[Dict[str, Any]]
-) -> Dict[str, Any]:
-    """
-    ✅ LONG-TERM MEMORY: Get summary of all collected data and conversation history.
-    Native long-term memory through persistent checkpoints.
-    
-    Args:
-        agent_id: Agent identifier
-        conversation_id: Conversation/thread identifier
-        flow_nodes: Flow node configurations
-        flow_edges: Flow edge configurations
-        
-    Returns:
-        Summary of all conversation data and history
-    """
-    try:
-        compiled_graph = get_or_build_graph(agent_id, flow_nodes, flow_edges)
-        config = {"configurable": {"thread_id": conversation_id}}
-        
-        current_state = compiled_graph.get_state(config)
-        
-        if not current_state or not current_state.values:
-            return {"exists": False, "message": "No long-term memory found"}
-        
-        state_values = current_state.values
-        
-        # Extract meaningful data (filter out internal tracking data)
-        collected_data = {}
-        for key, value in state_values.get("user_data", {}).items():
-            if not key.endswith('_buttons') and not key.endswith('_action'):
-                collected_data[key] = value
-        
-        # Get message history
-        messages = state_values.get("messages", [])
-        
-        # Get execution statistics
-        history = get_checkpoint_history(agent_id, conversation_id, flow_nodes, flow_edges)
-        
-        summary = {
-            "exists": True,
-            "conversation_id": conversation_id,
-            "agent_id": agent_id,
-            "total_checkpoints": len(history),
-            "total_messages": len(messages),
-            "collected_data": collected_data,
-            "message_history": messages,
-            "current_node": state_values.get("node_id"),
-            "is_complete": state_values.get("is_complete", False),
-            "last_updated": current_state.created_at if hasattr(current_state, 'created_at') else None
-        }
-        
-        logger.info(f"[LONG-TERM MEMORY] Retrieved summary: {len(messages)} messages, {len(collected_data)} data points")
-        return summary
-    except Exception as e:
-        logger.error(f"[LONG-TERM MEMORY] Error retrieving summary: {e}")
-        return {"exists": False, "error": str(e)}
-
 
 def is_execution_deterministic(
     agent_id: str,
@@ -703,6 +459,7 @@ def build_step_execution_graph(
                 if current_node_type in ['button', 'message', 'interactive']:
                     message_text = node_config.get('message', 'What would you like to do?')
                     buttons = node_config.get('buttons', [])
+                    media = node_config.get('media')
                     message_text = strip_html_tags(message_text)
                     response = message_text
                     user_data[f'{current_node_id}_buttons'] = buttons
@@ -711,6 +468,7 @@ def build_step_execution_graph(
                         'type': 'interactive',
                         'message': message_text,
                         'buttons': buttons,
+                        'media': media,
                         'expects_input': len(buttons) > 0
                     }
                     
@@ -842,16 +600,31 @@ def build_step_execution_graph(
         graph.set_entry_point(entry_node_id)
         logger.info(f"[GRAPH BUILD] Set entry point: {entry_node_id}")
     
-    # Add edges using LangGraph's native edge management
+    # Group edges by source node to detect multiple outgoing edges
+    edges_by_source = {}
     for edge in flow_edges:
         source = edge.get('source')
         target = edge.get('target')
         if source and target:
-            graph.add_edge(source, target)
-            logger.info(f"[GRAPH BUILD] Added edge: {source} -> {target}")
+            if source not in edges_by_source:
+                edges_by_source[source] = []
+            edges_by_source[source].append(target)
+    
+    # Add edges - use conditional routing for nodes with multiple outgoing edges
+    for source, targets in edges_by_source.items():
+        if len(targets) == 1:
+            # Single outgoing edge - use simple add_edge
+            graph.add_edge(source, targets[0])
+            logger.info(f"[GRAPH BUILD] Added edge: {source} -> {targets[0]}")
+        else:
+            # Multiple outgoing edges - use conditional routing
+            # For now, just take the first edge as default
+            # In future, this can be enhanced with button-based routing
+            graph.add_edge(source, targets[0])
+            logger.info(f"[GRAPH BUILD] Added default edge for multi-path node: {source} -> {targets[0]} (note: node has {len(targets)} possible paths)")
     
     # Find terminal nodes (nodes with no outgoing edges) and connect to END
-    source_nodes = {edge.get('source') for edge in flow_edges}
+    source_nodes = set(edges_by_source.keys())
     for node in flow_nodes:
         node_id = node.get('id')
         if node_id not in source_nodes:
@@ -1104,6 +877,7 @@ def execute_node_logic(
     if node_type in ['button', 'message', 'interactive']:
         message_text = node_config.get('message', 'What would you like to do?')
         buttons = node_config.get('buttons', [])
+        media = node_config.get('media')
         message_text = strip_html_tags(message_text)
         response = message_text
         user_data[f'{node_id}_buttons'] = buttons
@@ -1112,6 +886,7 @@ def execute_node_logic(
             'type': 'interactive',
             'message': message_text,
             'buttons': buttons,
+            'media': media,
             'expects_input': len(buttons) > 0
         }
         
