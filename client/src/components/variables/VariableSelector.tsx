@@ -66,7 +66,7 @@ export default function VariableSelector({ value, onChange, label = 'Save Respon
     return (
         <>
             <div className="space-y-2">
-                {label && <Label className="text-sm font-medium text-gray-200">{label}</Label>}
+                {label && <Label className="text-sm font-medium text-slate-200">{label}</Label>}
 
                 <Popover open={open} onOpenChange={setOpen} modal={true}>
                     <PopoverTrigger asChild>
@@ -74,7 +74,7 @@ export default function VariableSelector({ value, onChange, label = 'Save Respon
                             variant="outline"
                             role="combobox"
                             aria-expanded={open}
-                            className="w-full justify-between h-9 bg-[#0f1419] border-gray-700 text-gray-200 hover:bg-[#1a1f2e] hover:text-gray-200 hover:border-gray-600"
+                            className="w-full justify-between h-9 bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-slate-200 hover:border-slate-600"
                             style={{ height: '54px' }}
                         >
                             {selectedVariable ? (
@@ -97,19 +97,19 @@ export default function VariableSelector({ value, onChange, label = 'Save Respon
                                     </Badge>
                                 </div>
                             ) : (
-                                <span className="text-gray-500 text-sm">Select variable...</span>
+                                <span className="text-slate-500 text-sm">Select variable...</span>
                             )}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[380px] p-0 bg-[#0f1419] border-gray-700/50 z-[9999]" align="start">
-                        <Command className="bg-[#0f1419] border-0">
+                    <PopoverContent className="w-[380px] p-0 bg-slate-800 border-slate-700/50 z-[9999]" align="start">
+                        <Command className="bg-slate-800 border-0">
                             <CommandInput
                                 placeholder="Search variables..."
-                                className="h-9 bg-[#0f1419] border-b border-gray-700/30 text-gray-200 placeholder:text-gray-500 focus:ring-0"
+                                className="h-9 bg-slate-800 border-b border-slate-700/30 text-slate-200 placeholder:text-slate-500 focus:ring-0"
                             />
-                            <CommandList className="max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-                                <CommandEmpty className="text-gray-400 text-sm py-6 text-center">
+                            <CommandList className="max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+                                <CommandEmpty className="text-slate-400 text-sm py-6 text-center">
                                     No variables found.
                                 </CommandEmpty>
                                 <CommandGroup className="p-0">
@@ -121,7 +121,7 @@ export default function VariableSelector({ value, onChange, label = 'Save Respon
                                                 onChange(null);
                                                 setOpen(false);
                                             }}
-                                            className="text-gray-400 hover:bg-[#1a1f2e] hover:text-gray-200 cursor-pointer px-3 py-2 mx-1 my-0.5 rounded"
+                                            className="text-slate-400 hover:bg-slate-700 hover:text-slate-200 cursor-pointer px-3 py-2 mx-1 my-0.5 rounded"
                                         >
                                             <span className="text-red-400 text-sm">✕ Clear selection</span>
                                         </CommandItem>
@@ -139,8 +139,8 @@ export default function VariableSelector({ value, onChange, label = 'Save Respon
                                             className={cn(
                                                 "cursor-pointer px-3 py-2.5 mx-1 my-0.5 rounded transition-colors",
                                                 value === variable.id
-                                                    ? "bg-blue-600/30 text-gray-100 border border-blue-500/30"
-                                                    : "text-gray-200 hover:bg-[#1a1f2e]/60"
+                                                    ? "bg-blue-600/30 text-slate-100 border border-blue-500/30"
+                                                    : "text-slate-200 hover:bg-slate-700/60"
                                             )}
                                         >
                                             <Check
@@ -177,7 +177,7 @@ export default function VariableSelector({ value, onChange, label = 'Save Respon
                                 </CommandGroup>
 
                                 {/* Create new variable option */}
-                                <CommandGroup className="p-0 border-t border-gray-700/50 mt-1">
+                                <CommandGroup className="p-0 border-t border-slate-700/50 mt-1">
                                     <CommandItem
                                         onSelect={() => {
                                             setShowCreateModal(true);

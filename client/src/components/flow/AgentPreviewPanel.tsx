@@ -20,6 +20,7 @@ interface Message {
     role: 'user' | 'assistant' | 'interactive';
     content: string;
     timestamp: Date;
+    nodeType?: string; // Track the node type that generated this message
     buttons?: Array<{ id: string; label: string; actionType: string; actionValue?: string }>;
     media?: {
         type: 'image' | 'video' | 'document';
@@ -163,6 +164,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                 role: data.ui_schema.type === 'interactive' ? 'interactive' : 'assistant',
                 content: messageContent,
                 timestamp: new Date(),
+                nodeType: data.node_type, // Track which node type generated this message
                 buttons: data.ui_schema.buttons,
                 media: data.ui_schema.media
             };
@@ -552,16 +554,16 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
 
     return (
         <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-            <div className="bg-[#0a0e14] border border-gray-700 rounded-lg shadow-2xl w-full max-w-4xl h-[700px] flex flex-col">
+            <div className="bg-slate-900 border border-slate-700 rounded-lg shadow-2xl w-full max-w-4xl h-[700px] flex flex-col">
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-700">
+                <div className="flex items-center justify-between p-4 border-b border-slate-700">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
                             <Sparkles className="h-5 w-5 text-white" />
                         </div>
                         <div>
-                            <h3 className="text-lg font-semibold text-gray-100">Agent Preview</h3>
-                            <p className="text-xs text-gray-400">{agentName}</p>
+                            <h3 className="text-lg font-semibold text-slate-100">Agent Preview</h3>
+                            <p className="text-xs text-slate-400">{agentName}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -569,7 +571,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                             variant="ghost"
                             size="sm"
                             onClick={onClose}
-                            className="text-gray-400 hover:text-white hover:bg-gray-800"
+                            className="text-slate-400 hover:text-white hover:bg-slate-800"
                         >
                             <X className="h-5 w-5" />
                         </Button>
@@ -597,10 +599,21 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
 
                                     <div className="max-w-[70%]">
                                         <div
-                                            className={`rounded-lg p-3 ${message.role === 'user'
-                                                ? 'bg-indigo-600 text-white'
-                                                : 'bg-gray-800 text-gray-100'
-                                                }`}
+                                            className={`rounded-lg p-3 ${
+                                                message.role === 'user'
+                                                    ? 'bg-indigo-600 text-white'
+                                                    : message.nodeType === 'interactive' || message.nodeType === 'button' || message.nodeType === 'message'
+                                                    ? 'bg-gradient-to-br from-slate-800 to-slate-900 text-slate-100 border border-gray-600/30'
+                                                    : message.nodeType === 'input'
+                                                    ? 'bg-gradient-to-br from-green-900/40 to-green-800/30 text-slate-100 border border-green-600/30'
+                                                    : message.nodeType === 'apiLibrary'
+                                                    ? 'bg-gradient-to-br from-emerald-900/40 to-emerald-800/30 text-slate-100 border border-emerald-600/30'
+                                                    : message.nodeType === 'ai'
+                                                    ? 'bg-gradient-to-br from-purple-900/40 to-purple-800/30 text-slate-100 border border-purple-600/30'
+                                                    : message.nodeType === 'knowledgeBase'
+                                                    ? 'bg-gradient-to-br from-purple-900/40 to-purple-800/30 text-slate-100 border border-purple-600/30'
+                                                    : 'bg-slate-800 text-slate-100'
+                                            }`}
                                         >
                                             {/* Render media if available */}
                                             {message.media && message.media.type === 'image' && message.media.url && (
@@ -608,7 +621,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                                                     <img
                                                         src={message.media.url}
                                                         alt={message.media.name || 'Message image'}
-                                                        className="w-full max-w-xs rounded-md border border-gray-600"
+                                                        className="w-full max-w-xs rounded-md border border-slate-600"
                                                         onError={(e) => {
                                                             (e.target as HTMLImageElement).style.display = 'none';
                                                         }}
@@ -620,12 +633,12 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                                                     <video
                                                         src={message.media.url}
                                                         controls
-                                                        className="w-full max-w-xs rounded-md border border-gray-600"
+                                                        className="w-full max-w-xs rounded-md border border-slate-600"
                                                     />
                                                 </div>
                                             )}
                                             {message.media && message.media.type === 'document' && message.media.url && (
-                                                <div className="mb-2 p-2 bg-gray-700 rounded-md border border-gray-600">
+                                                <div className="mb-2 p-2 bg-slate-700 rounded-md border border-slate-600">
                                                     <a
                                                         href={message.media.url}
                                                         target="_blank"
@@ -665,8 +678,8 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
 
                                     {message.role === 'user' && (
                                         <div className="flex-shrink-0">
-                                            <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">
-                                                <User className="h-4 w-4 text-gray-300" />
+                                            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
+                                                <User className="h-4 w-4 text-slate-300" />
                                             </div>
                                         </div>
                                     )}
@@ -680,10 +693,10 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                                             <Bot className="h-4 w-4 text-white" />
                                         </div>
                                     </div>
-                                    <div className="bg-gray-800 rounded-lg p-3">
+                                    <div className="bg-slate-800 rounded-lg p-3">
                                         <div className="flex items-center gap-2">
                                             <Loader2 className="h-4 w-4 animate-spin text-indigo-400" />
-                                            <span className="text-sm text-gray-400">Thinking...</span>
+                                            <span className="text-sm text-slate-400">Thinking...</span>
                                         </div>
                                     </div>
                                 </div>
@@ -693,7 +706,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                         </div>
 
                         {/* Input Area */}
-                        <div className="border-t border-gray-700 p-4">
+                        <div className="border-t border-slate-700 p-4">
                             <div className="flex gap-2">
                                 <Input
                                     value={inputMessage}
@@ -701,7 +714,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                                     onKeyDown={handleKeyPress}
                                     placeholder={isComplete ? "Flow completed" : (uiSchema?.expects_input === false ? "Processing..." : "Type your message...")}
                                     disabled={isLoading || isComplete || uiSchema?.expects_input === false}
-                                    className="bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
+                                    className="bg-slate-800 border-slate-600 text-slate-100 placeholder-slate-500"
                                 />
                                 <Button
                                     onClick={handleSendMessage}
@@ -715,7 +728,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                                     )}
                                 </Button>
                             </div>
-                            <p className="text-xs text-gray-500 mt-2">
+                            <p className="text-xs text-slate-500 mt-2">
                                 {isComplete
                                     ? "Flow completed"
                                     : uiSchema?.expects_input === false

@@ -102,20 +102,20 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                     // Get cursor position for menu placement
                     const bounds = quill.getBounds(cursorPosition);
                     const wrapperRect = quillRef.current?.getEditor()?.root.parentElement?.getBoundingClientRect();
-                    
+
                     // Calculate position relative to editor wrapper (using absolute positioning)
                     const relativeTop = bounds.bottom + 39;
-                    
+
                     // Check if dropdown would go off-screen
                     const dropdownHeight = 256;
                     const editorRect = quill.root.getBoundingClientRect();
                     const spaceBelow = window.innerHeight - (editorRect.top + bounds.bottom);
                     const shouldShowAbove = spaceBelow < dropdownHeight && bounds.top > dropdownHeight;
-                    
-                    const finalTop = shouldShowAbove 
+
+                    const finalTop = shouldShowAbove
                         ? bounds.top - dropdownHeight - 39
                         : relativeTop;
-                    
+
                     console.log('Menu positioning:', {
                         bounds,
                         relativeTop,
@@ -123,7 +123,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                         shouldShowAbove,
                         finalTop
                     });
-                    
+
                     setMenuPosition({ top: finalTop, left: 0 });
                     setShowVariableMenu(true);
                     setSelectedIndex(0);
@@ -212,58 +212,58 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <div className={`rich-text-editor-wrapper relative ${className}`}>
             <style>{`
                 .rich-text-editor-wrapper .ql-toolbar {
-                    background: #0f1419;
-                    border: 1px solid #374151;
+                    background: rgb(30 41 59);
+                    border: 1px solid rgb(51 65 85);
                     border-bottom: none;
                     border-radius: 0.5rem 0.5rem 0 0;
                     padding: 8px;
                 }
 
                 .rich-text-editor-wrapper .ql-container {
-                    background: #0f1419;
-                    border: 1px solid #374151;
+                    background: rgb(30 41 59);
+                    border: 1px solid rgb(51 65 85);
                     border-radius: 0 0 0.5rem 0.5rem;
-                    color: #e5e7eb;
+                    color: rgb(226 232 240);
                     font-family: inherit;
                     min-height: 100px;
                 }
 
                 .rich-text-editor-wrapper .ql-editor {
                     min-height: 100px;
-                    color: #e5e7eb;
+                    color: rgb(226 232 240);
                 }
 
                 .rich-text-editor-wrapper .ql-editor.ql-blank::before {
-                    color: #6b7280;
+                    color: rgb(100 116 139);
                     font-style: normal;
                 }
 
                 .rich-text-editor-wrapper .ql-stroke {
-                    stroke: #9ca3af !important;
+                    stroke: rgb(148 163 184) !important;
                 }
 
                 .rich-text-editor-wrapper .ql-fill {
-                    fill: #9ca3af !important;
+                    fill: rgb(148 163 184) !important;
                 }
 
                 .rich-text-editor-wrapper .ql-picker-label {
-                    color: #9ca3af !important;
+                    color: rgb(148 163 184) !important;
                 }
 
                 .rich-text-editor-wrapper .ql-toolbar button:hover,
                 .rich-text-editor-wrapper .ql-toolbar button.ql-active {
-                    background: #374151;
+                    background: rgb(51 65 85);
                     border-radius: 4px;
                 }
 
                 .rich-text-editor-wrapper .ql-toolbar button:hover .ql-stroke,
                 .rich-text-editor-wrapper .ql-toolbar button.ql-active .ql-stroke {
-                    stroke: #e5e7eb !important;
+                    stroke: rgb(226 232 240) !important;
                 }
 
                 .rich-text-editor-wrapper .ql-toolbar button:hover .ql-fill,
                 .rich-text-editor-wrapper .ql-toolbar button.ql-active .ql-fill {
-                    fill: #e5e7eb !important;
+                    fill: rgb(226 232 240) !important;
                 }
 
                 .rich-text-editor-wrapper .ql-editor a {
@@ -302,7 +302,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             {/* Variable Autocomplete Menu */}
             {showVariableMenu && (
                 <div
-                    className="absolute bg-[#0f1419] border border-gray-700/50 rounded-lg shadow-2xl w-80 max-h-64 overflow-y-auto z-[9999] left-0 right-0 mx-auto"
+                    className="absolute bg-slate-800 border border-slate-700/50 rounded-lg shadow-2xl w-80 max-h-64 overflow-y-auto z-[9999] left-0 right-0 mx-auto"
                     style={{
                         top: `${menuPosition.top}px`,
                     }}
@@ -312,7 +312,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                     }}
                 >
                     {filteredVariables.length === 0 ? (
-                        <div className="p-4 text-center text-gray-500 text-sm">
+                        <div className="p-4 text-center text-slate-500 text-sm">
                             No variables found
                         </div>
                     ) : (
@@ -328,21 +328,21 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                                         "px-3 py-2 cursor-pointer transition-colors",
                                         index === selectedIndex
                                             ? "bg-blue-600/20 border-l-2 border-blue-500"
-                                            : "hover:bg-[#1a1f2e]/60"
+                                            : "hover:bg-slate-700/60"
                                     )}
                                 >
                                     <div className="flex items-center justify-between gap-3">
                                         <div className="flex-1 min-w-0">
-                                            <div className="text-sm font-medium text-gray-200 truncate">
+                                            <div className="text-sm font-medium text-slate-200 truncate">
                                                 {variable.name}
                                             </div>
                                             {variable.description && (
-                                                <div className="text-xs text-gray-500 truncate mt-0.5">
+                                                <div className="text-xs text-slate-500 truncate mt-0.5">
                                                     {variable.description}
                                                 </div>
                                             )}
                                         </div>
-                                        <span className="text-xs px-2 py-0.5 rounded bg-gray-700/50 text-gray-400 flex-shrink-0">
+                                        <span className="text-xs px-2 py-0.5 rounded bg-slate-700/50 text-slate-400 flex-shrink-0">
                                             {variable.format}
                                         </span>
                                     </div>

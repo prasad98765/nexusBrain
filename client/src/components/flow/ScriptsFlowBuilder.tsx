@@ -204,14 +204,14 @@ function ScriptsFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScreen
     return (
         <div
             className={`${isFullScreen ? 'fixed inset-0 z-50' : 'relative'
-                } bg-[#0a0e14] flex flex-col transition-all duration-300`}
+                } bg-slate-900 flex flex-col transition-all duration-300`}
             style={{ height: isFullScreen ? '100vh' : '600px' }}
         >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-800 bg-[#1a1f2e]">
+            <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-700">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-base font-semibold text-gray-200">Flow Builder</h2>
-                    <span className="text-xs text-gray-500 bg-[#0f1419] px-2 py-1 rounded">
+                    <h2 className="text-base font-semibold text-slate-200">Flow Builder</h2>
+                    <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded">
                         {nodes.length} nodes • {edges.length} connections
                     </span>
                 </div>
@@ -221,7 +221,7 @@ function ScriptsFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScreen
                             variant="outline"
                             size="sm"
                             onClick={handleDeleteSelected}
-                            className="border-gray-700 text-gray-300 hover:bg-red-900/20 hover:text-red-400"
+                            className="border-slate-700 text-slate-300 hover:bg-red-900/20 hover:text-red-400"
                         >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete
@@ -235,7 +235,7 @@ function ScriptsFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScreen
                         onClick={onToggleFullScreen}
                         size="sm"
                         variant="outline"
-                        className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                        className="border-slate-700 text-slate-300 hover:bg-slate-800"
                     >
                         {isFullScreen ? (
                             <>
@@ -254,31 +254,31 @@ function ScriptsFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScreen
 
             <div className="flex flex-1 overflow-hidden">
                 {/* Node Palette */}
-                <aside className="w-[280px] bg-[#0f1419] border-r border-gray-800 overflow-y-auto">
+                <aside className="w-[280px] bg-slate-800 border-r border-slate-800 overflow-y-auto">
                     {/* Search */}
-                    <div className="p-4 border-b border-gray-800">
+                    <div className="p-4 border-b border-slate-800">
                         <div className="relative">
                             <input
                                 type="text"
                                 placeholder="Search"
-                                className="w-full bg-[#1a1f2e] border border-gray-700 rounded-md px-3 py-2 text-sm text-gray-300 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                                className="w-full bg-slate-700 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:border-blue-500"
                             />
                         </div>
                     </div>
 
                     {/* Components */}
                     <div className="p-4">
-                        <h3 className="text-xs font-semibold text-gray-400 mb-3 flex items-center">
+                        <h3 className="text-xs font-semibold text-slate-400 mb-3 flex items-center">
                             <span className="mr-2">⊟</span>
                             Components
                         </h3>
                         
                         {/* Input / Output Section */}
                         <div className="mb-4">
-                            <button className="flex items-center gap-2 text-sm text-gray-300 mb-2 hover:text-white w-full">
+                            <button className="flex items-center gap-2 text-sm text-slate-300 mb-2 hover:text-white w-full">
                                 <span className="text-pink-400">🗂️</span>
                                 <span className="font-medium">Input / Output</span>
-                                <span className="ml-auto text-gray-500">▼</span>
+                                <span className="ml-auto text-slate-500">▼</span>
                             </button>
                             <div className="ml-6 space-y-2">
                                 <ComponentItem
@@ -306,10 +306,10 @@ function ScriptsFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScreen
 
                         {/* Models Section */}
                         <div className="mb-4">
-                            <button className="flex items-center gap-2 text-sm text-gray-300 mb-2 hover:text-white w-full">
+                            <button className="flex items-center gap-2 text-sm text-slate-300 mb-2 hover:text-white w-full">
                                 <span className="text-green-400">🧠</span>
                                 <span className="font-medium">Models</span>
-                                <span className="ml-auto text-gray-500">▶</span>
+                                <span className="ml-auto text-slate-500">▶</span>
                             </button>
                             <div className="ml-6 space-y-2">
                                 <ComponentItem
@@ -322,8 +322,8 @@ function ScriptsFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScreen
                     </div>
 
                     {/* Discover More */}
-                    <div className="p-4 border-t border-gray-800">
-                        <button className="flex items-center gap-2 text-sm text-gray-400 hover:text-white">
+                    <div className="p-4 border-t border-slate-800">
+                        <button className="flex items-center gap-2 text-sm text-slate-400 hover:text-white">
                             <span>🧩</span>
                             <span>Discover more components</span>
                         </button>
@@ -331,7 +331,7 @@ function ScriptsFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScreen
                 </aside>
 
                 {/* Flow Canvas */}
-                <div className="flex-1 bg-[#0a0e14]" ref={reactFlowWrapper}>
+                <div className="flex-1 bg-slate-900" ref={reactFlowWrapper}>
                     <ReactFlow
                         nodes={nodes}
                         edges={edges}
@@ -344,15 +344,15 @@ function ScriptsFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScreen
                         onNodeClick={onNodeClick}
                         nodeTypes={nodeTypes}
                         fitView
-                        className="bg-[#0a0e14]"
+                        className="bg-slate-900"
                         defaultEdgeOptions={{
                             style: { stroke: '#4b5563', strokeWidth: 2 },
                             type: 'smoothstep',
                         }}
                     >
-                        <Controls className="!bg-[#1a1f2e] !border-gray-700" />
+                        <Controls className="!bg-slate-700 !border-slate-700" />
                         <MiniMap
-                            className="!bg-[#1a1f2e] !border !border-gray-700"
+                            className="!bg-slate-700 !border !border-slate-700"
                             nodeColor={() => '#1a1f2e'}
                             maskColor="rgba(10, 14, 20, 0.6)"
                         />
@@ -362,7 +362,7 @@ function ScriptsFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScreen
                             size={1} 
                             color="#1f2937" 
                         />
-                        <Panel position="bottom-right" className="bg-[#1a1f2e] px-3 py-2 rounded-lg border border-gray-700 text-xs text-gray-400">
+                        <Panel position="bottom-right" className="bg-slate-700 px-3 py-2 rounded-lg border border-slate-700 text-xs text-slate-400">
                             {nodes.length} nodes • {edges.length} edges • 71%
                         </Panel>
                     </ReactFlow>
@@ -397,13 +397,13 @@ function ComponentItem({ icon, label, type }: { icon: string; label: string; typ
 
     return (
         <div
-            className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-300 hover:bg-[#1a1f2e] rounded cursor-grab active:cursor-grabbing transition-colors group"
+            className="flex items-center gap-2 px-2 py-1.5 text-sm text-slate-300 hover:bg-slate-700 rounded cursor-grab active:cursor-grabbing transition-colors group"
             onDragStart={(event) => onDragStart(event, type)}
             draggable
         >
             <span className="text-base">{icon}</span>
             <span>{label}</span>
-            <button className="ml-auto text-gray-500 hover:text-gray-300 opacity-0 group-hover:opacity-100">
+            <button className="ml-auto text-slate-500 hover:text-slate-300 opacity-0 group-hover:opacity-100">
                 ⋮
             </button>
         </div>

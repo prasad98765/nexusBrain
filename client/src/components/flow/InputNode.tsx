@@ -98,12 +98,12 @@ export default function InputNode({ id, data, selected }: NodeProps<InputNodeDat
                                 onChange={(e) => setLabelValue(e.target.value)}
                                 onBlur={handleLabelSave}
                                 onKeyDown={handleLabelKeyDown}
-                                className="text-sm font-semibold text-gray-100 bg-transparent border-b border-green-400 outline-none px-1 focus:border-green-300"
+                                className="text-sm font-semibold text-slate-100 bg-transparent border-b border-green-400 outline-none px-1 focus:border-green-300"
                                 autoFocus
                                 onClick={(e) => e.stopPropagation()}
                             />
                         ) : (
-                            <span className="text-sm font-semibold text-gray-100">
+                            <span className="text-sm font-semibold text-slate-100">
                                 {data.label || 'User Input'}
                             </span>
                         )}
@@ -117,12 +117,12 @@ export default function InputNode({ id, data, selected }: NodeProps<InputNodeDat
                                             e.stopPropagation();
                                             handleLabelEdit();
                                         }}
-                                        className="p-1.5 hover:bg-gray-700/70 rounded transition-all hover:scale-105"
+                                        className="p-1.5 hover:bg-slate-700/70 rounded transition-all hover:scale-105"
                                     >
-                                        <Edit2 className="h-3.5 w-3.5 text-gray-400 hover:text-gray-200" />
+                                        <Edit2 className="h-3.5 w-3.5 text-slate-400 hover:text-slate-200" />
                                     </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top" className="bg-gray-900 border-gray-700 text-xs">
+                                <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-xs">
                                     <p>Rename node</p>
                                 </TooltipContent>
                             </Tooltip>
@@ -134,16 +134,16 @@ export default function InputNode({ id, data, selected }: NodeProps<InputNodeDat
                                         e.stopPropagation();
                                         handleToggleMinimize();
                                     }}
-                                    className="p-1.5 hover:bg-gray-700/70 rounded transition-all hover:scale-105"
+                                    className="p-1.5 hover:bg-slate-700/70 rounded transition-all hover:scale-105"
                                 >
                                     {isMinimized ? (
-                                        <Maximize2 className="h-3.5 w-3.5 text-gray-400 hover:text-gray-200" />
+                                        <Maximize2 className="h-3.5 w-3.5 text-slate-400 hover:text-slate-200" />
                                     ) : (
-                                        <Minimize2 className="h-3.5 w-3.5 text-gray-400 hover:text-gray-200" />
+                                        <Minimize2 className="h-3.5 w-3.5 text-slate-400 hover:text-slate-200" />
                                     )}
                                 </button>
                             </TooltipTrigger>
-                            <TooltipContent side="top" className="bg-gray-900 border-gray-700 text-xs">
+                            <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-xs">
                                 <p>{isMinimized ? 'Expand node' : 'Minimize node'}</p>
                             </TooltipContent>
                         </Tooltip>
@@ -154,12 +154,12 @@ export default function InputNode({ id, data, selected }: NodeProps<InputNodeDat
                                         e.stopPropagation();
                                         handleDuplicate();
                                     }}
-                                    className="p-1.5 hover:bg-gray-700/70 rounded transition-all hover:scale-105"
+                                    className="p-1.5 hover:bg-slate-700/70 rounded transition-all hover:scale-105"
                                 >
-                                    <Copy className="h-3.5 w-3.5 text-gray-400 hover:text-gray-200" />
+                                    <Copy className="h-3.5 w-3.5 text-slate-400 hover:text-slate-200" />
                                 </button>
                             </TooltipTrigger>
-                            <TooltipContent side="top" className="bg-gray-900 border-gray-700 text-xs">
+                            <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-xs">
                                 <p>Duplicate node</p>
                             </TooltipContent>
                         </Tooltip>
@@ -175,7 +175,7 @@ export default function InputNode({ id, data, selected }: NodeProps<InputNodeDat
                                     <Trash2 className="h-3.5 w-3.5 text-red-400 hover:text-red-300" />
                                 </button>
                             </TooltipTrigger>
-                            <TooltipContent side="top" className="bg-gray-900 border-gray-700 text-xs">
+                            <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-xs">
                                 <p>Delete node</p>
                             </TooltipContent>
                         </Tooltip>
@@ -188,24 +188,24 @@ export default function InputNode({ id, data, selected }: NodeProps<InputNodeDat
                         {/* Input Type */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Input Type</label>
+                                <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">Input Type</label>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Info className="h-3.5 w-3.5 text-gray-500 cursor-help" />
+                                        <Info className="h-3.5 w-3.5 text-slate-500 cursor-help" />
                                     </TooltipTrigger>
-                                    <TooltipContent side="left" className="bg-gray-900 border-gray-700 text-xs max-w-[200px]">
+                                    <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs max-w-[200px]">
                                         <p>The type of data this input will collect from users</p>
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
-                            <div className="bg-gradient-to-br from-[#0f1419] to-[#0a0e14] border border-gray-600/50 rounded-lg px-3.5 py-2.5 text-sm text-green-400 font-semibold shadow-inner flex items-center justify-between">
+                            <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-gray-600/50 rounded-lg px-3.5 py-2.5 text-sm text-green-400 font-semibold shadow-inner flex items-center justify-between">
                                 <span>{getInputTypeLabel(data.inputType)}</span>
                                 {data.required && (
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <span className="text-red-400 text-base cursor-help">*</span>
                                         </TooltipTrigger>
-                                        <TooltipContent side="left" className="bg-gray-900 border-gray-700 text-xs">
+                                        <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs">
                                             <p>Required field</p>
                                         </TooltipContent>
                                     </Tooltip>
@@ -217,17 +217,17 @@ export default function InputNode({ id, data, selected }: NodeProps<InputNodeDat
                         {data.placeholder && (
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Question</label>
+                                    <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">Question</label>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Info className="h-3.5 w-3.5 text-gray-500 cursor-help" />
+                                            <Info className="h-3.5 w-3.5 text-slate-500 cursor-help" />
                                         </TooltipTrigger>
-                                        <TooltipContent side="left" className="bg-gray-900 border-gray-700 text-xs max-w-[200px]">
+                                        <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs max-w-[200px]">
                                             <p>The question or prompt shown to users</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </div>
-                                <div className="bg-gradient-to-br from-[#0f1419] to-[#0a0e14] border border-gray-600/50 rounded-lg px-3.5 py-2.5 text-sm text-gray-300 shadow-inner leading-relaxed">
+                                <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-gray-600/50 rounded-lg px-3.5 py-2.5 text-sm text-slate-300 shadow-inner leading-relaxed">
                                     <div dangerouslySetInnerHTML={{ __html: data.placeholder }} />
                                 </div>
                             </div>
@@ -248,8 +248,8 @@ export default function InputNode({ id, data, selected }: NodeProps<InputNodeDat
                         </div>
 
                         {/* Click to edit hint */}
-                        <div className="pt-2 border-t border-gray-700/50">
-                            <p className="text-xs text-gray-500 text-center italic">
+                        <div className="pt-2 border-t border-slate-700/50">
+                            <p className="text-xs text-slate-500 text-center italic">
                                 Click node to configure settings
                             </p>
                         </div>
@@ -260,7 +260,7 @@ export default function InputNode({ id, data, selected }: NodeProps<InputNodeDat
                     <div className="p-3">
                         <div className="flex items-center gap-2">
                             <div className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-                            <p className="text-xs text-gray-400 truncate font-medium">
+                            <p className="text-xs text-slate-400 truncate font-medium">
                                 {getInputTypeLabel(data.inputType)} input field
                             </p>
                         </div>
@@ -277,7 +277,7 @@ export default function InputNode({ id, data, selected }: NodeProps<InputNodeDat
                             style={{ top: '50%' }}
                         />
                     </TooltipTrigger>
-                    <TooltipContent side="left" className="bg-gray-900 border-gray-700 text-xs">
+                    <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs">
                         <p>Connect from previous node</p>
                     </TooltipContent>
                 </Tooltip>
@@ -290,7 +290,7 @@ export default function InputNode({ id, data, selected }: NodeProps<InputNodeDat
                             style={{ top: '50%' }}
                         />
                     </TooltipTrigger>
-                    <TooltipContent side="right" className="bg-gray-900 border-gray-700 text-xs">
+                    <TooltipContent side="right" className="bg-slate-900 border-slate-700 text-xs">
                         <p>Connect to next node</p>
                     </TooltipContent>
                 </Tooltip>

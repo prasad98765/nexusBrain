@@ -272,14 +272,14 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
     return (
         <div
             className={`${isFullScreen ? 'fixed inset-0 z-50' : 'relative'
-                } bg-[#0a0e14] flex flex-col transition-all duration-300`}
+                } bg-slate-900 flex flex-col transition-all duration-300`}
             style={{ height: isFullScreen ? '100vh' : '700px' }}
         >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-800 bg-[#1a1f2e]">
+            <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-700">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-base font-semibold text-gray-200">Flow Builder</h2>
-                    <span className="text-xs text-gray-500 bg-[#0f1419] px-2 py-1 rounded">
+                    <h2 className="text-base font-semibold text-slate-200">Flow Builder</h2>
+                    <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded">
                         {nodes.length} nodes • {edges.length} connections
                     </span>
                 </div>
@@ -301,7 +301,7 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
                         onClick={onToggleFullScreen}
                         size="sm"
                         variant="outline"
-                        className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                        className="border-slate-700 text-slate-300 hover:bg-slate-800"
                     >
                         {isFullScreen ? (
                             <>
@@ -320,20 +320,20 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
 
             <div className="flex flex-1 overflow-hidden">
                 {/* Node Palette */}
-                <aside className="w-[280px] bg-[#0f1419] border-r border-gray-800 overflow-y-auto">
+                <aside className="w-[280px] bg-slate-800 border-r border-slate-800 overflow-y-auto">
                     <div className="p-4">
-                        <h3 className="text-sm font-semibold text-gray-200 mb-4">Node Types</h3>
+                        <h3 className="text-sm font-semibold text-slate-200 mb-4">Node Types</h3>
 
                         <div className="space-y-3">
                             <div>
-                                <h4 className="text-xs font-medium text-gray-500 uppercase mb-2 px-2">Input/Output</h4>
+                                <h4 className="text-xs font-medium text-slate-500 uppercase mb-2 px-2">Input/Output</h4>
                                 <div className="space-y-1">
                                     <ComponentItem label="Interactive Node" type="button" />
                                     <ComponentItem label="Input Node" type="input" />
                                 </div>
                             </div>
                             <div>
-                                <h4 className="text-xs font-medium text-gray-500 uppercase mb-2 px-2">Processing</h4>
+                                <h4 className="text-xs font-medium text-slate-500 uppercase mb-2 px-2">Processing</h4>
                                 <div className="space-y-1">
                                     <ComponentItem label="OpenAI" type="ai" />
                                 </div>
@@ -344,7 +344,7 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
                 </aside>
 
                 {/* Flow Canvas */}
-                <div className="flex-1 bg-[#0a0e14]" ref={reactFlowWrapper}>
+                <div className="flex-1 bg-slate-900" ref={reactFlowWrapper}>
                     <ReactFlow
                         nodes={nodes}
                         edges={edges}
@@ -359,7 +359,7 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
                         nodesConnectable={!isLocked}
                         elementsSelectable={!isLocked}
                         fitView
-                        className="bg-[#0a0e14]"
+                        className="bg-slate-900"
                         defaultEdgeOptions={{
                             style: { stroke: '#4b5563', strokeWidth: 2 },
                             type: 'smoothstep',
@@ -369,35 +369,35 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
                         
                         {/* Custom Controls Panel */}
                         <Panel position="bottom-left" className="flex gap-2 mb-4 ml-4">
-                            <div className="flex items-center gap-1 bg-[#1a1f2e] border border-gray-700 rounded-lg p-1 shadow-lg">
+                            <div className="flex items-center gap-1 bg-slate-700 border border-slate-700 rounded-lg p-1 shadow-lg">
                                 <button
                                     onClick={handleZoomIn}
-                                    className="p-2 hover:bg-gray-700 rounded transition-colors text-gray-300 hover:text-white"
+                                    className="p-2 hover:bg-slate-700 rounded transition-colors text-slate-300 hover:text-white"
                                     title="Zoom In"
                                 >
                                     <ZoomIn className="h-4 w-4" />
                                 </button>
                                 <button
                                     onClick={handleZoomOut}
-                                    className="p-2 hover:bg-gray-700 rounded transition-colors text-gray-300 hover:text-white"
+                                    className="p-2 hover:bg-slate-700 rounded transition-colors text-slate-300 hover:text-white"
                                     title="Zoom Out"
                                 >
                                     <ZoomOut className="h-4 w-4" />
                                 </button>
                                 <button
                                     onClick={handleFitView}
-                                    className="p-2 hover:bg-gray-700 rounded transition-colors text-gray-300 hover:text-white"
+                                    className="p-2 hover:bg-slate-700 rounded transition-colors text-slate-300 hover:text-white"
                                     title="Fit View"
                                 >
                                     <Maximize className="h-4 w-4" />
                                 </button>
-                                <div className="w-px h-6 bg-gray-700" />
+                                <div className="w-px h-6 bg-slate-700" />
                                 <button
                                     onClick={() => setIsLocked(!isLocked)}
                                     className={`p-2 rounded transition-colors ${
                                         isLocked
                                             ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
-                                            : 'hover:bg-gray-700 text-gray-300 hover:text-white'
+                                            : 'hover:bg-slate-700 text-slate-300 hover:text-white'
                                     }`}
                                     title={isLocked ? 'Unlock Canvas' : 'Lock Canvas'}
                                 >
@@ -449,7 +449,7 @@ function ComponentItem({ label, type }: { label: string; type: string }) {
 
     return (
         <div
-            className="px-4 py-2.5 text-sm text-gray-300 hover:bg-[#1a1f2e] rounded cursor-grab active:cursor-grabbing transition-colors border-l-2 border-transparent hover:border-blue-500"
+            className="px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-700 rounded cursor-grab active:cursor-grabbing transition-colors border-l-2 border-transparent hover:border-blue-500"
             onDragStart={(event) => onDragStart(event, type)}
             draggable
         >

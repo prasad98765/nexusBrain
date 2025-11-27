@@ -66,16 +66,16 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
             // Determine edge style based on connection type
             let edgeStyle = { stroke: '#4b5563', strokeWidth: 2 };
             let animated = true;
-            
+
             // If connecting to Language Model's Knowledge Base input (id: 'input')
             if (params.targetHandle === 'input') {
                 edgeStyle = { stroke: '#6366f1', strokeWidth: 2 }; // Indigo color for KB connections
                 animated = true;
             }
-            
-            setEdges((eds) => addEdge({ 
-                ...params, 
-                type: 'smoothstep', 
+
+            setEdges((eds) => addEdge({
+                ...params,
+                type: 'smoothstep',
                 animated,
                 style: edgeStyle
             }, eds));
@@ -134,20 +134,20 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                                     ? {
                                         label: 'Engine',
                                     }
-                                : type === 'apiLibrary'
-                                    ? {
-                                        label: 'API Library',
-                                        apiLibraryId: null,
-                                        apiName: '',
-                                        apiMethod: '',
-                                    }
-                                    : type === 'knowledgeBase'
+                                    : type === 'apiLibrary'
                                         ? {
-                                            label: 'Knowledge Base',
-                                            selectedDocuments: [],
-                                            documentCount: 0,
+                                            label: 'API Library',
+                                            apiLibraryId: null,
+                                            apiName: '',
+                                            apiMethod: '',
                                         }
-                                        : {},
+                                        : type === 'knowledgeBase'
+                                            ? {
+                                                label: 'Knowledge Base',
+                                                selectedDocuments: [],
+                                                documentCount: 0,
+                                            }
+                                            : {},
             };
 
             setNodes((nds) => nds.concat(newNode));
@@ -316,21 +316,21 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
     return (
         <div
             className={`${isFullScreen ? 'fixed inset-0 z-50' : 'relative'
-                } bg-[#0a0e14] flex flex-col transition-all duration-300`}
+                } bg-slate-900 flex flex-col transition-all duration-300`}
             style={{ height: isFullScreen ? '100vh' : '700px' }}
         >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b  /50">
+            <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800/50">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-base font-semibold text-gray-200">Flow Builder</h2>
-                    <span className="text-xs text-gray-500  px-2 py-1 rounded">
+                    <h2 className="text-base font-semibold text-slate-100">Flow Builder</h2>
+                    <span className="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">
                         {nodes.length} nodes • {edges.length} connections
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button 
-                        onClick={() => setShowPreview(true)} 
-                        size="sm" 
+                    <Button
+                        onClick={() => setShowPreview(true)}
+                        size="sm"
                         variant="outline"
                         className="border-indigo-600 text-indigo-400 hover:bg-indigo-600/10 hover:text-indigo-300"
                     >
@@ -345,7 +345,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                         onClick={onToggleFullScreen}
                         size="sm"
                         variant="outline"
-                        className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
                     >
                         {isFullScreen ? (
                             <>
@@ -364,27 +364,27 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
 
             <div className="flex flex-1 overflow-hidden">
                 {/* Node Palette */}
-                <aside className="w-[280px]  border-r  overflow-y-auto">
+                <aside className="w-[280px] bg-slate-800 border-r border-slate-700 overflow-y-auto">
                     <div className="p-4">
-                        <h3 className="text-sm font-semibold text-gray-200 mb-4">Node Types</h3>
+                        <h3 className="text-sm font-semibold text-slate-100 mb-4">Node Types</h3>
 
                         <div className="space-y-3">
                             <div>
-                                <h4 className="text-xs font-medium text-gray-500 uppercase mb-2 px-2">Input/Output</h4>
+                                <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Input/Output</h4>
                                 <div className="space-y-1">
                                     <ComponentItem label="Interactive Node" type="button" />
                                     <ComponentItem label="Input Node" type="input" />
                                 </div>
                             </div>
                             <div>
-                                <h4 className="text-xs font-medium text-gray-500 uppercase mb-2 px-2">Processing</h4>
+                                <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Processing</h4>
                                 <div className="space-y-1">
                                     <ComponentItem label="Language Model" type="ai" />
                                     <ComponentItem label="Engine" type="engine" />
                                 </div>
                             </div>
                             <div>
-                                <h4 className="text-xs font-medium text-gray-500 uppercase mb-2 px-2">Integration</h4>
+                                <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Integration</h4>
                                 <div className="space-y-1">
                                     <ComponentItem label="API Library" type="apiLibrary" />
                                     <ComponentItem label="Knowledge Base" type="knowledgeBase" />
@@ -396,7 +396,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                 </aside>
 
                 {/* Flow Canvas */}
-                <div className="flex-1 " ref={reactFlowWrapper}>
+                <div className="flex-1 bg-slate-900" ref={reactFlowWrapper}>
                     <ReactFlow
                         nodes={nodes}
                         edges={edges}
@@ -411,44 +411,44 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                         nodesConnectable={!isLocked}
                         elementsSelectable={!isLocked}
                         fitView
-                        className=""
+                        className="bg-slate-900"
                         defaultEdgeOptions={{
-                            style: { stroke: '#4b5563', strokeWidth: 2 },
+                            style: { stroke: '#64748b', strokeWidth: 2 },
                             type: 'smoothstep',
                         }}
                     >
-                        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1f2937" />
+                        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#475569" />
 
                         {/* Custom Controls Panel */}
                         <Panel position="bottom-left" className="flex gap-2 mb-4 ml-4">
-                            <div className="flex items-center gap-1  border  rounded-lg p-1 shadow-lg">
+                            <div className="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-lg p-1 shadow-lg">
                                 <button
                                     onClick={handleZoomIn}
-                                    className="p-2 hover:bg-gray-700 rounded transition-colors text-gray-300 hover:text-white"
+                                    className="p-2 hover:bg-slate-700 rounded transition-colors text-slate-300 hover:text-white"
                                     title="Zoom In"
                                 >
                                     <ZoomIn className="h-4 w-4" />
                                 </button>
                                 <button
                                     onClick={handleZoomOut}
-                                    className="p-2 hover:bg-gray-700 rounded transition-colors text-gray-300 hover:text-white"
+                                    className="p-2 hover:bg-slate-700 rounded transition-colors text-slate-300 hover:text-white"
                                     title="Zoom Out"
                                 >
                                     <ZoomOut className="h-4 w-4" />
                                 </button>
                                 <button
                                     onClick={handleFitView}
-                                    className="p-2 hover:bg-gray-700 rounded transition-colors text-gray-300 hover:text-white"
+                                    className="p-2 hover:bg-slate-700 rounded transition-colors text-slate-300 hover:text-white"
                                     title="Fit View"
                                 >
                                     <Maximize className="h-4 w-4" />
                                 </button>
-                                <div className="w-px h-6 bg-gray-700" />
+                                <div className="w-px h-6 bg-slate-600" />
                                 <button
                                     onClick={() => setIsLocked(!isLocked)}
                                     className={`p-2 rounded transition-colors ${isLocked
                                         ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
-                                        : 'hover:bg-gray-700 text-gray-300 hover:text-white'
+                                        : 'hover:bg-slate-700 text-slate-300 hover:text-white'
                                         }`}
                                     title={isLocked ? 'Unlock Canvas' : 'Lock Canvas'}
                                 >
@@ -500,7 +500,7 @@ function ComponentItem({ label, type }: { label: string; type: string }) {
 
     return (
         <div
-            className="px-4 py-2.5 text-sm text-gray-300 hover:bg-[#1a1f2e] rounded cursor-grab active:cursor-grabbing transition-colors border-l-2 border-transparent hover:border-blue-500"
+            className="px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-700 rounded cursor-grab active:cursor-grabbing transition-colors border-l-2 border-transparent hover:border-indigo-500"
             onDragStart={(event) => onDragStart(event, type)}
             draggable
         >
@@ -508,3 +508,4 @@ function ComponentItem({ label, type }: { label: string; type: string }) {
         </div>
     );
 }
+

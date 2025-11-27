@@ -927,6 +927,7 @@ def execute_single_node(
                     return {
                         'success': True,
                         'current_node_id': next_node_id,
+                        'node_type': next_node.get('type'),  # Add node type for client-side styling
                         'current_node': {
                             'id': next_node.get('id'),
                             'type': next_node.get('type'),
@@ -965,6 +966,7 @@ def execute_single_node(
         return {
             'success': True,
             'current_node_id': node_id,
+            'node_type': current_node.get('type'),  # Add node type for client-side styling
             'current_node': {
                 'id': current_node.get('id'),
                 'type': current_node.get('type'),

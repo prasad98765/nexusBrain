@@ -95,12 +95,12 @@ export default function AINode({ id, data, selected }: NodeProps<AINodeData>) {
                                 onChange={(e) => setLabelValue(e.target.value)}
                                 onBlur={handleLabelSave}
                                 onKeyDown={handleLabelKeyDown}
-                                className="text-sm font-semibold text-gray-100 bg-transparent border-b border-purple-400 outline-none px-1 focus:border-purple-300"
+                                className="text-sm font-semibold text-slate-100 bg-transparent border-b border-purple-400 outline-none px-1 focus:border-purple-300"
                                 autoFocus
                                 onClick={(e) => e.stopPropagation()}
                             />
                         ) : (
-                            <span className="text-sm font-semibold text-gray-100">
+                            <span className="text-sm font-semibold text-slate-100">
                                 {data.label || 'Language Model'}
                             </span>
                         )}
@@ -114,12 +114,12 @@ export default function AINode({ id, data, selected }: NodeProps<AINodeData>) {
                                             e.stopPropagation();
                                             handleLabelEdit();
                                         }}
-                                        className="p-1.5 hover:bg-gray-700/70 rounded transition-all hover:scale-105"
+                                        className="p-1.5 hover:bg-slate-700/70 rounded transition-all hover:scale-105"
                                     >
-                                        <Edit2 className="h-3.5 w-3.5 text-gray-400 hover:text-gray-200" />
+                                        <Edit2 className="h-3.5 w-3.5 text-slate-400 hover:text-slate-200" />
                                     </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top" className="bg-gray-900 border-gray-700 text-xs">
+                                <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-xs">
                                     <p>Rename node</p>
                                 </TooltipContent>
                             </Tooltip>
@@ -131,16 +131,16 @@ export default function AINode({ id, data, selected }: NodeProps<AINodeData>) {
                                         e.stopPropagation();
                                         handleToggleMinimize();
                                     }}
-                                    className="p-1.5 hover:bg-gray-700/70 rounded transition-all hover:scale-105"
+                                    className="p-1.5 hover:bg-slate-700/70 rounded transition-all hover:scale-105"
                                 >
                                     {isMinimized ? (
-                                        <Maximize2 className="h-3.5 w-3.5 text-gray-400 hover:text-gray-200" />
+                                        <Maximize2 className="h-3.5 w-3.5 text-slate-400 hover:text-slate-200" />
                                     ) : (
-                                        <Minimize2 className="h-3.5 w-3.5 text-gray-400 hover:text-gray-200" />
+                                        <Minimize2 className="h-3.5 w-3.5 text-slate-400 hover:text-slate-200" />
                                     )}
                                 </button>
                             </TooltipTrigger>
-                            <TooltipContent side="top" className="bg-gray-900 border-gray-700 text-xs">
+                            <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-xs">
                                 <p>{isMinimized ? 'Expand node' : 'Minimize node'}</p>
                             </TooltipContent>
                         </Tooltip>
@@ -151,12 +151,12 @@ export default function AINode({ id, data, selected }: NodeProps<AINodeData>) {
                                         e.stopPropagation();
                                         handleDuplicate();
                                     }}
-                                    className="p-1.5 hover:bg-gray-700/70 rounded transition-all hover:scale-105"
+                                    className="p-1.5 hover:bg-slate-700/70 rounded transition-all hover:scale-105"
                                 >
-                                    <Copy className="h-3.5 w-3.5 text-gray-400 hover:text-gray-200" />
+                                    <Copy className="h-3.5 w-3.5 text-slate-400 hover:text-slate-200" />
                                 </button>
                             </TooltipTrigger>
-                            <TooltipContent side="top" className="bg-gray-900 border-gray-700 text-xs">
+                            <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-xs">
                                 <p>Duplicate node</p>
                             </TooltipContent>
                         </Tooltip>
@@ -172,7 +172,7 @@ export default function AINode({ id, data, selected }: NodeProps<AINodeData>) {
                                     <Trash2 className="h-3.5 w-3.5 text-red-400 hover:text-red-300" />
                                 </button>
                             </TooltipTrigger>
-                            <TooltipContent side="top" className="bg-gray-900 border-gray-700 text-xs">
+                            <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-xs">
                                 <p>Delete node</p>
                             </TooltipContent>
                         </Tooltip>
@@ -186,17 +186,17 @@ export default function AINode({ id, data, selected }: NodeProps<AINodeData>) {
                         {data.model && (
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Model</label>
+                                    <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">Model</label>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Info className="h-3.5 w-3.5 text-gray-500 cursor-help" />
+                                            <Info className="h-3.5 w-3.5 text-slate-500 cursor-help" />
                                         </TooltipTrigger>
-                                        <TooltipContent side="left" className="bg-gray-900 border-gray-700 text-xs max-w-[200px]">
+                                        <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs max-w-[200px]">
                                             <p>Selected language model</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </div>
-                                <div className="bg-gradient-to-br from-[#0f1419] to-[#0a0e14] border border-gray-600/50 rounded-lg px-3.5 py-2.5 text-sm text-purple-400 font-semibold shadow-inner">
+                                <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-gray-600/50 rounded-lg px-3.5 py-2.5 text-sm text-purple-400 font-semibold shadow-inner">
                                     {getModelDisplayName(data.model)}
                                 </div>
                             </div>
@@ -208,17 +208,17 @@ export default function AINode({ id, data, selected }: NodeProps<AINodeData>) {
                                 {data.temperature !== undefined && (
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between">
-                                            <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Temp</label>
+                                            <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">Temp</label>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
-                                                    <Info className="h-3.5 w-3.5 text-gray-500 cursor-help" />
+                                                    <Info className="h-3.5 w-3.5 text-slate-500 cursor-help" />
                                                 </TooltipTrigger>
-                                                <TooltipContent side="left" className="bg-gray-900 border-gray-700 text-xs max-w-[200px]">
+                                                <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs max-w-[200px]">
                                                     <p>Controls randomness (0-2)</p>
                                                 </TooltipContent>
                                             </Tooltip>
                                         </div>
-                                        <div className="bg-gradient-to-br from-[#0f1419] to-[#0a0e14] border border-gray-600/50 rounded-lg px-3.5 py-2.5 text-sm text-blue-400 font-mono shadow-inner text-center">
+                                        <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-gray-600/50 rounded-lg px-3.5 py-2.5 text-sm text-blue-400 font-mono shadow-inner text-center">
                                             {data.temperature}
                                         </div>
                                     </div>
@@ -226,17 +226,17 @@ export default function AINode({ id, data, selected }: NodeProps<AINodeData>) {
                                 {data.maxTokens !== undefined && (
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between">
-                                            <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Tokens</label>
+                                            <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">Tokens</label>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
-                                                    <Info className="h-3.5 w-3.5 text-gray-500 cursor-help" />
+                                                    <Info className="h-3.5 w-3.5 text-slate-500 cursor-help" />
                                                 </TooltipTrigger>
-                                                <TooltipContent side="left" className="bg-gray-900 border-gray-700 text-xs max-w-[200px]">
+                                                <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs max-w-[200px]">
                                                     <p>Maximum tokens to generate</p>
                                                 </TooltipContent>
                                             </Tooltip>
                                         </div>
-                                        <div className="bg-gradient-to-br from-[#0f1419] to-[#0a0e14] border border-gray-600/50 rounded-lg px-3.5 py-2.5 text-sm text-green-400 font-mono shadow-inner text-center">
+                                        <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-gray-600/50 rounded-lg px-3.5 py-2.5 text-sm text-green-400 font-mono shadow-inner text-center">
                                             {data.maxTokens}
                                         </div>
                                     </div>
@@ -248,19 +248,19 @@ export default function AINode({ id, data, selected }: NodeProps<AINodeData>) {
                         {data.systemPrompt && (
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">System Prompt</label>
+                                    <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">System Prompt</label>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Info className="h-3.5 w-3.5 text-gray-500 cursor-help" />
+                                            <Info className="h-3.5 w-3.5 text-slate-500 cursor-help" />
                                         </TooltipTrigger>
-                                        <TooltipContent side="left" className="bg-gray-900 border-gray-700 text-xs max-w-[200px]">
+                                        <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs max-w-[200px]">
                                             <p>Instructions for the model</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </div>
-                                <div className="bg-gradient-to-br from-[#0f1419] to-[#0a0e14] border border-gray-600/50 rounded-lg px-3.5 py-2.5 max-h-20 overflow-y-auto shadow-inner">
+                                <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-gray-600/50 rounded-lg px-3.5 py-2.5 max-h-20 overflow-y-auto shadow-inner">
                                     <div 
-                                        className="text-xs text-gray-300 leading-relaxed"
+                                        className="text-xs text-slate-300 leading-relaxed"
                                         dangerouslySetInnerHTML={{ __html: data.systemPrompt.substring(0, 100) + (data.systemPrompt.length > 100 ? '...' : '') }}
                                     />
                                 </div>
@@ -283,7 +283,7 @@ export default function AINode({ id, data, selected }: NodeProps<AINodeData>) {
                                             <span>Saves to Variable</span>
                                         </div>
                                     </TooltipTrigger>
-                                    <TooltipContent side="left" className="bg-gray-900 border-gray-700 text-xs">
+                                    <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs">
                                         <p>Response will be saved to a variable</p>
                                     </TooltipContent>
                                 </Tooltip>
@@ -291,8 +291,8 @@ export default function AINode({ id, data, selected }: NodeProps<AINodeData>) {
                         </div>
 
                         {/* Click to configure hint */}
-                        <div className="pt-2 border-t border-gray-700/50">
-                            <p className="text-xs text-gray-500 text-center italic">
+                        <div className="pt-2 border-t border-slate-700/50">
+                            <p className="text-xs text-slate-500 text-center italic">
                                 Click node to configure model
                             </p>
                         </div>
@@ -303,7 +303,7 @@ export default function AINode({ id, data, selected }: NodeProps<AINodeData>) {
                     <div className="p-3">
                         <div className="flex items-center gap-2">
                             <div className="h-1.5 w-1.5 rounded-full bg-purple-400 animate-pulse" />
-                            <p className="text-xs text-gray-400 truncate font-medium">
+                            <p className="text-xs text-slate-400 truncate font-medium">
                                 {data.model ? getModelDisplayName(data.model) : 'Language Model'}
                             </p>
                         </div>
@@ -321,7 +321,7 @@ export default function AINode({ id, data, selected }: NodeProps<AINodeData>) {
                             style={{ top: '35%' }}
                         />
                     </TooltipTrigger>
-                    <TooltipContent side="left" className="bg-gray-900 border-gray-700 text-xs">
+                    <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs">
                         <p>Primary input</p>
                     </TooltipContent>
                 </Tooltip>
@@ -337,7 +337,7 @@ export default function AINode({ id, data, selected }: NodeProps<AINodeData>) {
                             style={{ top: '65%' }}
                         />
                     </TooltipTrigger>
-                    <TooltipContent side="left" className="bg-gray-900 border-gray-700 text-xs">
+                    <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs">
                         <p>Knowledge Base input</p>
                     </TooltipContent>
                 </Tooltip>
@@ -352,7 +352,7 @@ export default function AINode({ id, data, selected }: NodeProps<AINodeData>) {
                             style={{ top: '50%' }}
                         />
                     </TooltipTrigger>
-                    <TooltipContent side="right" className="bg-gray-900 border-gray-700 text-xs">
+                    <TooltipContent side="right" className="bg-slate-900 border-slate-700 text-xs">
                         <p>Connect to next node</p>
                     </TooltipContent>
                 </Tooltip>
