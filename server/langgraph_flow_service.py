@@ -20,6 +20,46 @@ Supported Node Types:
 6. Engine Nodes - Final output generation
 
 =============================================================================
+⭐ REFACTOR PLAN (Production Robustness & Scalability) ⭐
+=============================================================================
+
+1. VALIDATION & ERROR HANDLING:
+   - Add strict validation for flow_nodes, flow_edges, button_action parameters
+   - Ensure referenced node IDs exist in flow configuration
+   - Validate button_index bounds when button_action provided
+   - Return structured error objects with context (workspace_id, agent_id, conversation_id)
+
+2. SCALABLE CACHING & NAMESPACING:
+   - Introduce composite cache keys: (workspace_id, agent_id) to prevent tenant leakage
+   - Update clear_graph_cache to accept optional agent_id and conversation_id
+   - Support selective clearing: all graphs vs specific conversation checkpoints
+
+3. UNIFIED NODE EXECUTION:
+   - Extract single run_node() helper containing all node type logic
+   - Eliminate duplication between LangGraph executors and execute_node_logic
+   - Ensure consistent behavior across execution paths
+
+4. ROBUST ROUTING & DETERMINISM:
+   - Implement deterministic routing with per-node router functions
+   - Use add_conditional_edges for multi-path nodes based on state
+   - Improve is_execution_deterministic to handle button-based branching
+   - Avoid non-deterministic 'first edge wins' behavior
+
+5. MEMORY & OBSERVABILITY:
+   - Implement get_conversation_state() for full state access
+   - Implement get_checkpoint_history() for time-travel debugging
+   - Implement replay_from_checkpoint() for state restoration
+   - Implement get_long_term_memory_summary() with LLM summarization
+   - Implement get_conversation_graph_visualization() for path visualization
+
+6. RESOURCE SAFETY:
+   - Clamp AI temperature to safe range (0.0-2.0)
+   - Clamp max_tokens to reasonable upper bound (4000)
+   - Add MAX_STEPS_PER_CONVERSATION guard for infinite loop prevention
+
+=============================================================================
+
+=============================================================================
 ⭐ LANGGRAPH MEMORY FEATURES ⭐
 =============================================================================
 
@@ -139,13 +179,23 @@ logger = logging.getLogger(__name__)
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
+# Resource safety limits
+MAX_AI_TEMPERATURE = 2.0
+MIN_AI_TEMPERATURE = 0.0
+MAX_TOKENS_LIMIT = 4000
+DEFAULT_MAX_TOKENS = 300
+MAX_STEPS_PER_CONVERSATION = 100  # Prevent infinite loops
+
 # Graph cache to avoid rebuilding on every step
+# Now using composite keys: f"{workspace_id}:{agent_id}"
 _graph_cache: Dict[str, Any] = {}
 
 # Node executor cache - stores the actual callable functions
+# Keyed by composite: f"{workspace_id}:{agent_id}"
 _node_executor_cache: Dict[str, Dict[str, Callable]] = {}
 
 # Checkpoint history cache - stores all checkpoints for time-travel debugging
+# Keyed by thread_id: f"{workspace_id}:{agent_id}:{conversation_id}"
 _checkpoint_history: Dict[str, List[Dict[str, Any]]] = {}
 
 # ============================================================================
@@ -242,6 +292,181 @@ def get_variable_key_for_node(node_id: str, node_config: Dict[str, Any]) -> str:
     )
 
 
+def make_cache_key(workspace_id: Optional[str], agent_id: str) -> str:
+    """
+    Create a composite cache key to prevent tenant/workspace leakage.
+    
+    Args:
+        workspace_id: Workspace identifier (optional)
+        agent_id: Agent identifier
+        
+    Returns:
+        Composite cache key: "workspace_id:agent_id" or just "agent_id" if no workspace
+    """
+    if workspace_id:
+        return f"{workspace_id}:{agent_id}"
+    return agent_id
+
+
+def make_thread_id(workspace_id: Optional[str], agent_id: str, conversation_id: str) -> str:
+    """
+    Create a composite thread ID for checkpoint persistence.
+    
+    Args:
+        workspace_id: Workspace identifier (optional)
+        agent_id: Agent identifier
+        conversation_id: Conversation identifier
+        
+    Returns:
+        Composite thread ID: "workspace_id:agent_id:conversation_id"
+    """
+    if workspace_id:
+        return f"{workspace_id}:{agent_id}:{conversation_id}"
+    return f"{agent_id}:{conversation_id}"
+
+
+def validate_flow_config(
+    flow_nodes: List[Dict[str, Any]], 
+    flow_edges: List[Dict[str, Any]],
+    workspace_id: Optional[str] = None,
+    agent_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Validate flow configuration for structural correctness.
+    
+    Args:
+        flow_nodes: List of node configurations
+        flow_edges: List of edge connections
+        workspace_id: Workspace identifier for logging
+        agent_id: Agent identifier for logging
+        
+    Returns:
+        Validation result with 'valid' boolean and 'errors' list
+    """
+    errors = []
+    context = f"workspace_id={workspace_id}, agent_id={agent_id}"
+    
+    # Check nodes exist and have required fields
+    if not flow_nodes:
+        errors.append(f"No flow nodes provided [{context}]")
+        return {'valid': False, 'errors': errors}
+    
+    node_ids = set()
+    for i, node in enumerate(flow_nodes):
+        if not isinstance(node, dict):
+            errors.append(f"Node at index {i} is not a dictionary [{context}]")
+            continue
+            
+        node_id = node.get('id')
+        if not node_id:
+            errors.append(f"Node at index {i} missing 'id' field [{context}]")
+        else:
+            if node_id in node_ids:
+                errors.append(f"Duplicate node ID: {node_id} [{context}]")
+            node_ids.add(node_id)
+        
+        if not node.get('type'):
+            errors.append(f"Node {node_id} missing 'type' field [{context}]")
+    
+    # Validate edges reference existing nodes
+    if flow_edges:
+        for i, edge in enumerate(flow_edges):
+            if not isinstance(edge, dict):
+                errors.append(f"Edge at index {i} is not a dictionary [{context}]")
+                continue
+            
+            source = edge.get('source')
+            target = edge.get('target')
+            
+            if not source:
+                errors.append(f"Edge at index {i} missing 'source' field [{context}]")
+            elif source not in node_ids:
+                errors.append(f"Edge references non-existent source node: {source} [{context}]")
+            
+            if not target:
+                errors.append(f"Edge at index {i} missing 'target' field [{context}]")
+            elif target not in node_ids:
+                errors.append(f"Edge references non-existent target node: {target} [{context}]")
+    
+    return {
+        'valid': len(errors) == 0,
+        'errors': errors,
+        'node_count': len(flow_nodes),
+        'edge_count': len(flow_edges) if flow_edges else 0
+    }
+
+
+def validate_button_action(
+    button_action: Dict[str, Any],
+    node: Dict[str, Any],
+    workspace_id: Optional[str] = None,
+    agent_id: Optional[str] = None,
+    node_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Validate button action parameters.
+    
+    Args:
+        button_action: Button action dict with button_index, action_type, action_value
+        node: Current node configuration
+        workspace_id: Workspace identifier for logging
+        agent_id: Agent identifier for logging
+        node_id: Node identifier for logging
+        
+    Returns:
+        Validation result with 'valid' boolean and 'error' string
+    """
+    context = f"workspace_id={workspace_id}, agent_id={agent_id}, node_id={node_id}"
+    
+    if not isinstance(button_action, dict):
+        return {'valid': False, 'error': f"button_action must be a dictionary [{context}]"}
+    
+    action_type = button_action.get('action_type')
+    if not action_type:
+        return {'valid': False, 'error': f"button_action missing 'action_type' [{context}]"}
+    
+    # Validate button_index for connect_to_node actions
+    if action_type == 'connect_to_node':
+        button_index = button_action.get('button_index')
+        if button_index is None:
+            return {'valid': False, 'error': f"button_action missing 'button_index' for connect_to_node [{context}]"}
+        
+        # Check if button_index is within bounds
+        node_buttons = node.get('data', {}).get('buttons', [])
+        if not isinstance(button_index, int) or button_index < 0:
+            return {'valid': False, 'error': f"button_index must be non-negative integer, got {button_index} [{context}]"}
+        
+        if button_index >= len(node_buttons):
+            return {
+                'valid': False, 
+                'error': f"button_index {button_index} out of bounds for node with {len(node_buttons)} buttons [{context}]"
+            }
+    
+    return {'valid': True, 'error': None}
+
+
+def clamp_ai_parameters(temperature: float, max_tokens: int) -> tuple[float, int]:
+    """
+    Clamp AI parameters to safe ranges.
+    
+    Args:
+        temperature: AI temperature parameter
+        max_tokens: Maximum tokens to generate
+        
+    Returns:
+        Tuple of (clamped_temperature, clamped_max_tokens)
+    """
+    clamped_temp = max(MIN_AI_TEMPERATURE, min(MAX_AI_TEMPERATURE, temperature))
+    clamped_tokens = max(1, min(MAX_TOKENS_LIMIT, max_tokens))
+    
+    if clamped_temp != temperature:
+        logger.warning(f"[RESOURCE SAFETY] Temperature clamped from {temperature} to {clamped_temp}")
+    if clamped_tokens != max_tokens:
+        logger.warning(f"[RESOURCE SAFETY] Max tokens clamped from {max_tokens} to {clamped_tokens}")
+    
+    return clamped_temp, clamped_tokens
+
+
 
 def find_next_node_id(current_node_id: str, edges: List[Dict[str, Any]], button_action: Optional[Dict[str, Any]] = None) -> Optional[str]:
     """
@@ -329,73 +554,429 @@ def find_entry_node(nodes: List[Dict[str, Any]], edges: List[Dict[str, Any]]) ->
 # SERVER-DRIVEN STEP-BY-STEP EXECUTION
 # ============================================================================
 
+def get_conversation_state(
+    agent_id: str,
+    conversation_id: str,
+    flow_nodes: List[Dict[str, Any]],
+    flow_edges: List[Dict[str, Any]],
+    workspace_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    ✅ TRANSPARENCY: Get the full current state of a conversation.
+    
+    Args:
+        agent_id: Agent identifier
+        conversation_id: Conversation identifier
+        flow_nodes: Flow node configurations
+        flow_edges: Flow edge configurations
+        workspace_id: Workspace identifier
+        
+    Returns:
+        Current conversation state or None if not found
+    """
+    try:
+        cache_key = make_cache_key(workspace_id, agent_id)
+        thread_id = make_thread_id(workspace_id, agent_id, conversation_id)
+        
+        if cache_key not in _graph_cache:
+            logger.warning(f"[GET STATE] No cached graph for {cache_key}")
+            return {
+                'found': False,
+                'error': f'No cached graph found for agent {agent_id}'
+            }
+        
+        compiled_graph = _graph_cache[cache_key]
+        config = {"configurable": {"thread_id": thread_id}}
+        
+        checkpoint_state = compiled_graph.get_state(config)
+        if checkpoint_state and checkpoint_state.values:
+            logger.info(f"[GET STATE] Retrieved state for thread {thread_id}")
+            return {
+                'found': True,
+                'state': checkpoint_state.values,
+                'thread_id': thread_id
+            }
+        else:
+            return {
+                'found': False,
+                'error': f'No state found for conversation {conversation_id}'
+            }
+    except Exception as e:
+        logger.error(f"[GET STATE] Error: {e}", exc_info=True)
+        return {'found': False, 'error': str(e)}
+
+
+def get_checkpoint_history(
+    agent_id: str,
+    conversation_id: str,
+    workspace_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    ✅ DEBUGGING: Get checkpoint history for time-travel debugging.
+    
+    Args:
+        agent_id: Agent identifier
+        conversation_id: Conversation identifier
+        workspace_id: Workspace identifier
+        
+    Returns:
+        List of checkpoints with timestamps and state snapshots
+    """
+    try:
+        thread_id = make_thread_id(workspace_id, agent_id, conversation_id)
+        
+        if thread_id not in _checkpoint_history:
+            logger.info(f"[CHECKPOINT HISTORY] No history found for {thread_id}")
+            return {
+                'found': False,
+                'checkpoints': [],
+                'count': 0
+            }
+        
+        history = _checkpoint_history[thread_id]
+        logger.info(f"[CHECKPOINT HISTORY] Retrieved {len(history)} checkpoints for {thread_id}")
+        
+        return {
+            'found': True,
+            'checkpoints': history,
+            'count': len(history),
+            'thread_id': thread_id
+        }
+    except Exception as e:
+        logger.error(f"[CHECKPOINT HISTORY] Error: {e}", exc_info=True)
+        return {'found': False, 'error': str(e), 'checkpoints': []}
+
+
+def replay_from_checkpoint(
+    agent_id: str,
+    conversation_id: str,
+    checkpoint_index: int,
+    flow_nodes: List[Dict[str, Any]],
+    flow_edges: List[Dict[str, Any]],
+    workspace_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    ✅ TIME-TRAVEL DEBUGGING: Restore state to a specific checkpoint.
+    
+    Args:
+        agent_id: Agent identifier
+        conversation_id: Conversation identifier
+        checkpoint_index: Index of checkpoint to restore (0-based)
+        flow_nodes: Flow node configurations
+        flow_edges: Flow edge configurations
+        workspace_id: Workspace identifier
+        
+    Returns:
+        Restored state or error
+    """
+    try:
+        cache_key = make_cache_key(workspace_id, agent_id)
+        thread_id = make_thread_id(workspace_id, agent_id, conversation_id)
+        
+        # Get checkpoint history
+        if thread_id not in _checkpoint_history:
+            return {
+                'success': False,
+                'error': f'No checkpoint history for conversation {conversation_id}'
+            }
+        
+        history = _checkpoint_history[thread_id]
+        if checkpoint_index < 0 or checkpoint_index >= len(history):
+            return {
+                'success': False,
+                'error': f'Invalid checkpoint index {checkpoint_index}. Valid range: 0-{len(history)-1}'
+            }
+        
+        checkpoint = history[checkpoint_index]
+        restored_state = checkpoint.get('state_snapshot', {})
+        
+        # Update the graph state
+        if cache_key in _graph_cache:
+            compiled_graph = _graph_cache[cache_key]
+            config = {"configurable": {"thread_id": thread_id}}
+            
+            try:
+                compiled_graph.update_state(config, restored_state)
+                logger.info(f"[REPLAY] Restored checkpoint {checkpoint_index} for {thread_id}")
+                
+                return {
+                    'success': True,
+                    'restored_state': restored_state,
+                    'checkpoint_index': checkpoint_index,
+                    'timestamp': checkpoint.get('timestamp'),
+                    'node_id': checkpoint.get('node_id')
+                }
+            except Exception as update_err:
+                logger.error(f"[REPLAY] Failed to update state: {update_err}")
+                return {'success': False, 'error': f'Failed to update state: {str(update_err)}'}
+        else:
+            return {'success': False, 'error': f'No cached graph for agent {agent_id}'}
+            
+    except Exception as e:
+        logger.error(f"[REPLAY] Error: {e}", exc_info=True)
+        return {'success': False, 'error': str(e)}
+
+
+def get_long_term_memory_summary(
+    agent_id: str,
+    conversation_id: str,
+    flow_nodes: List[Dict[str, Any]],
+    flow_edges: List[Dict[str, Any]],
+    workspace_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    ✅ LONG-TERM MEMORY: Generate a concise summary of conversation history.
+    Uses LLM to create intelligent summary of messages and user_data.
+    
+    Args:
+        agent_id: Agent identifier
+        conversation_id: Conversation identifier
+        flow_nodes: Flow node configurations
+        flow_edges: Flow edge configurations
+        workspace_id: Workspace identifier
+        
+    Returns:
+        Summary of conversation or error
+    """
+    try:
+        # Get current state
+        state_result = get_conversation_state(agent_id, conversation_id, flow_nodes, flow_edges, workspace_id)
+        
+        if not state_result.get('found'):
+            return {
+                'success': False,
+                'error': 'No conversation state found',
+                'summary': None
+            }
+        
+        state = state_result['state']
+        messages = state.get('messages', [])
+        user_data = state.get('user_data', {})
+        
+        # Build summary prompt
+        summary_prompt = "Summarize this conversation concisely:\n\n"
+        summary_prompt += f"User Data: {user_data}\n\n"
+        summary_prompt += f"Messages ({len(messages)} total):\n"
+        
+        for msg in messages[-10:]:  # Last 10 messages for context
+            role = msg.get('role', 'unknown')
+            content = msg.get('content', '')
+            summary_prompt += f"{role}: {content}\n"
+        
+        # Try to use LLM for summary (gracefully degrade if unavailable)
+        if OPENROUTER_API_KEY:
+            try:
+                llm = ChatOpenAI(
+                    model="meta-llama/llama-3.3-8b-instruct:free",
+                    openai_api_key=OPENROUTER_API_KEY,
+                    openai_api_base=OPENROUTER_BASE_URL,
+                    temperature=0.3,
+                    max_tokens=200
+                )
+                
+                summary_response = llm.invoke([HumanMessage(content=summary_prompt)])
+                summary = summary_response.content
+                
+                logger.info(f"[MEMORY SUMMARY] Generated LLM summary for {conversation_id}")
+                
+                return {
+                    'success': True,
+                    'summary': summary,
+                    'method': 'llm',
+                    'message_count': len(messages),
+                    'user_data_keys': list(user_data.keys())
+                }
+            except Exception as llm_err:
+                logger.warning(f"[MEMORY SUMMARY] LLM unavailable: {llm_err}")
+        
+        # Fallback: simple text summary
+        summary = f"Conversation with {len(messages)} messages. "
+        if user_data:
+            summary += f"Collected data: {', '.join(user_data.keys())}. "
+        
+        return {
+            'success': True,
+            'summary': summary,
+            'method': 'simple',
+            'message_count': len(messages),
+            'user_data_keys': list(user_data.keys())
+        }
+        
+    except Exception as e:
+        logger.error(f"[MEMORY SUMMARY] Error: {e}", exc_info=True)
+        return {'success': False, 'error': str(e), 'summary': None}
+
+
+def get_conversation_graph_visualization(
+    agent_id: str,
+    conversation_id: str,
+    flow_nodes: List[Dict[str, Any]],
+    flow_edges: List[Dict[str, Any]],
+    workspace_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    ✅ VISUALIZATION: Get a machine-readable graph structure with execution path.
+    
+    Args:
+        agent_id: Agent identifier
+        conversation_id: Conversation identifier
+        flow_nodes: Flow node configurations
+        flow_edges: Flow edge configurations
+        workspace_id: Workspace identifier
+        
+    Returns:
+        Graph structure with nodes, edges, and execution path
+    """
+    try:
+        thread_id = make_thread_id(workspace_id, agent_id, conversation_id)
+        
+        # Get execution path from checkpoint history
+        execution_path = []
+        if thread_id in _checkpoint_history:
+            history = _checkpoint_history[thread_id]
+            execution_path = [cp.get('node_id') for cp in history if cp.get('node_id')]
+        
+        # Build simplified graph structure
+        graph_nodes = []
+        for node in flow_nodes:
+            graph_nodes.append({
+                'id': node.get('id'),
+                'type': node.get('type'),
+                'label': node.get('data', {}).get('label', ''),
+                'executed': node.get('id') in execution_path
+            })
+        
+        graph_edges = []
+        for edge in flow_edges:
+            graph_edges.append({
+                'source': edge.get('source'),
+                'target': edge.get('target'),
+                'sourceHandle': edge.get('sourceHandle')
+            })
+        
+        logger.info(f"[GRAPH VIZ] Generated visualization for {thread_id} with {len(execution_path)} executed nodes")
+        
+        return {
+            'success': True,
+            'graph': {
+                'nodes': graph_nodes,
+                'edges': graph_edges,
+                'execution_path': execution_path,
+                'current_node': execution_path[-1] if execution_path else None
+            },
+            'stats': {
+                'total_nodes': len(graph_nodes),
+                'total_edges': len(graph_edges),
+                'executed_nodes': len(execution_path)
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"[GRAPH VIZ] Error: {e}", exc_info=True)
+        return {'success': False, 'error': str(e)}
+
 def get_or_build_graph(
     agent_id: str,
     flow_nodes: List[Dict[str, Any]],
-    flow_edges: List[Dict[str, Any]]
+    flow_edges: List[Dict[str, Any]],
+    workspace_id: Optional[str] = None
 ) -> Any:
     """
     Get cached graph or build new one if not cached.
-    Caches graphs per agent_id to avoid rebuilding on every step.
+    Uses composite cache keys to prevent tenant/workspace leakage.
     
     Args:
         agent_id: Agent identifier for caching
         flow_nodes: All nodes in the flow
         flow_edges: All edges in the flow
+        workspace_id: Workspace identifier for namespacing
         
     Returns:
         Compiled StateGraph
     """
-    if agent_id not in _graph_cache:
-        logger.info(f"[GRAPH CACHE] Building new graph for agent {agent_id}")
-        _graph_cache[agent_id] = build_step_execution_graph(flow_nodes, flow_edges, agent_id)
-    else:
-        logger.info(f"[GRAPH CACHE] Using cached graph for agent {agent_id}")
+    cache_key = make_cache_key(workspace_id, agent_id)
     
-    return _graph_cache[agent_id]
+    if cache_key not in _graph_cache:
+        logger.info(f"[GRAPH CACHE] Building new graph for cache_key {cache_key}")
+        _graph_cache[cache_key] = build_step_execution_graph(flow_nodes, flow_edges, agent_id, workspace_id)
+    else:
+        logger.info(f"[GRAPH CACHE] Using cached graph for cache_key {cache_key}")
+    
+    return _graph_cache[cache_key]
 
 
 def get_node_executor(
-    agent_id: Optional[str],
-    node_id: str
+    agent_id: str,
+    node_id: str,
+    workspace_id: Optional[str] = None
 ) -> Optional[Callable]:
     """
-    Get the node executor function from cache.
+    Get the node executor function from cache using composite key.
     
     Args:
         agent_id: Agent identifier
         node_id: Node identifier
+        workspace_id: Workspace identifier for namespacing
         
     Returns:
         Callable node executor function or None if not found
     """
-    if agent_id and agent_id in _node_executor_cache:
-        return _node_executor_cache[agent_id].get(node_id)
+    cache_key = make_cache_key(workspace_id, agent_id)
+    if cache_key in _node_executor_cache:
+        return _node_executor_cache[cache_key].get(node_id)
     return None
 
 
-def clear_graph_cache(agent_id: Optional[str] = None):
+def clear_graph_cache(
+    agent_id: Optional[str] = None,
+    conversation_id: Optional[str] = None,
+    workspace_id: Optional[str] = None
+):
     """
-    Clear cached graphs. If agent_id provided, clear only that agent's graph.
-    Otherwise, clear all cached graphs.
+    Clear cached graphs with fine-grained control.
+    
+    Behaviors:
+    - No params: Clear ALL caches (graphs, executors, history)
+    - Only agent_id + workspace_id: Clear all caches for that agent in workspace
+    - agent_id + conversation_id + workspace_id: Clear only checkpoint history for that conversation
     
     Args:
-        agent_id: Optional agent identifier to clear specific cache
+        agent_id: Optional agent identifier
+        conversation_id: Optional conversation identifier
+        workspace_id: Optional workspace identifier
     """
     global _graph_cache, _node_executor_cache, _checkpoint_history
-    if agent_id:
-        if agent_id in _graph_cache:
-            del _graph_cache[agent_id]
-            logger.info(f"[GRAPH CACHE] Cleared graph cache for agent {agent_id}")
-        if agent_id in _node_executor_cache:
-            del _node_executor_cache[agent_id]
-            logger.info(f"[GRAPH CACHE] Cleared node executor cache for agent {agent_id}")
-        # Clear checkpoint history for this agent
-        thread_keys_to_delete = [k for k in _checkpoint_history.keys() if agent_id in k]
-        for key in thread_keys_to_delete:
+    
+    if conversation_id and agent_id:
+        # Clear only specific conversation checkpoint history
+        thread_id = make_thread_id(workspace_id, agent_id, conversation_id)
+        if thread_id in _checkpoint_history:
+            del _checkpoint_history[thread_id]
+            logger.info(f"[GRAPH CACHE] Cleared checkpoint history for thread {thread_id}")
+        else:
+            logger.info(f"[GRAPH CACHE] No checkpoint history found for thread {thread_id}")
+            
+    elif agent_id:
+        # Clear all caches for specific agent in workspace
+        cache_key = make_cache_key(workspace_id, agent_id)
+        
+        if cache_key in _graph_cache:
+            del _graph_cache[cache_key]
+            logger.info(f"[GRAPH CACHE] Cleared graph cache for {cache_key}")
+            
+        if cache_key in _node_executor_cache:
+            del _node_executor_cache[cache_key]
+            logger.info(f"[GRAPH CACHE] Cleared node executor cache for {cache_key}")
+        
+        # Clear all checkpoint history for this agent
+        # Thread IDs contain agent_id, so we can filter by that
+        keys_to_delete = [k for k in _checkpoint_history.keys() if agent_id in k and (not workspace_id or workspace_id in k)]
+        for key in keys_to_delete:
             del _checkpoint_history[key]
             logger.info(f"[CHECKPOINT HISTORY] Cleared history for {key}")
+            
     else:
+        # Clear everything
         _graph_cache = {}
         _node_executor_cache = {}
         _checkpoint_history = {}
@@ -410,7 +991,7 @@ def is_execution_deterministic(
 ) -> Dict[str, Any]:
     """
     ✅ DETERMINISM: Verify that the flow execution is deterministic.
-    Checks that the graph structure guarantees consistent execution.
+    Now properly handles button-based branching as deterministic when uniquely keyed.
     
     Args:
         agent_id: Agent identifier
@@ -418,27 +999,54 @@ def is_execution_deterministic(
         flow_edges: Flow edge configurations
         
     Returns:
-        Determinism analysis
+        Determinism analysis with detailed reasoning
     """
-    # Check for deterministic properties
-    has_conditional_routing = False
+    has_button_routing = False
+    has_ambiguous_routing = False
     has_loops = False
     has_random_elements = False
+    issues = []
     
-    # Check for conditional edges (would make it non-deterministic)
-    edge_sources = {}
+    # Build edge map grouped by source node
+    edges_by_source = {}
     for edge in flow_edges:
         source = edge.get('source')
-        if source in edge_sources:
-            has_conditional_routing = True
-        edge_sources[source] = edge_sources.get(source, 0) + 1
+        if source:
+            if source not in edges_by_source:
+                edges_by_source[source] = []
+            edges_by_source[source].append(edge)
     
-    # Simple loop detection
+    # Check for routing characteristics
+    for source, edges in edges_by_source.items():
+        if len(edges) > 1:
+            # Multiple outgoing edges - check if they're uniquely keyed
+            source_handles = [e.get('sourceHandle') for e in edges]
+            
+            # Count edges with and without sourceHandle
+            has_source_handle = [sh for sh in source_handles if sh]
+            no_source_handle = [sh for sh in source_handles if not sh]
+            
+            if has_source_handle:
+                has_button_routing = True
+                # Check if all sourceHandles are unique
+                if len(has_source_handle) != len(set(has_source_handle)):
+                    has_ambiguous_routing = True
+                    issues.append(f"Node {source} has duplicate sourceHandles")
+            
+            # If there are multiple edges without sourceHandle, it's ambiguous
+            if len(no_source_handle) > 1:
+                has_ambiguous_routing = True
+                issues.append(f"Node {source} has {len(no_source_handle)} unconditional edges (ambiguous routing)")
+    
+    # Simple cycle detection
     visited = set()
     for edge in flow_edges:
-        if edge.get('target') in visited:
+        target = edge.get('target')
+        source = edge.get('source')
+        if target in visited and target == source:
             has_loops = True
-        visited.add(edge.get('source'))
+            issues.append(f"Self-loop detected at node {source}")
+        visited.add(source)
     
     # Check for AI nodes with temperature > 0 (non-deterministic)
     for node in flow_nodes:
@@ -446,35 +1054,217 @@ def is_execution_deterministic(
             temp = node.get('data', {}).get('temperature', 0.7)
             if temp > 0:
                 has_random_elements = True
+                issues.append(f"AI node {node.get('id')} has temperature={temp} (non-deterministic)")
     
-    is_deterministic = not (has_conditional_routing or has_random_elements)
+    # Determinism verdict
+    # Button routing is considered deterministic if sourceHandles are unique
+    is_deterministic = not (has_ambiguous_routing or has_random_elements)
     
     return {
         "is_deterministic": is_deterministic,
-        "has_conditional_routing": has_conditional_routing,
+        "has_button_routing": has_button_routing,
+        "has_ambiguous_routing": has_ambiguous_routing,
         "has_loops": has_loops,
         "has_random_elements": has_random_elements,
-        "note": "Set AI node temperature to 0 for deterministic responses"
+        "issues": issues,
+        "recommendations": [
+            "Set AI node temperature to 0 for deterministic responses" if has_random_elements else None,
+            "Ensure all button-based edges have unique sourceHandles" if has_button_routing and has_ambiguous_routing else None,
+            "Button-based branching with unique sourceHandles is deterministic" if has_button_routing and not has_ambiguous_routing else None
+        ],
+        "note": "Button routing is deterministic when edges are uniquely keyed by sourceHandle"
+    }
+
+def run_node(
+    current_node_id: str,
+    current_node_type: str,
+    node_config: Dict[str, Any],
+    state: StepExecutionState,
+    flow_nodes: List[Dict[str, Any]]
+) -> StepExecutionState:
+    """
+    ✅ UNIFIED NODE EXECUTION: Single source of truth for all node type logic.
+    Used by both LangGraph node executors and direct execution fallback.
+    
+    Args:
+        current_node_id: Node identifier
+        current_node_type: Node type (button/input/ai/engine/etc.)
+        node_config: Node configuration from data field
+        state: Current execution state
+        flow_nodes: All flow nodes (for label mapping)
+        
+    Returns:
+        Updated StepExecutionState after node execution
+    """
+    user_input = state.get('user_input', '')
+    user_data = dict(state.get('user_data', {}))
+    messages = list(state.get('messages', []))
+    
+    # Convert messages to LangChain format
+    lc_messages = []
+    for msg in messages:
+        if msg.get('role') == 'human':
+            lc_messages.append(HumanMessage(content=msg.get('content', '')))
+        else:
+            lc_messages.append(AIMessage(content=msg.get('content', '')))
+    
+    response = ""
+    ui_schema = {}
+    
+    # Execute based on node type
+    if current_node_type in ['button', 'message', 'interactive']:
+        message_text = node_config.get('message', 'What would you like to do?')
+        buttons = node_config.get('buttons', [])
+        media = node_config.get('media')
+        message_text = strip_html_tags(message_text)
+        response = message_text
+        user_data[f'{current_node_id}_buttons'] = buttons
+        
+        ui_schema = {
+            'type': 'interactive',
+            'message': message_text,
+            'buttons': buttons,
+            'media': media,
+            'expects_input': len(buttons) > 0
+        }
+        
+        if user_input:
+            user_data[f'{current_node_id}_action'] = user_input
+            lc_messages.append(HumanMessage(content=f"Selected: {user_input}"))
+        
+        lc_messages.append(AIMessage(content=response))
+        
+    elif current_node_type == 'input':
+        label = node_config.get('label', 'Please provide your input')
+        input_type = node_config.get('inputType', 'text')
+        placeholder = node_config.get('placeholder', 'Enter your response')
+        placeholder_text = strip_html_tags(placeholder)
+        response = placeholder_text
+        
+        ui_schema = {
+            'type': 'input',
+            'label': label,
+            'inputType': input_type,
+            'placeholder': placeholder_text,
+            'expects_input': True
+        }
+        
+        if user_input:
+            variable_key = get_variable_key_for_node(current_node_id, node_config)
+            user_data[variable_key] = user_input
+            lc_messages.append(HumanMessage(content=user_input))
+        
+        lc_messages.append(AIMessage(content=response))
+        
+    elif current_node_type == 'ai':
+        model_name = node_config.get('model', 'meta-llama/llama-3.3-8b-instruct:free')
+        system_prompt = node_config.get('systemPrompt', 'You are a helpful AI assistant.')
+        temperature = node_config.get('temperature', 0.7)
+        max_tokens = node_config.get('maxTokens', DEFAULT_MAX_TOKENS)
+        
+        # Clamp parameters to safe ranges
+        temperature, max_tokens = clamp_ai_parameters(temperature, max_tokens)
+        
+        ui_schema = {
+            'type': 'processing',
+            'message': 'Processing your request...',
+            'expects_input': False
+        }
+        
+        try:
+            if OPENROUTER_API_KEY:
+                llm = ChatOpenAI(
+                    model=model_name,
+                    openai_api_key=OPENROUTER_API_KEY,
+                    openai_api_base=OPENROUTER_BASE_URL,
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+                
+                ai_messages = [SystemMessage(content=system_prompt)] + lc_messages
+                if user_input:
+                    ai_messages.append(HumanMessage(content=user_input))
+                
+                ai_response = llm.invoke(ai_messages)
+                response = ai_response.content
+                lc_messages.append(AIMessage(content=response))
+            else:
+                response = "AI processing: " + (user_input or 'Processing...')
+                lc_messages.append(AIMessage(content=response))
+        except Exception as e:
+            logger.error(f"[AI NODE] Error: {e}")
+            response = "I apologize, but I'm having trouble processing your request."
+            lc_messages.append(AIMessage(content=response))
+    
+    elif current_node_type == 'engine':
+        label_map = get_node_label_map(flow_nodes)
+        collected_data = []
+        for key, value in user_data.items():
+            if not key.endswith('_buttons') and not key.endswith('_action'):
+                readable_key = label_map.get(key, key)
+                collected_data.append(f"{readable_key}: {value}")
+        
+        if collected_data:
+            response = "Processing complete. Data collected: " + ", ".join(collected_data)
+        else:
+            response = "Thank you for your input. Processing complete."
+        
+        ui_schema = {
+            'type': 'complete',
+            'message': response,
+            'expects_input': False
+        }
+        
+        lc_messages.append(AIMessage(content=response))
+    
+    else:
+        response = f"Processing through {current_node_type} node..."
+        ui_schema = {
+            'type': 'info',
+            'message': response,
+            'expects_input': False
+        }
+        
+        if user_input:
+            lc_messages.append(HumanMessage(content=user_input))
+        lc_messages.append(AIMessage(content=response))
+    
+    # Convert messages back to serializable format
+    serialized_messages = [
+        {'role': 'human' if isinstance(m, HumanMessage) else 'ai', 'content': m.content}
+        for m in lc_messages
+    ]
+    
+    # Return updated state
+    return {
+        **state,
+        'node_id': current_node_id,
+        'user_data': user_data,
+        'messages': serialized_messages,
+        'response': response,
+        'ui_schema': ui_schema
     }
 
 def build_step_execution_graph(
     flow_nodes: List[Dict[str, Any]],
     flow_edges: List[Dict[str, Any]],
-    agent_id: Optional[str] = None
+    agent_id: Optional[str] = None,
+    workspace_id: Optional[str] = None
 ) -> StateGraph:
     """
     Build a LangGraph StateGraph for step-by-step execution.
-    Uses LangGraph's native edge management instead of manual traversal.
+    Now uses composite cache keys and unified run_node() function.
     
     Args:
         flow_nodes: All nodes in the flow
         flow_edges: All edges in the flow
         agent_id: Optional agent ID for caching node executors
+        workspace_id: Optional workspace ID for namespacing
         
     Returns:
         Compiled StateGraph with MemorySaver checkpoint
     """
-    logger.info(f"[GRAPH BUILD] Building StateGraph with {len(flow_nodes)} nodes, {len(flow_edges)} edges")
+    logger.info(f"[GRAPH BUILD] Building StateGraph with {len(flow_nodes)} nodes, {len(flow_edges)} edges for workspace={workspace_id}, agent={agent_id}")
     
     # Create state graph
     graph = StateGraph(StepExecutionState)
@@ -490,161 +1280,23 @@ def build_step_execution_graph(
         node_id = node['id']
         node_type = node.get('type')
         
-        # Create node executor function
+        # Create node executor function using unified run_node()
         def create_node_executor(current_node_id: str, current_node_type: str):
             def node_executor(state: StepExecutionState) -> StepExecutionState:
-                """Execute a single node and update state."""
+                """Execute a single node using unified run_node() function."""
                 logger.info(f"[NODE EXECUTOR] Executing {current_node_id} (type: {current_node_type})")
                 
                 node_data = node_map[current_node_id]
                 node_config = node_data.get('data', {})
-                user_input = state.get('user_input', '')
-                user_data = dict(state.get('user_data', {}))
-                messages = list(state.get('messages', []))
                 
-                # Convert messages to LangChain format
-                lc_messages = []
-                for msg in messages:
-                    if msg.get('role') == 'human':
-                        lc_messages.append(HumanMessage(content=msg.get('content', '')))
-                    else:
-                        lc_messages.append(AIMessage(content=msg.get('content', '')))
-                
-                response = ""
-                ui_schema = {}
-                
-                # Execute node logic based on type
-                if current_node_type in ['button', 'message', 'interactive']:
-                    message_text = node_config.get('message', 'What would you like to do?')
-                    buttons = node_config.get('buttons', [])
-                    media = node_config.get('media')
-                    message_text = strip_html_tags(message_text)
-                    response = message_text
-                    user_data[f'{current_node_id}_buttons'] = buttons
-                    
-                    ui_schema = {
-                        'type': 'interactive',
-                        'message': message_text,
-                        'buttons': buttons,
-                        'media': media,
-                        'expects_input': len(buttons) > 0
-                    }
-                    
-                    if user_input:
-                        user_data[f'{current_node_id}_action'] = user_input
-                        lc_messages.append(HumanMessage(content=f"Selected: {user_input}"))
-                    
-                    lc_messages.append(AIMessage(content=response))
-                    
-                elif current_node_type == 'input':
-                    label = node_config.get('label', 'Please provide your input')
-                    input_type = node_config.get('inputType', 'text')
-                    placeholder = node_config.get('placeholder', 'Enter your response')
-                    # Use placeholder for response message, strip HTML tags
-                    placeholder_text = strip_html_tags(placeholder)
-                    response = placeholder_text
-                    
-                    ui_schema = {
-                        'type': 'input',
-                        'label': label,
-                        'inputType': input_type,
-                        'placeholder': placeholder_text,
-                        'expects_input': True
-                    }
-                    
-                    if user_input:
-                        # Get variable key for storage (prioritize save_response_variable_id > label > node_id)
-                        variable_key = get_variable_key_for_node(current_node_id, node_config)
-                        user_data[variable_key] = user_input
-                        lc_messages.append(HumanMessage(content=user_input))
-                    
-                    lc_messages.append(AIMessage(content=response))
-                    
-                elif current_node_type == 'ai':
-                    model_name = node_config.get('model', 'meta-llama/llama-3.3-8b-instruct:free')
-                    system_prompt = node_config.get('systemPrompt', 'You are a helpful AI assistant.')
-                    temperature = node_config.get('temperature', 0.7)
-                    max_tokens = node_config.get('maxTokens', 300)
-                    
-                    ui_schema = {
-                        'type': 'processing',
-                        'message': 'Processing your request...',
-                        'expects_input': False
-                    }
-                    
-                    try:
-                        if OPENROUTER_API_KEY:
-                            llm = ChatOpenAI(
-                                model=model_name,
-                                openai_api_key=OPENROUTER_API_KEY,
-                                openai_api_base=OPENROUTER_BASE_URL,
-                                temperature=temperature,
-                                max_tokens=max_tokens
-                            )
-                            
-                            ai_messages = [SystemMessage(content=system_prompt)] + lc_messages
-                            if user_input:
-                                ai_messages.append(HumanMessage(content=user_input))
-                            
-                            ai_response = llm.invoke(ai_messages)
-                            response = ai_response.content
-                            lc_messages.append(AIMessage(content=response))
-                        else:
-                            response = "AI processing: " + (user_input or 'Processing...')
-                            lc_messages.append(AIMessage(content=response))
-                    except Exception as e:
-                        logger.error(f"[AI NODE] Error: {e}")
-                        response = "I apologize, but I'm having trouble processing your request."
-                        lc_messages.append(AIMessage(content=response))
-                
-                elif current_node_type == 'engine':
-                    label_map = get_node_label_map(flow_nodes)
-                    collected_data = []
-                    for key, value in user_data.items():
-                        if not key.endswith('_buttons') and not key.endswith('_action'):
-                            readable_key = label_map.get(key, key)
-                            collected_data.append(f"{readable_key}: {value}")
-                    
-                    if collected_data:
-                        response = "Processing complete. Data collected: " + ", ".join(collected_data)
-                    else:
-                        response = "Thank you for your input. Processing complete."
-                    
-                    ui_schema = {
-                        'type': 'complete',
-                        'message': response,
-                        'expects_input': False
-                    }
-                    
-                    lc_messages.append(AIMessage(content=response))
-                
-                else:
-                    response = f"Processing through {current_node_type} node..."
-                    ui_schema = {
-                        'type': 'info',
-                        'message': response,
-                        'expects_input': False
-                    }
-                    
-                    if user_input:
-                        lc_messages.append(HumanMessage(content=user_input))
-                    lc_messages.append(AIMessage(content=response))
-                
-                # Convert messages back to serializable format
-                serialized_messages = [
-                    {'role': 'human' if isinstance(m, HumanMessage) else 'ai', 'content': m.content}
-                    for m in lc_messages
-                ]
-                
-                # Update state
-                return {
-                    **state,
-                    'node_id': current_node_id,
-                    'user_data': user_data,
-                    'messages': serialized_messages,
-                    'response': response,
-                    'ui_schema': ui_schema
-                }
+                # Use unified run_node function
+                return run_node(
+                    current_node_id=current_node_id,
+                    current_node_type=current_node_type,
+                    node_config=node_config,
+                    state=state,
+                    flow_nodes=flow_nodes
+                )
             
             return node_executor
         
@@ -699,8 +1351,9 @@ def build_step_execution_graph(
     
     # Cache node executors if agent_id provided
     if agent_id:
-        _node_executor_cache[agent_id] = node_executors
-        logger.info(f"[GRAPH BUILD] Cached {len(node_executors)} node executors for agent {agent_id}")
+        cache_key = make_cache_key(workspace_id, agent_id)
+        _node_executor_cache[cache_key] = node_executors
+        logger.info(f"[GRAPH BUILD] Cached {len(node_executors)} node executors for cache_key {cache_key}")
     
     return compiled_graph
 
@@ -718,7 +1371,7 @@ def execute_single_node(
 ) -> Dict[str, Any]:
     """
     Execute a single node using LangGraph WITH memory persistence via MemorySaver.
-    Uses LangGraph's stateful execution with checkpointing for conversation continuity.
+    Now includes comprehensive validation and error handling.
     
     Args:
         node_id: ID of the node to execute
@@ -730,22 +1383,35 @@ def execute_single_node(
         workspace_id: Workspace identifier
         agent_id: Agent identifier
         conversation_id: Conversation identifier (used as thread_id for checkpointing)
-        button_action: Optional button action with button_id, action_type, action_value
+        button_action: Optional button action with button_index, action_type, action_value
         
     Returns:
         Dictionary with:
-        - next_node_id: ID of next node to execute (or None if flow complete)
-        - current_node: Details of current node
+        - success: bool
+        - current_node_id: ID of executed node
+        - node_type: Type of executed node
+        - next_node_id: ID of next node (or None)
         - state: Updated state data
-        - ui_schema: Instructions for UI rendering
+        - ui_schema: UI rendering instructions
         - response: Generated response
         - is_complete: Whether flow is finished
+        - thread_id: Thread identifier for checkpointing
+        Or error response if validation fails
     """
-    logger.info(f"[STEP EXECUTION] Executing single node: {node_id} using LangGraph with MemorySaver")
-    if button_action:
-        logger.info(f"[STEP EXECUTION] Button action received: {button_action}")
+    context = f"workspace_id={workspace_id}, agent_id={agent_id}, conversation_id={conversation_id}"
+    logger.info(f"[STEP EXECUTION] Executing node: {node_id} [{context}]")
     
     try:
+        # 1. Validate flow configuration
+        validation = validate_flow_config(flow_nodes, flow_edges, workspace_id, agent_id)
+        if not validation['valid']:
+            logger.error(f"[STEP EXECUTION] Flow validation failed: {validation['errors']} [{context}]")
+            return {
+                'success': False,
+                'error': 'Invalid flow configuration',
+                'validation_errors': validation['errors'],
+                'response': 'The flow configuration is invalid. Please check the flow setup.'
+            }
         # Find the current node
         current_node = None
         for node in flow_nodes:
@@ -754,22 +1420,36 @@ def execute_single_node(
                 break
         
         if not current_node:
+            logger.error(f"[STEP EXECUTION] Node {node_id} not found in flow [{context}]")
             return {
                 'success': False,
                 'error': 'Node not found',
-                'response': f'Node {node_id} not found in flow'
+                'response': f'Node {node_id} not found in flow [{context}]'
             }
+        
+        # 2. Validate button_action if provided
+        if button_action:
+            logger.info(f"[STEP EXECUTION] Button action received: {button_action} [{context}]")
+            button_validation = validate_button_action(button_action, current_node, workspace_id, agent_id, node_id)
+            if not button_validation['valid']:
+                logger.error(f"[STEP EXECUTION] Button action validation failed: {button_validation['error']} [{context}]")
+                return {
+                    'success': False,
+                    'error': 'Invalid button action',
+                    'validation_error': button_validation['error'],
+                    'response': 'The button action is invalid. Please try again.'
+                }
         
         # Get or build the StateGraph (cached per agent with MemorySaver)
         if not agent_id:
-            compiled_graph = build_step_execution_graph(flow_nodes, flow_edges, agent_id=None)
-            logger.info("[STEP EXECUTION] Using non-cached graph without agent_id")
+            compiled_graph = build_step_execution_graph(flow_nodes, flow_edges, agent_id=None, workspace_id=workspace_id)
+            logger.info(f"[STEP EXECUTION] Using non-cached graph without agent_id [{context}]")
         else:
-            compiled_graph = get_or_build_graph(agent_id, flow_nodes, flow_edges)
-            # Log is already handled in get_or_build_graph
+            compiled_graph = get_or_build_graph(agent_id, flow_nodes, flow_edges, workspace_id)
         
-        # Create a unique thread_id for this conversation (use conversation_id or generate one)
-        thread_id = conversation_id or f"{workspace_id}_{agent_id}_{node_id}"
+        # Create composite thread_id for this conversation
+        thread_id = make_thread_id(workspace_id, agent_id, conversation_id or "default")
+        logger.info(f"[STEP EXECUTION] Using thread_id: {thread_id} [{context}]")
         
         # Prepare config with thread_id for checkpointing
         config = {
@@ -818,21 +1498,20 @@ def execute_single_node(
         logger.info(f"[STEP EXECUTION] Executing single node {node_id} with thread_id: {thread_id}")
         
         # Get the node executor function from cache
-        node_executor = get_node_executor(agent_id, node_id)
+        node_executor = get_node_executor(agent_id, node_id, workspace_id)
         
         if node_executor and callable(node_executor):
             # Execute the single node function with state
-            logger.info(f"[STEP EXECUTION] Using cached node executor for {node_id}")
+            logger.info(f"[STEP EXECUTION] Using cached node executor for {node_id} [{context}]")
             result = node_executor(initial_state)
         else:
-            # Fallback: execute node logic directly if executor not found
-            logger.warning(f"[STEP EXECUTION] Node executor not found for {node_id}, using direct execution")
-            result = execute_node_logic(
-                node_id=node_id,
-                current_node=current_node,
-                user_input=user_input,
-                user_data=initial_state['user_data'],
-                messages=initial_state['messages'],
+            # Fallback: use unified run_node function
+            logger.warning(f"[STEP EXECUTION] Node executor not found for {node_id}, using run_node() [{context}]")
+            result = run_node(
+                current_node_id=node_id,
+                current_node_type=current_node.get('type'),
+                node_config=current_node.get('data', {}),
+                state=initial_state,
                 flow_nodes=flow_nodes
             )
         
@@ -879,8 +1558,8 @@ def execute_single_node(
                 
                 if next_node:
                     # Execute the connected node and get its config
-                    logger.info(f"[BUTTON ROUTING] Executing connected node {next_node_id}")
-                    next_node_executor = get_node_executor(agent_id, next_node_id)
+                    logger.info(f"[BUTTON ROUTING] Executing connected node {next_node_id} [{context}]")
+                    next_node_executor = get_node_executor(agent_id, next_node_id, workspace_id)
                     
                     # Prepare state for next node execution
                     next_state: StepExecutionState = {
@@ -900,12 +1579,11 @@ def execute_single_node(
                     if next_node_executor and callable(next_node_executor):
                         next_result = next_node_executor(next_state)
                     else:
-                        next_result = execute_node_logic(
-                            node_id=next_node_id,
-                            current_node=next_node,
-                            user_input='',
-                            user_data=next_state['user_data'],
-                            messages=next_state['messages'],
+                        next_result = run_node(
+                            current_node_id=next_node_id,
+                            current_node_type=next_node.get('type'),
+                            node_config=next_node.get('data', {}),
+                            state=next_state,
                             flow_nodes=flow_nodes
                         )
                     
@@ -1005,8 +1683,8 @@ def execute_node_logic(
     flow_nodes: List[Dict[str, Any]]
 ) -> StepExecutionState:
     """
-    Execute the logic for a single node. This is the core node execution logic
-    that gets wrapped by LangGraph node executors.
+    DEPRECATED: Use run_node() instead.
+    This function is kept for backward compatibility and delegates to run_node().
     
     Args:
         node_id: Node identifier
@@ -1019,155 +1697,31 @@ def execute_node_logic(
     Returns:
         Updated state after node execution
     """
-    node_type = current_node.get('type')
-    node_config = current_node.get('data', {})
+    logger.warning(f"[DEPRECATED] execute_node_logic() called for {node_id}. Use run_node() instead.")
     
-    # Convert messages to LangChain format
-    lc_messages = []
-    for msg in messages:
-        if msg.get('role') == 'human':
-            lc_messages.append(HumanMessage(content=msg.get('content', '')))
-        else:
-            lc_messages.append(AIMessage(content=msg.get('content', '')))
-    
-    response = ""
-    ui_schema = {}
-    
-    if node_type in ['button', 'message', 'interactive']:
-        message_text = node_config.get('message', 'What would you like to do?')
-        buttons = node_config.get('buttons', [])
-        media = node_config.get('media')
-        message_text = strip_html_tags(message_text)
-        response = message_text
-        user_data[f'{node_id}_buttons'] = buttons
-        
-        ui_schema = {
-            'type': 'interactive',
-            'message': message_text,
-            'buttons': buttons,
-            'media': media,
-            'expects_input': len(buttons) > 0
-        }
-        
-        if user_input:
-            user_data[f'{node_id}_action'] = user_input
-            lc_messages.append(HumanMessage(content=f"Selected: {user_input}"))
-        
-        lc_messages.append(AIMessage(content=response))
-        
-    elif node_type == 'input':
-        label = node_config.get('label', 'Please provide your input')
-        input_type = node_config.get('inputType', 'text')
-        placeholder = node_config.get('placeholder', 'Enter your response')
-        # Use placeholder for response message, strip HTML tags
-        placeholder_text = strip_html_tags(placeholder)
-        response = placeholder_text
-        
-        ui_schema = {
-            'type': 'input',
-            'label': label,
-            'inputType': input_type,
-            'placeholder': placeholder_text,
-            'expects_input': True
-        }
-        
-        if user_input:
-            # Get variable key for storage (prioritize save_response_variable_id > label > node_id)
-            variable_key = get_variable_key_for_node(node_id, node_config)
-            user_data[variable_key] = user_input
-            lc_messages.append(HumanMessage(content=user_input))
-        
-        lc_messages.append(AIMessage(content=response))
-        
-    elif node_type == 'ai':
-        model_name = node_config.get('model', 'meta-llama/llama-3.3-8b-instruct:free')
-        system_prompt = node_config.get('systemPrompt', 'You are a helpful AI assistant.')
-        temperature = node_config.get('temperature', 0.7)
-        max_tokens = node_config.get('maxTokens', 300)
-        
-        ui_schema = {
-            'type': 'processing',
-            'message': 'Processing your request...',
-            'expects_input': False
-        }
-        
-        try:
-            if OPENROUTER_API_KEY:
-                llm = ChatOpenAI(
-                    model=model_name,
-                    openai_api_key=OPENROUTER_API_KEY,
-                    openai_api_base=OPENROUTER_BASE_URL,
-                    temperature=temperature,
-                    max_tokens=max_tokens
-                )
-                
-                ai_messages = [SystemMessage(content=system_prompt)] + lc_messages
-                if user_input:
-                    ai_messages.append(HumanMessage(content=user_input))
-                
-                ai_response = llm.invoke(ai_messages)
-                response = ai_response.content
-                lc_messages.append(AIMessage(content=response))
-            else:
-                response = "AI processing: " + (user_input or 'Processing...')
-                lc_messages.append(AIMessage(content=response))
-        except Exception as e:
-            logger.error(f"[AI NODE] Error: {e}")
-            response = "I apologize, but I'm having trouble processing your request."
-            lc_messages.append(AIMessage(content=response))
-    
-    elif node_type == 'engine':
-        label_map = get_node_label_map(flow_nodes)
-        collected_data = []
-        for key, value in user_data.items():
-            if not key.endswith('_buttons') and not key.endswith('_action'):
-                readable_key = label_map.get(key, key)
-                collected_data.append(f"{readable_key}: {value}")
-        
-        if collected_data:
-            response = "Processing complete. Data collected: " + ", ".join(collected_data)
-        else:
-            response = "Thank you for your input. Processing complete."
-        
-        ui_schema = {
-            'type': 'complete',
-            'message': response,
-            'expects_input': False
-        }
-        
-        lc_messages.append(AIMessage(content=response))
-    
-    else:
-        response = f"Processing through {node_type} node..."
-        ui_schema = {
-            'type': 'info',
-            'message': response,
-            'expects_input': False
-        }
-        
-        if user_input:
-            lc_messages.append(HumanMessage(content=user_input))
-        lc_messages.append(AIMessage(content=response))
-    
-    # Convert messages back to serializable format
-    serialized_messages = [
-        {'role': 'human' if isinstance(m, HumanMessage) else 'ai', 'content': m.content}
-        for m in lc_messages
-    ]
-    
-    return {
+    # Build state from parameters
+    state: StepExecutionState = {
         'node_id': node_id,
         'user_input': user_input,
         'user_data': user_data,
-        'messages': serialized_messages,
-        'response': response,
-        'ui_schema': ui_schema,
+        'messages': messages,
+        'response': '',
+        'ui_schema': {},
         'next_node_id': None,
         'is_complete': False,
         'workspace_id': None,
         'agent_id': None,
         'conversation_id': None
     }
+    
+    # Delegate to unified run_node function
+    return run_node(
+        current_node_id=node_id,
+        current_node_type=current_node.get('type'),
+        node_config=current_node.get('data', {}),
+        state=state,
+        flow_nodes=flow_nodes
+    )
 
 if __name__ == "__main__":
     # Run tests

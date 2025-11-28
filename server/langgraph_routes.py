@@ -4,7 +4,11 @@ from server.langgraph_flow_service import (
     execute_single_node,
     find_entry_node,
     clear_graph_cache,
-    is_execution_deterministic
+    is_execution_deterministic,
+    get_conversation_state,
+    get_checkpoint_history,
+    get_long_term_memory_summary,
+    get_conversation_graph_visualization
 )
 from server.models import db, FlowAgent
 from typing import Dict, Any
@@ -148,13 +152,20 @@ def execute_flow_step():
 @require_auth
 def clear_cache():
     """
-    Clear the graph cache for a specific agent or all agents.
+    Clear the graph cache for a specific agent, conversation, or all caches.
     Call this when a flow is updated to ensure changes are reflected.
     
     Request Body:
         {
-            "agent_id": str  # Optional: If provided, clear only this agent's cache
+            "agent_id": str,             # Optional: Agent to clear
+            "conversation_id": str,      # Optional: Specific conversation to clear
+            "workspace_id": str          # Optional: Workspace for namespacing
         }
+    
+    Behaviors:
+    - No params: Clear ALL caches
+    - Only agent_id (+ workspace_id): Clear all caches for that agent
+    - agent_id + conversation_id (+ workspace_id): Clear only conversation checkpoints
     
     Response:
         {
@@ -163,13 +174,21 @@ def clear_cache():
         }
     """
     try:
+        user_data_auth: Dict[str, Any] = getattr(request, 'user', {})
+        workspace_id = user_data_auth.get('workspace_id')
+        
         data = request.get_json() or {}
         agent_id = data.get('agent_id')
+        conversation_id = data.get('conversation_id')
+        # Allow override from request body, but default to auth workspace
+        req_workspace_id = data.get('workspace_id', workspace_id)
         
-        clear_graph_cache(agent_id)
+        clear_graph_cache(agent_id=agent_id, conversation_id=conversation_id, workspace_id=req_workspace_id)
         
-        if agent_id:
-            message = f"Cache cleared for agent {agent_id}"
+        if conversation_id and agent_id:
+            message = f"Cache cleared for conversation {conversation_id} in agent {agent_id}"
+        elif agent_id:
+            message = f"All caches cleared for agent {agent_id} in workspace {req_workspace_id}"
         else:
             message = "All graph caches cleared"
         

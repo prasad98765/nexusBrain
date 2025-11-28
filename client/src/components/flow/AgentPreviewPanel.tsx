@@ -159,7 +159,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
             const messageContent = data.ui_schema.type === 'input' && data.ui_schema.placeholder
                 ? data.ui_schema.placeholder
                 : data.response;
-            
+
             const newMessage: Message = {
                 role: data.ui_schema.type === 'interactive' ? 'interactive' : 'assistant',
                 content: messageContent,
@@ -599,21 +599,20 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
 
                                     <div className="max-w-[70%]">
                                         <div
-                                            className={`rounded-lg p-3 ${
-                                                message.role === 'user'
-                                                    ? 'bg-indigo-600 text-white'
-                                                    : message.nodeType === 'interactive' || message.nodeType === 'button' || message.nodeType === 'message'
+                                            className={`rounded-lg p-3 ${message.role === 'user'
+                                                ? 'bg-indigo-600 text-white'
+                                                : message.nodeType === 'interactive' || message.nodeType === 'button' || message.nodeType === 'message'
                                                     ? 'bg-gradient-to-br from-slate-800 to-slate-900 text-slate-100 border border-gray-600/30'
                                                     : message.nodeType === 'input'
-                                                    ? 'bg-gradient-to-br from-green-900/40 to-green-800/30 text-slate-100 border border-green-600/30'
-                                                    : message.nodeType === 'apiLibrary'
-                                                    ? 'bg-gradient-to-br from-emerald-900/40 to-emerald-800/30 text-slate-100 border border-emerald-600/30'
-                                                    : message.nodeType === 'ai'
-                                                    ? 'bg-gradient-to-br from-purple-900/40 to-purple-800/30 text-slate-100 border border-purple-600/30'
-                                                    : message.nodeType === 'knowledgeBase'
-                                                    ? 'bg-gradient-to-br from-purple-900/40 to-purple-800/30 text-slate-100 border border-purple-600/30'
-                                                    : 'bg-slate-800 text-slate-100'
-                                            }`}
+                                                        ? 'bg-gradient-to-br from-slate-800 to-slate-900 text-slate-100 border border-green-600/30'
+                                                        : message.nodeType === 'apiLibrary'
+                                                            ? 'bg-gradient-to-br from-emerald-900/40 to-emerald-800/30 text-slate-100 border border-emerald-600/30'
+                                                            : message.nodeType === 'ai'
+                                                                ? 'bg-gradient-to-br from-purple-900/40 to-purple-800/30 text-slate-100 border border-purple-600/30'
+                                                                : message.nodeType === 'knowledgeBase'
+                                                                    ? 'bg-gradient-to-br from-purple-900/40 to-purple-800/30 text-slate-100 border border-purple-600/30'
+                                                                    : 'bg-slate-800 text-slate-100'
+                                                }`}
                                         >
                                             {/* Render media if available */}
                                             {message.media && message.media.type === 'image' && message.media.url && (
