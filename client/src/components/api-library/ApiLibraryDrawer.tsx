@@ -282,7 +282,7 @@ export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess, fu
             {/* Drawer - Traditional drawer with left margin */}
             <div
                 className={cn(
-                    "fixed top-0 right-0 bottom-0 bg-[#0f1419] shadow-2xl z-[101] flex flex-col",
+                    "fixed top-0 right-0 bottom-0 bg-slate-900 shadow-2xl z-[101] flex flex-col",
                     "transition-transform duration-300 ease-out",
                     isOpen ? "translate-x-0" : "translate-x-full"
                 )}
@@ -292,7 +292,7 @@ export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess, fu
                 }}
             >
                 {/* Header with Save/Cancel */}
-                <div className="flex-shrink-0 flex items-center justify-between px-8 py-5 border-b border-gray-700/50 bg-[#0f1419]">
+                <div className="flex-shrink-0 flex items-center justify-between px-8 py-5 border-b border-slate-700 bg-slate-900">
                     <h2 className="text-xl font-semibold text-gray-200">
                         {apiId ? 'Edit API Configuration' : 'Create API Configuration'}
                     </h2>
@@ -300,7 +300,7 @@ export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess, fu
                         <Button
                             onClick={onClose}
                             variant="outline"
-                            className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
+                            className="border-slate-600 text-slate-300 hover:bg-slate-700/50"
                         >
                             Cancel
                         </Button>
@@ -318,12 +318,12 @@ export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess, fu
                 {/* Content Area - Two Panels */}
                 <div className="flex-1 flex overflow-hidden min-h-0">
                     {/* Left Panel - Form with Scrolling */}
-                    <div className="w-1/2 border-r border-gray-700/50 flex flex-col min-h-0">
+                    <div className="w-1/2 border-r border-slate-700 flex flex-col min-h-0">
                         {/* Scrollable Form Content */}
                         <div className="flex-1 overflow-y-auto px-8 py-6">
                             {loading ? (
                                 <div className="flex items-center justify-center h-full">
-                                    <div className="text-gray-400">Loading...</div>
+                                    <div className="text-slate-400">Loading...</div>
                                 </div>
                             ) : formData ? (
                                 <ApiLibraryForm
@@ -335,14 +335,14 @@ export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess, fu
                     </div>
 
                     {/* Right Panel - Test & Response */}
-                    <div className="w-1/2 flex flex-col bg-[#0a0e14] min-h-0">
+                    <div className="w-1/2 flex flex-col bg-slate-800/50 min-h-0">
                         {!isResponseExpanded ? (
                             <>
                                 {/* Test Header */}
-                                <div className="flex-shrink-0 px-8 py-6 border-b border-gray-700/50">
-                                    <h3 className="text-lg font-semibold text-gray-200 mb-4">Test API</h3>
+                                <div className="flex-shrink-0 px-8 py-6 border-b border-slate-700">
+                                    <h3 className="text-lg font-semibold text-slate-200 mb-4">Test API</h3>
 
-                                    <div className="space-y-3 text-sm text-gray-400 mb-6">
+                                    <div className="space-y-3 text-sm text-slate-400 mb-6">
                                         <p>Follow these steps to test your API:</p>
                                         <ol className="list-decimal list-inside space-y-1 ml-2">
                                             <li>Add test values to variables</li>
@@ -355,15 +355,15 @@ export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess, fu
                                     {usedVariables.length > 0 ? (
                                         <div className="space-y-3">
                                             <div className="flex items-center justify-between">
-                                                <Label className="text-gray-200 text-sm font-medium">Test Variable Values</Label>
-                                                <span className="text-xs text-gray-500">
+                                                <Label className="text-slate-200 text-sm font-medium">Test Variable Values</Label>
+                                                <span className="text-xs text-slate-500">
                                                     {usedVariables.length} variable{usedVariables.length > 1 ? 's' : ''} detected
                                                 </span>
                                             </div>
                                             <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
                                                 {usedVariables.map((varName) => (
                                                     <div key={varName} className="space-y-1.5">
-                                                        <Label className="text-xs text-gray-400 font-medium">#{varName}</Label>
+                                                        <Label className="text-xs text-slate-400 font-medium">#{varName}</Label>
                                                         <Input
                                                             value={variableValues[varName] || ''}
                                                             onChange={(e) => setVariableValues(prev => ({
@@ -371,15 +371,15 @@ export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess, fu
                                                                 [varName]: e.target.value
                                                             }))}
                                                             placeholder={`Enter test value for ${varName}`}
-                                                            className="h-9 bg-[#0f1419] border-gray-700 text-gray-200 text-sm"
+                                                            className="h-9 bg-slate-700 border-slate-600 text-slate-200 text-sm"
                                                         />
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="p-4 bg-[#1a1f2e] border border-gray-700/50 rounded-lg">
-                                            <p className="text-xs text-gray-500 text-center">
+                                        <div className="p-4 bg-slate-800 border border-slate-700 rounded-lg">
+                                            <p className="text-xs text-slate-500 text-center">
                                                 No variables detected. Use #{'{'}variable_name{'}'} syntax to add variables.
                                             </p>
                                         </div>
@@ -411,7 +411,7 @@ export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess, fu
                                                         Status: {testResponse.status_code || 'Error'}
                                                     </div>
                                                     {testResponse.duration_ms && (
-                                                        <div className="text-sm text-gray-400">
+                                                        <div className="text-sm text-slate-400">
                                                             {testResponse.duration_ms}ms
                                                         </div>
                                                     )}
@@ -439,7 +439,7 @@ export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess, fu
                                             {/* JSON Response */}
                                             {testResponse.response && (
                                                 <div>
-                                                    <Label className="text-gray-200 mb-3 block font-medium">Response Data</Label>
+                                                    <Label className="text-slate-200 mb-3 block font-medium">Response Data</Label>
                                                     <JsonResponseViewer
                                                         response={testResponse.response}
                                                         onAddMapping={handleAddMapping}
@@ -461,13 +461,13 @@ export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess, fu
                         ) : (
                             // Expanded Response View - Fullscreen
                             <div className="flex-1 flex flex-col min-h-0">
-                                <div className="flex-shrink-0 px-8 py-4 border-b border-gray-700/50 flex items-center justify-between">
-                                    <h3 className="text-lg font-semibold text-gray-200">API Response</h3>
+                                <div className="flex-shrink-0 px-8 py-4 border-b border-slate-700 flex items-center justify-between">
+                                    <h3 className="text-lg font-semibold text-slate-200">API Response</h3>
                                     <Button
                                         size="sm"
                                         variant="ghost"
                                         onClick={() => setIsResponseExpanded(false)}
-                                        className="text-gray-400 hover:text-gray-300 hover:bg-gray-700/50"
+                                        className="text-slate-400 hover:text-slate-300 hover:bg-slate-700/50"
                                     >
                                         <Minimize2 className="h-4 w-4 mr-2" />
                                         Collapse
@@ -493,7 +493,7 @@ export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess, fu
                                                 )}
                                             </div>
 
-                                            <Label className="text-gray-200 block font-medium">Response Data</Label>
+                                            <Label className="text-slate-200 block font-medium">Response Data</Label>
                                             <JsonResponseViewer
                                                 response={testResponse.response}
                                                 onAddMapping={handleAddMapping}
@@ -501,7 +501,7 @@ export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess, fu
                                             />
                                         </div>
                                     ) : (
-                                        <div className="flex items-center justify-center h-full text-gray-500">
+                                        <div className="flex items-center justify-center h-full text-slate-500">
                                             <p>No response data available</p>
                                         </div>
                                     )}

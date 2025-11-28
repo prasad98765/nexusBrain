@@ -166,17 +166,17 @@ function PromptModal({ open, onOpenChange, prompt, onSave, isLoading }: PromptMo
 
       {/* Drawer */}
       <div
-        className={`fixed top-0 right-0 bottom-0 left-64 bg-[#0f1419] shadow-2xl z-[101] flex flex-col transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'
+        className={`fixed top-0 right-0 bottom-0 left-64 bg-slate-900 shadow-2xl z-[101] flex flex-col transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'
           }`}
         style={{ pointerEvents: open ? 'auto' : 'none' }}
       >
         {/* Header */}
-        <div className="flex-shrink-0 bg-[#0f1419] border-b border-gray-700/50 px-8 py-6 flex items-center justify-between">
+        <div className="flex-shrink-0 bg-slate-900 border-b border-slate-700 px-8 py-6 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-100">
+            <h2 className="text-2xl font-bold text-slate-100">
               {prompt ? 'Edit System Prompt' : 'Create New System Prompt'}
             </h2>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-sm text-slate-400 mt-1">
               {prompt ? 'Update your system prompt configuration' : 'Configure a new system prompt for AI responses'}
             </p>
           </div>
@@ -186,7 +186,7 @@ function PromptModal({ open, onOpenChange, prompt, onSave, isLoading }: PromptMo
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
-              className="border-gray-700 hover:bg-gray-800"
+              className="border-slate-600 text-slate-300 hover:bg-slate-700/50"
             >
               Cancel
             </Button>
@@ -209,7 +209,7 @@ function PromptModal({ open, onOpenChange, prompt, onSave, isLoading }: PromptMo
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="text-gray-400 hover:text-gray-100 hover:bg-gray-800"
+              className="text-slate-400 hover:text-slate-100 hover:bg-slate-700/50"
             >
               <X className="h-5 w-5" />
             </Button>
@@ -248,10 +248,10 @@ function PromptModal({ open, onOpenChange, prompt, onSave, isLoading }: PromptMo
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-gray-500 cursor-help" />
+                        <Info className="h-4 w-4 text-slate-500 cursor-help" />
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="bg-gray-900 border-gray-700 text-xs max-w-[250px]">
-                        <p>Type <span className="font-mono bg-gray-800 px-1 rounded">#</span> to insert variables into your prompt</p>
+                      <TooltipContent side="right" className="bg-slate-800 border-slate-700 text-xs max-w-[250px]">
+                        <p>Type <span className="font-mono bg-slate-700 px-1 rounded">#</span> to insert variables into your prompt</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
