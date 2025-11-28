@@ -221,6 +221,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                 body: JSON.stringify({
                     agent_id: agentId,
                     node_id: nodeId,
+                    current_node_id: currentNodeId,
                     user_input: userInput,
                     user_data: state.user_data,
                     messages: state.messages,
@@ -280,6 +281,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                 body: JSON.stringify({
                     agent_id: agentId,
                     node_id: nextNodeId,
+                    current_node_id: currentNodeId,
                     user_input: userInput,
                     user_data: flowState.user_data,
                     messages: flowState.messages,

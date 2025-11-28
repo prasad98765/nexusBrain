@@ -173,6 +173,10 @@ from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, System
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 
+# Database imports for variable label lookup
+from .database import db
+from .models import VariableMapping
+
 logger = logging.getLogger(__name__)
 
 # Configuration
@@ -273,20 +277,69 @@ def get_node_label_map(flow_nodes: List[Dict[str, Any]]) -> Dict[str, str]:
     return label_map
 
 
-def get_variable_key_for_node(node_id: str, node_config: Dict[str, Any]) -> str:
+def get_variable_name_from_id(variable_id: str, workspace_id: Optional[str] = None) -> Optional[str]:
+    """
+    Fetch the variable name (label) from VariableMapping table using variable ID.
+    
+    Args:
+        variable_id: The ID of the variable in the VariableMapping table
+        workspace_id: Optional workspace ID for additional filtering
+        
+    Returns:
+        Variable name if found, None otherwise
+    """
+    if not variable_id:
+        return None
+    
+    try:
+        # Query the VariableMapping table
+        query = VariableMapping.query.filter_by(id=variable_id)
+        
+        # Add workspace filter if provided
+        if workspace_id:
+            query = query.filter_by(workspace_id=workspace_id)
+        
+        variable = query.first()
+        
+        if variable:
+            logger.info(f"[VARIABLE LOOKUP] Found variable name '{variable.name}' for ID {variable_id}")
+            return variable.name
+        else:
+            logger.warning(f"[VARIABLE LOOKUP] No variable found for ID {variable_id}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"[VARIABLE LOOKUP] Error fetching variable name for ID {variable_id}: {e}")
+        return None
+
+
+def get_variable_key_for_node(node_id: str, node_config: Dict[str, Any], workspace_id: Optional[str] = None) -> str:
     """
     Get the variable key to use for storing data from a node.
-    Prioritizes: save_response_variable_id > label > node_id
+    Now fetches variable name from database if save_response_variable_id is set.
+    Prioritizes: variable_name_from_db > label > node_id
     
     Args:
         node_id: Node identifier
         node_config: Node configuration data
+        workspace_id: Workspace identifier for database lookup
         
     Returns:
         Variable key to use for storage
     """
+    # Check if save_response_variable_id is configured
+    variable_id = node_config.get('save_response_variable_id')
+    
+    if variable_id:
+        # Try to fetch the variable name from the database
+        variable_name = get_variable_name_from_id(variable_id, workspace_id)
+        if variable_name:
+            return variable_name
+        else:
+            logger.warning(f"[VARIABLE KEY] Could not fetch variable name for ID {variable_id}, falling back to label/node_id")
+    
+    # Fallback to label or node_id
     return (
-        node_config.get('save_response_variable_id') or
         node_config.get('label') or
         node_id
     )
@@ -1129,7 +1182,20 @@ def run_node(
         }
         
         if user_input:
-            user_data[f'{current_node_id}_action'] = user_input
+            # Get workspace_id from state for database lookup
+            workspace_id = state.get('workspace_id')
+            variable_key = get_variable_key_for_node(current_node_id, node_config, workspace_id)
+            
+            # Store against the variable name
+            user_data[variable_key] = user_input
+            logger.info(f"[BUTTON NODE] Stored button selection against variable: {variable_key}")
+            
+            # Only keep the raw action storage if no variable is configured (backward compatibility)
+            # Check if a variable was configured by seeing if variable_key is different from node_id
+            if variable_key == current_node_id:
+                # No variable configured, use fallback storage
+                user_data[f'{current_node_id}_action'] = user_input
+            
             lc_messages.append(HumanMessage(content=f"Selected: {user_input}"))
         
         lc_messages.append(AIMessage(content=response))
@@ -1150,7 +1216,9 @@ def run_node(
         }
         
         if user_input:
-            variable_key = get_variable_key_for_node(current_node_id, node_config)
+            # Get workspace_id from state for database lookup
+            workspace_id = state.get('workspace_id')
+            variable_key = get_variable_key_for_node(current_node_id, node_config, workspace_id)
             user_data[variable_key] = user_input
             lc_messages.append(HumanMessage(content=user_input))
         
@@ -1367,7 +1435,8 @@ def execute_single_node(
     workspace_id: Optional[str] = None,
     agent_id: Optional[str] = None,
     conversation_id: Optional[str] = None,
-    button_action: Optional[Dict[str, Any]] = None
+    button_action: Optional[Dict[str, Any]] = None,
+    current_node_id: Optional[str] = None  # Node where user provided input
 ) -> Dict[str, Any]:
     """
     Execute a single node using LangGraph WITH memory persistence via MemorySaver.
@@ -1384,6 +1453,7 @@ def execute_single_node(
         agent_id: Agent identifier
         conversation_id: Conversation identifier (used as thread_id for checkpointing)
         button_action: Optional button action with button_index, action_type, action_value
+        current_node_id: Node where user provided the input (for correct variable storage)
         
     Returns:
         Dictionary with:
@@ -1492,6 +1562,36 @@ def execute_single_node(
                 logger.info(f"[MEMORY CACHE] No cached state found for thread_id: {thread_id}, starting fresh")
         except Exception as cache_err:
             logger.warning(f"[MEMORY CACHE] Could not retrieve cached state: {cache_err}")
+        
+        # IMPORTANT: If user_input is provided and current_node_id is different from node_id,
+        # we need to store the input against the current_node_id's variable BEFORE executing node_id
+        if user_input and current_node_id and current_node_id != node_id:
+            logger.info(f"[INPUT STORAGE] User provided input at node {current_node_id}, storing before executing {node_id}")
+            
+            # Find the current node configuration
+            input_source_node = None
+            for node in flow_nodes:
+                if node.get('id') == current_node_id:
+                    input_source_node = node
+                    break
+            
+            if input_source_node:
+                input_source_config = input_source_node.get('data', {})
+                variable_key = get_variable_key_for_node(current_node_id, input_source_config, workspace_id)
+                
+                # Store the input against the current node's variable
+                initial_state['user_data'][variable_key] = user_input
+                logger.info(f"[INPUT STORAGE] Stored user input '{user_input}' against variable '{variable_key}' from node {current_node_id}")
+                
+                # Only keep the raw action storage if no variable is configured (backward compatibility)
+                if variable_key == current_node_id:
+                    initial_state['user_data'][f'{current_node_id}_action'] = user_input
+                
+                # Clear user_input so next node doesn't store it again
+                initial_state['user_input'] = ''
+                logger.info(f"[INPUT STORAGE] Cleared user_input from state to prevent duplicate storage in next node")
+            else:
+                logger.warning(f"[INPUT STORAGE] Current node {current_node_id} not found in flow, cannot store input")
         
         # Execute ONLY the single node using the node executor from cache
         # This prevents automatic graph traversal through all connected nodes

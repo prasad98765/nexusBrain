@@ -119,6 +119,8 @@ def execute_flow_step():
         
         # Get node_id - if not provided, start from entry node
         node_id = data.get('node_id')
+        current_node_id = data.get('current_node_id')  # Node where user provided input
+        
         if not node_id:
             node_id = find_entry_node(flow_nodes, flow_edges)
             logger.info(f"[LANGGRAPH STEP] Starting from entry node: {node_id}")
@@ -126,6 +128,7 @@ def execute_flow_step():
         # Execute single node
         result = execute_single_node(
             node_id=node_id,
+            current_node_id=current_node_id,  # Pass the current node ID
             user_input=data.get('user_input', ''),
             flow_nodes=flow_nodes,
             flow_edges=flow_edges,
