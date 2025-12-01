@@ -6,6 +6,8 @@ from flask_cors import CORS
 from flask_session import Session
 from dotenv import load_dotenv
 from .database import db
+from flasgger import Swagger
+from .swagger_config import swagger_template, swagger_config
 
 # Load environment variables
 load_dotenv()
@@ -55,6 +57,9 @@ def create_app():
          methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
     Session(app)
     
+    # Initialize Swagger/OpenAPI documentation
+    Swagger(app, template=swagger_template, config=swagger_config)
+    
     # Configure logging
     logging.basicConfig(level=logging.INFO)
     
@@ -100,6 +105,12 @@ def create_app():
     def serve_embed_script():
         script_path = os.path.join(os.getcwd(), 'public', 'agent.js')
         return send_file(script_path, mimetype='application/javascript')
+    
+    # Serve custom Swagger CSS
+    @app.route('/static/swagger-custom.css')
+    def serve_swagger_css():
+        css_path = os.path.join(os.path.dirname(__file__), 'static', 'swagger-custom.css')
+        return send_file(css_path, mimetype='text/css')
     
     # Initialize MongoDB connection
     from server.mongo_service import mongo_service

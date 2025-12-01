@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 import os
 import re
 from flask import render_template
+from flasgger import swag_from
 
 
 # Create blueprints
@@ -44,7 +45,41 @@ def is_valid_email(email):
 # Auth routes
 @auth_bp.route('/signup', methods=['POST'])
 def signup():
-    """Standard email/password signup with email verification"""
+    """
+    User Signup
+    ---
+    tags:
+      - Authentication
+    summary: Register a new user account
+    description: Create a new user account with email and password. Automatically creates a default workspace.
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/SignupRequest'
+    responses:
+      201:
+        description: Account created successfully
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Account created successfully! Please log in to continue.
+            user_id:
+              type: string
+            verification_required:
+              type: boolean
+      400:
+        $ref: '#/responses/BadRequestError'
+      409:
+        description: User already exists
+        schema:
+          $ref: '#/definitions/Error'
+      500:
+        $ref: '#/responses/InternalServerError'
+    """
     try:
         data = request.get_json()
         
@@ -254,7 +289,42 @@ def google_signup():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """Standard email/password login with verification check"""
+    """
+    User Login
+    ---
+    tags:
+      - Authentication
+    summary: Authenticate user with email and password
+    description: Login with email and password credentials. Returns JWT token for authenticated requests.
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/LoginRequest'
+    responses:
+      200:
+        description: Login successful
+        schema:
+          $ref: '#/definitions/AuthResponse'
+      400:
+        $ref: '#/responses/BadRequestError'
+      401:
+        description: Invalid credentials
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Email not verified
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            verification_required:
+              type: boolean
+      500:
+        $ref: '#/responses/InternalServerError'
+    """
     try:
         data = request.get_json()
         
@@ -416,7 +486,27 @@ def resend_verification():
 @auth_bp.route('/user')
 @require_auth
 def get_user():
-    """Get current user info from JWT token"""
+    """
+    Get Current User
+    ---
+    tags:
+      - Authentication
+    summary: Get current authenticated user information
+    description: Retrieve user profile and workspace details from JWT token
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: User information retrieved successfully
+        schema:
+          $ref: '#/definitions/User'
+      401:
+        $ref: '#/responses/UnauthorizedError'
+      404:
+        $ref: '#/responses/NotFoundError'
+      500:
+        $ref: '#/responses/InternalServerError'
+    """
     try:
         user_id = request.user.get('user_id')
         workspace_id = request.user.get('workspace_id')
@@ -759,6 +849,27 @@ def reset_password():
 @workspace_bp.route('/workspaces', methods=['GET'])
 @require_auth
 def get_workspaces():
+    """
+    List Workspaces
+    ---
+    tags:
+      - Workspaces
+    summary: Get all workspaces for current user
+    description: Retrieve all workspaces where the user is a member
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: List of workspaces
+        schema:
+          type: array
+          items:
+            $ref: '#/definitions/Workspace'
+      401:
+        $ref: '#/responses/UnauthorizedError'
+      500:
+        $ref: '#/responses/InternalServerError'
+    """
     try:
         user_id = request.user.get('user_id')
         
@@ -816,6 +927,33 @@ def get_workspaces():
 @workspace_bp.route('/workspaces', methods=['POST'])
 @require_auth
 def create_workspace():
+    """
+    Create Workspace
+    ---
+    tags:
+      - Workspaces
+    summary: Create a new workspace
+    description: Create a new workspace with the current user as owner
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/CreateWorkspaceRequest'
+    responses:
+      201:
+        description: Workspace created successfully
+        schema:
+          $ref: '#/definitions/Workspace'
+      400:
+        $ref: '#/responses/BadRequestError'
+      401:
+        $ref: '#/responses/UnauthorizedError'
+      500:
+        $ref: '#/responses/InternalServerError'
+    """
     try:
         user_id = request.user.get('user_id')
         data = request.get_json()
@@ -932,6 +1070,33 @@ def get_workspace_balance(workspace_id):
 @conversation_bp.route('/workspaces/<workspace_id>/conversations')
 @require_auth
 def get_conversations(workspace_id):
+    """
+    List Conversations
+    ---
+    tags:
+      - Conversations
+    summary: Get all conversations in a workspace
+    description: Retrieve all conversations for a specific workspace
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: workspace_id
+        required: true
+        type: string
+        description: Workspace ID
+    responses:
+      200:
+        description: List of conversations
+        schema:
+          type: array
+          items:
+            $ref: '#/definitions/Conversation'
+      401:
+        $ref: '#/responses/UnauthorizedError'
+      500:
+        $ref: '#/responses/InternalServerError'
+    """
     try:
         conversations = Conversation.query\
             .filter_by(workspace_id=workspace_id)\
@@ -1023,6 +1188,43 @@ def get_conversation(conversation_id):
 @message_bp.route('/conversations/<conversation_id>/messages', methods=['POST'])
 @require_auth
 def create_message(conversation_id):
+    """
+    Create Message
+    ---
+    tags:
+      - Conversations
+    summary: Send a message in a conversation
+    description: Create a new message in a conversation. Automatically generates AI response for user messages.
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: conversation_id
+        required: true
+        type: string
+        description: Conversation ID
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/CreateMessageRequest'
+    responses:
+      201:
+        description: Message created successfully
+        schema:
+          type: object
+          properties:
+            userMessage:
+              $ref: '#/definitions/Message'
+            aiResponse:
+              $ref: '#/definitions/Message'
+      400:
+        $ref: '#/responses/BadRequestError'
+      401:
+        $ref: '#/responses/UnauthorizedError'
+      500:
+        $ref: '#/responses/InternalServerError'
+    """
     try:
         data = request.get_json()
         

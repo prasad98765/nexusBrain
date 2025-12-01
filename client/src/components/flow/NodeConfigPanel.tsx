@@ -431,23 +431,23 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
     // Validation function for Interactive Node
     const validateInteractiveNode = (): string[] => {
         const errors: string[] = [];
-            
+
         // Validate message content length
         const messageText = stripHtmlTags(config.message || '');
         if (messageText.length > INTERACTIVE_NODE_LIMITS.MESSAGE_MAX_LENGTH) {
             errors.push(`Message content exceeds ${INTERACTIVE_NODE_LIMITS.MESSAGE_MAX_LENGTH} characters (current: ${messageText.length})`);
         }
-            
+
         // Validate footer length if present
         if (config.footer && config.footer.length > INTERACTIVE_NODE_LIMITS.FOOTER_MAX_LENGTH) {
             errors.push(`Footer exceeds ${INTERACTIVE_NODE_LIMITS.FOOTER_MAX_LENGTH} characters (current: ${config.footer.length})`);
         }
-            
+
         // Validate media text content
         if (config.media) {
             const mediaType = config.media.type;
             const mediaText = config.media.text || '';
-                
+
             // If media type is 'text', text content is required
             if (mediaType === 'text') {
                 if (!mediaText || !mediaText.trim()) {
@@ -461,7 +461,7 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                 errors.push(`Media text content exceeds ${INTERACTIVE_NODE_LIMITS.MEDIA_TEXT_MAX_LENGTH} characters (current: ${mediaText.length})`);
             }
         }
-            
+
         // Validate buttons
         const buttons = config.buttons || [];
         if (buttons.length < INTERACTIVE_NODE_LIMITS.MIN_BUTTONS) {
@@ -470,7 +470,7 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
         if (buttons.length > INTERACTIVE_NODE_LIMITS.MAX_BUTTONS) {
             errors.push(`Maximum ${INTERACTIVE_NODE_LIMITS.MAX_BUTTONS} buttons allowed (current: ${buttons.length})`);
         }
-            
+
         // Validate each button title
         buttons.forEach((btn: any, idx: number) => {
             if (!btn.label || btn.label.trim().length === 0) {
@@ -479,20 +479,20 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                 errors.push(`Button ${idx + 1} title exceeds ${INTERACTIVE_NODE_LIMITS.BUTTON_TITLE_MAX_LENGTH} characters (current: ${btn.label.length})`);
             }
         });
-            
+
         return errors;
     };
-    
+
     // Validation function for Input Node
     const validateInputNode = (): string[] => {
         const errors: string[] = [];
-            
+
         // Validate question text length
         const questionText = stripHtmlTags(config.placeholder || '');
         if (questionText.length > INPUT_NODE_LIMITS.QUESTION_TEXT_MAX_LENGTH) {
             errors.push(`Question text exceeds ${INPUT_NODE_LIMITS.QUESTION_TEXT_MAX_LENGTH} characters (current: ${questionText.length})`);
         }
-            
+
         return errors;
     };
 
@@ -510,7 +510,7 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                 return;
             }
         }
-            
+
         // Validate Input Node before saving
         if (nodeType === 'input') {
             const errors = validateInputNode();
@@ -524,7 +524,7 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                 return;
             }
         }
-            
+
         // Clear validation errors
         setValidationErrors([]);
 

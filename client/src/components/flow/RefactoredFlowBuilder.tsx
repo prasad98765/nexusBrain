@@ -155,10 +155,10 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
         const handleEditNode = (e: Event) => {
             const event = e as CustomEvent;
             const { nodeId, type } = event.detail;
-            
+
             // Always open/switch to the node's configuration panel
             setEditingNode({ id: nodeId, type });
-            
+
             // Auto-switch to full-screen mode if not already in full-screen
             if (!isFullScreen) {
                 onToggleFullScreen();
@@ -284,9 +284,9 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button 
-                        onClick={() => setShowPreview(true)} 
-                        size="sm" 
+                    <Button
+                        onClick={() => setShowPreview(true)}
+                        size="sm"
                         variant="outline"
                         className="border-indigo-600 text-indigo-400 hover:bg-indigo-600/10 hover:text-indigo-300"
                     >
@@ -366,7 +366,7 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
                         }}
                     >
                         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1f2937" />
-                        
+
                         {/* Custom Controls Panel */}
                         <Panel position="bottom-left" className="flex gap-2 mb-4 ml-4">
                             <div className="flex items-center gap-1 bg-slate-700 border border-slate-700 rounded-lg p-1 shadow-lg">
@@ -394,11 +394,10 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
                                 <div className="w-px h-6 bg-slate-700" />
                                 <button
                                     onClick={() => setIsLocked(!isLocked)}
-                                    className={`p-2 rounded transition-colors ${
-                                        isLocked
+                                    className={`p-2 rounded transition-colors ${isLocked
                                             ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
                                             : 'hover:bg-slate-700 text-slate-300 hover:text-white'
-                                    }`}
+                                        }`}
                                     title={isLocked ? 'Unlock Canvas' : 'Lock Canvas'}
                                 >
                                     {isLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
