@@ -498,6 +498,137 @@ def validate_button_action(
     return {'valid': True, 'error': None}
 
 
+def validate_interactive_node(
+    node: Dict[str, Any],
+    workspace_id: Optional[str] = None,
+    agent_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Validate Interactive Node (Button Node) configuration.
+    
+    Validation rules:
+    - Message content: max 1024 characters (text only, no HTML)
+    - Footer text: max 60 characters
+    - Media text content: max 20 characters
+    - Button title: max 20 characters per button
+    - Minimum 1 button required
+    - Maximum 3 buttons allowed
+    
+    Args:
+        node: Node configuration
+        workspace_id: Workspace identifier for logging
+        agent_id: Agent identifier for logging
+        
+    Returns:
+        Validation result with 'valid' boolean and 'errors' list
+    """
+    import re
+    
+    errors = []
+    context = f"workspace_id={workspace_id}, agent_id={agent_id}"
+    node_id = node.get('id', 'unknown')
+    node_data = node.get('data', {})
+    
+    # Helper function to strip HTML tags
+    def strip_html_tags(html_text: str) -> str:
+        if not html_text:
+            return ''
+        clean = re.compile('<.*?>')
+        return re.sub(clean, '', html_text)
+    
+    # Validate message content (max 1024 characters, text only)
+    message = node_data.get('message', '')
+    message_text = strip_html_tags(message)
+    if len(message_text) > 1024:
+        errors.append(f"Message content exceeds 1024 characters (current: {len(message_text)}) for node {node_id} [{context}]")
+    
+    # Validate footer text (max 60 characters)
+    footer = node_data.get('footer', '')
+    if footer and len(footer) > 60:
+        errors.append(f"Footer text exceeds 60 characters (current: {len(footer)}) for node {node_id} [{context}]")
+    
+    # Validate media text content (max 20 characters)
+    media = node_data.get('media')
+    if media and isinstance(media, dict):
+        media_type = media.get('type', '')
+        media_text = media.get('text', '')
+        
+        # If media type is 'text', text content is required
+        if media_type == 'text':
+            if not media_text or not media_text.strip():
+                errors.append(f"Text content is required when media type is 'text' for node {node_id} [{context}]")
+            elif len(media_text) > 20:
+                errors.append(f"Media text content exceeds 20 characters (current: {len(media_text)}) for node {node_id} [{context}]")
+        # For other media types, text is optional but still has character limit
+        elif media_text and len(media_text) > 20:
+            errors.append(f"Media text content exceeds 20 characters (current: {len(media_text)}) for node {node_id} [{context}]")
+    
+    # Validate buttons
+    buttons = node_data.get('buttons', [])
+    if not buttons or len(buttons) < 1:
+        errors.append(f"At least 1 button is required for node {node_id} [{context}]")
+    elif len(buttons) > 3:
+        errors.append(f"Maximum 3 buttons allowed (current: {len(buttons)}) for node {node_id} [{context}]")
+    
+    # Validate each button title (max 20 characters)
+    for idx, button in enumerate(buttons):
+        button_label = button.get('label', '')
+        if not button_label or not button_label.strip():
+            errors.append(f"Button {idx + 1} must have a title for node {node_id} [{context}]")
+        elif len(button_label) > 20:
+            errors.append(f"Button {idx + 1} title exceeds 20 characters (current: {len(button_label)}) for node {node_id} [{context}]")
+    
+    return {
+        'valid': len(errors) == 0,
+        'errors': errors
+    }
+
+
+def validate_input_node(
+    node: Dict[str, Any],
+    workspace_id: Optional[str] = None,
+    agent_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Validate Input Node configuration.
+    
+    Validation rules:
+    - Question text: max 1024 characters (text only, no HTML)
+    
+    Args:
+        node: Node configuration
+        workspace_id: Workspace identifier for logging
+        agent_id: Agent identifier for logging
+        
+    Returns:
+        Validation result with 'valid' boolean and 'errors' list
+    """
+    import re
+    
+    errors = []
+    context = f"workspace_id={workspace_id}, agent_id={agent_id}"
+    node_id = node.get('id', 'unknown')
+    node_data = node.get('data', {})
+    
+    # Helper function to strip HTML tags
+    def strip_html_tags(html_text: str) -> str:
+        if not html_text:
+            return ''
+        clean = re.compile('<.*?>')
+        return re.sub(clean, '', html_text)
+    
+    # Validate question text (max 1024 characters, text only)
+    placeholder = node_data.get('placeholder', '')
+    question_text = strip_html_tags(placeholder)
+    if len(question_text) > 1024:
+        errors.append(f"Question text exceeds 1024 characters (current: {len(question_text)}) for node {node_id} [{context}]")
+    
+    return {
+        'valid': len(errors) == 0,
+        'errors': errors
+    }
+
+
 def clamp_ai_parameters(temperature: float, max_tokens: int) -> tuple[float, int]:
     """
     Clamp AI parameters to safe ranges.
@@ -1497,7 +1628,31 @@ def execute_single_node(
                 'response': f'Node {node_id} not found in flow [{context}]'
             }
         
-        # 2. Validate button_action if provided
+        # 2. Validate Interactive Node if it's a button/interactive type
+        if current_node.get('type') in ['button', 'message', 'interactive']:
+            node_validation = validate_interactive_node(current_node, workspace_id, agent_id)
+            if not node_validation['valid']:
+                logger.error(f"[STEP EXECUTION] Interactive node validation failed: {node_validation['errors']} [{context}]")
+                return {
+                    'success': False,
+                    'error': 'Invalid interactive node configuration',
+                    'validation_errors': node_validation['errors'],
+                    'response': 'The interactive node configuration is invalid. Please check button count, character limits, and content length.'
+                }
+        
+        # 2b. Validate Input Node if it's an input type
+        if current_node.get('type') == 'input':
+            node_validation = validate_input_node(current_node, workspace_id, agent_id)
+            if not node_validation['valid']:
+                logger.error(f"[STEP EXECUTION] Input node validation failed: {node_validation['errors']} [{context}]")
+                return {
+                    'success': False,
+                    'error': 'Invalid input node configuration',
+                    'validation_errors': node_validation['errors'],
+                    'response': 'The input node configuration is invalid. Please check question text length.'
+                }
+        
+        # 3. Validate button_action if provided
         if button_action:
             logger.info(f"[STEP EXECUTION] Button action received: {button_action} [{context}]")
             button_validation = validate_button_action(button_action, current_node, workspace_id, agent_id, node_id)

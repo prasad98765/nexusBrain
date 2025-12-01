@@ -39,12 +39,43 @@ interface NodeConfigPanelProps {
     onSave: (data: any) => void;
 }
 
+// Validation constants for Interactive Node
+const INTERACTIVE_NODE_LIMITS = {
+    MESSAGE_MAX_LENGTH: 1024,
+    FOOTER_MAX_LENGTH: 60,
+    MEDIA_TEXT_MAX_LENGTH: 20,
+    BUTTON_TITLE_MAX_LENGTH: 20,
+    MIN_BUTTONS: 1,
+    MAX_BUTTONS: 3,
+};
+
+// Validation constants for Input Node
+const INPUT_NODE_LIMITS = {
+    QUESTION_TEXT_MAX_LENGTH: 1024,
+};
+
+// Helper function to strip HTML tags for character counting
+const stripHtmlTags = (html: string): string => {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+};
+
+// Helper function to get character count color
+const getCounterColor = (current: number, max: number): string => {
+    const percentage = (current / max) * 100;
+    if (percentage >= 100) return 'text-red-400';
+    if (percentage >= 80) return 'text-yellow-400';
+    return 'text-slate-400';
+};
+
 export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, onSave }: NodeConfigPanelProps) {
     const [config, setConfig] = useState<any>({});
     const [draggedButton, setDraggedButton] = useState<number | null>(null);
     const [mediaUploadType, setMediaUploadType] = useState<'upload' | 'link'>('link');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
+    const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
     // API Library states
     const [apiLibraries, setApiLibraries] = useState<any[]>([]);
@@ -397,7 +428,106 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
         }
     };
 
+    // Validation function for Interactive Node
+    const validateInteractiveNode = (): string[] => {
+        const errors: string[] = [];
+            
+        // Validate message content length
+        const messageText = stripHtmlTags(config.message || '');
+        if (messageText.length > INTERACTIVE_NODE_LIMITS.MESSAGE_MAX_LENGTH) {
+            errors.push(`Message content exceeds ${INTERACTIVE_NODE_LIMITS.MESSAGE_MAX_LENGTH} characters (current: ${messageText.length})`);
+        }
+            
+        // Validate footer length if present
+        if (config.footer && config.footer.length > INTERACTIVE_NODE_LIMITS.FOOTER_MAX_LENGTH) {
+            errors.push(`Footer exceeds ${INTERACTIVE_NODE_LIMITS.FOOTER_MAX_LENGTH} characters (current: ${config.footer.length})`);
+        }
+            
+        // Validate media text content
+        if (config.media) {
+            const mediaType = config.media.type;
+            const mediaText = config.media.text || '';
+                
+            // If media type is 'text', text content is required
+            if (mediaType === 'text') {
+                if (!mediaText || !mediaText.trim()) {
+                    errors.push('Text content is required when media type is "Text Content"');
+                } else if (mediaText.length > INTERACTIVE_NODE_LIMITS.MEDIA_TEXT_MAX_LENGTH) {
+                    errors.push(`Media text content exceeds ${INTERACTIVE_NODE_LIMITS.MEDIA_TEXT_MAX_LENGTH} characters (current: ${mediaText.length})`);
+                }
+            }
+            // For other media types, text is optional but still has character limit
+            else if (mediaText && mediaText.length > INTERACTIVE_NODE_LIMITS.MEDIA_TEXT_MAX_LENGTH) {
+                errors.push(`Media text content exceeds ${INTERACTIVE_NODE_LIMITS.MEDIA_TEXT_MAX_LENGTH} characters (current: ${mediaText.length})`);
+            }
+        }
+            
+        // Validate buttons
+        const buttons = config.buttons || [];
+        if (buttons.length < INTERACTIVE_NODE_LIMITS.MIN_BUTTONS) {
+            errors.push(`At least ${INTERACTIVE_NODE_LIMITS.MIN_BUTTONS} button is required`);
+        }
+        if (buttons.length > INTERACTIVE_NODE_LIMITS.MAX_BUTTONS) {
+            errors.push(`Maximum ${INTERACTIVE_NODE_LIMITS.MAX_BUTTONS} buttons allowed (current: ${buttons.length})`);
+        }
+            
+        // Validate each button title
+        buttons.forEach((btn: any, idx: number) => {
+            if (!btn.label || btn.label.trim().length === 0) {
+                errors.push(`Button ${idx + 1} must have a title`);
+            } else if (btn.label.length > INTERACTIVE_NODE_LIMITS.BUTTON_TITLE_MAX_LENGTH) {
+                errors.push(`Button ${idx + 1} title exceeds ${INTERACTIVE_NODE_LIMITS.BUTTON_TITLE_MAX_LENGTH} characters (current: ${btn.label.length})`);
+            }
+        });
+            
+        return errors;
+    };
+    
+    // Validation function for Input Node
+    const validateInputNode = (): string[] => {
+        const errors: string[] = [];
+            
+        // Validate question text length
+        const questionText = stripHtmlTags(config.placeholder || '');
+        if (questionText.length > INPUT_NODE_LIMITS.QUESTION_TEXT_MAX_LENGTH) {
+            errors.push(`Question text exceeds ${INPUT_NODE_LIMITS.QUESTION_TEXT_MAX_LENGTH} characters (current: ${questionText.length})`);
+        }
+            
+        return errors;
+    };
+
     const handleSave = () => {
+        // Validate Interactive Node before saving
+        if (nodeType === 'button') {
+            const errors = validateInteractiveNode();
+            if (errors.length > 0) {
+                setValidationErrors(errors);
+                toast({
+                    title: 'Validation Failed',
+                    description: errors[0],
+                    variant: 'destructive',
+                });
+                return;
+            }
+        }
+            
+        // Validate Input Node before saving
+        if (nodeType === 'input') {
+            const errors = validateInputNode();
+            if (errors.length > 0) {
+                setValidationErrors(errors);
+                toast({
+                    title: 'Validation Failed',
+                    description: errors[0],
+                    variant: 'destructive',
+                });
+                return;
+            }
+        }
+            
+        // Clear validation errors
+        setValidationErrors([]);
+
         if (nodeType === 'knowledgeBase') {
             // Save selected documents with their metadata
             const selectedDocsData = kbDocuments.filter(doc =>
@@ -515,7 +645,7 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                             {/* Combined Media Content - Unified UI */}
                             <div className="space-y-3 p-4 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-700/50 shadow-inner">
                                 <div className="flex items-center justify-between">
-                                    <Label className="text-sm font-medium text-slate-200 uppercase tracking-wide">Media Content</Label>
+                                    <Label className="text-sm font-medium text-slate-200 uppercase tracking-wide">Header Content</Label>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <Info className="h-4 w-4 text-slate-500 cursor-help" />
@@ -532,6 +662,8 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                         if (value === 'none') {
                                             const { media, ...rest } = config;
                                             setConfig(rest);
+                                        } else if (value === 'text') {
+                                            setConfig({ ...config, media: { type: value as 'text', text: '' } });
                                         } else {
                                             setConfig({ ...config, media: { type: value as 'image' | 'video' | 'document', url: '' } });
                                         }
@@ -560,10 +692,16 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                                 Document
                                             </div>
                                         </SelectItem>
+                                        <SelectItem value="text">
+                                            <div className="flex items-center gap-2">
+                                                <FileText className="h-3.5 w-3.5 text-green-400" />
+                                                Text Content
+                                            </div>
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
 
-                                {config.media && (
+                                {config.media && config.media.type !== 'text' && (
                                     <div className="space-y-3 p-3 bg-slate-800 border border-slate-700 rounded">
                                         {/* Unified input/upload component */}
                                         <div className="space-y-2">
@@ -640,7 +778,34 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                     </div>
                                 )}
                             </div>
-
+                            {/* Media Text Content */}
+                            {config.media && (
+                                <div className="space-y-3 p-4 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-700/50 shadow-inner">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="mediaText" className="text-sm font-medium text-slate-200 uppercase tracking-wide">
+                                            {config.media.type === 'text' ? 'Text Content' : 'Media Text Content (Optional)'}
+                                        </Label>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Info className="h-4 w-4 text-slate-500 cursor-help" />
+                                            </TooltipTrigger>
+                                            <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs max-w-[200px]">
+                                                <p>{config.media.type === 'text' ? 'Text content for the media section' : 'Optional text caption for your media'}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
+                                    <Input
+                                        value={config.media.text || ''}
+                                        onChange={(e) => setConfig({ ...config, media: { ...config.media, text: e.target.value } })}
+                                        placeholder={config.media.type === 'text' ? 'Enter text content...' : 'Media caption...'}
+                                        maxLength={INTERACTIVE_NODE_LIMITS.MEDIA_TEXT_MAX_LENGTH}
+                                        className="bg-slate-800 border-slate-600/50 text-slate-200 text-sm hover:border-slate-500 focus:border-blue-500 transition-colors"
+                                    />
+                                    <span className={`text-xs ${getCounterColor((config.media.text || '').length, INTERACTIVE_NODE_LIMITS.MEDIA_TEXT_MAX_LENGTH)}`}>
+                                        {(config.media.text || '').length}/{INTERACTIVE_NODE_LIMITS.MEDIA_TEXT_MAX_LENGTH}
+                                    </span>
+                                </div>
+                            )}
                             {/* Bot asks this question with rich text editor */}
                             <div className="space-y-3 p-4 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-700/50 shadow-inner">
                                 <div className="flex items-center justify-between">
@@ -659,18 +824,59 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                     onChange={(value) => setConfig({ ...config, message: value })}
                                     placeholder="What would you like to choose?"
                                 />
-                                <p className="text-xs text-slate-500 italic flex items-center gap-1.5">
-                                    <span className="text-blue-400">#</span> Type # to reference a variable
-                                </p>
+                                <div className="flex items-center justify-between text-xs">
+                                    <p className="text-slate-500 italic flex items-center gap-1.5">
+                                        <span className="text-blue-400">#</span> Type # to reference a variable
+                                    </p>
+                                    <span className={getCounterColor(stripHtmlTags(config.message || '').length, INTERACTIVE_NODE_LIMITS.MESSAGE_MAX_LENGTH)}>
+                                        {stripHtmlTags(config.message || '').length}/{INTERACTIVE_NODE_LIMITS.MESSAGE_MAX_LENGTH}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Footer Text Field */}
+                            <div className="space-y-3 p-4 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-700/50 shadow-inner">
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="footer" className="text-sm font-medium text-slate-200 uppercase tracking-wide">Footer Text (Optional)</Label>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Info className="h-4 w-4 text-slate-500 cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs max-w-[200px]">
+                                            <p>Optional footer text displayed at the bottom</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+                                <Input
+                                    value={config.footer || ''}
+                                    onChange={(e) => setConfig({ ...config, footer: e.target.value })}
+                                    placeholder="Footer text..."
+                                    maxLength={INTERACTIVE_NODE_LIMITS.FOOTER_MAX_LENGTH}
+                                    className="bg-slate-800 border-slate-600/50 text-slate-200 text-sm hover:border-slate-500 focus:border-blue-500 transition-colors"
+                                />
+                                <span className={`text-xs ${getCounterColor((config.footer || '').length, INTERACTIVE_NODE_LIMITS.FOOTER_MAX_LENGTH)}`}>
+                                    {(config.footer || '').length}/{INTERACTIVE_NODE_LIMITS.FOOTER_MAX_LENGTH}
+                                </span>
                             </div>
 
                             {/* Buttons Section */}
                             <div className="space-y-3 p-4 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-700/50 shadow-inner">
                                 <div className="flex items-center justify-between">
-                                    <Label className="text-sm font-medium text-slate-200 uppercase tracking-wide">Action Buttons</Label>
+                                    <Label className="text-sm font-medium text-slate-200 uppercase tracking-wide">
+                                        Action Buttons ({config.buttons?.length || 0}/{INTERACTIVE_NODE_LIMITS.MAX_BUTTONS})
+                                    </Label>
                                     <Button
                                         size="sm"
                                         onClick={() => {
+                                            const currentButtons = config.buttons || [];
+                                            if (currentButtons.length >= INTERACTIVE_NODE_LIMITS.MAX_BUTTONS) {
+                                                toast({
+                                                    title: 'Maximum Buttons Reached',
+                                                    description: `You can only have ${INTERACTIVE_NODE_LIMITS.MAX_BUTTONS} buttons maximum`,
+                                                    variant: 'destructive',
+                                                });
+                                                return;
+                                            }
                                             const newButton = {
                                                 id: Date.now().toString(),
                                                 label: 'New Button',
@@ -679,15 +885,22 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                             };
                                             setConfig({
                                                 ...config,
-                                                buttons: [...(config.buttons || []), newButton]
+                                                buttons: [...currentButtons, newButton]
                                             });
                                         }}
-                                        className="bg-blue-600 hover:bg-blue-700 h-7 text-xs shadow-lg shadow-blue-500/20"
+                                        disabled={(config.buttons?.length || 0) >= INTERACTIVE_NODE_LIMITS.MAX_BUTTONS}
+                                        className="bg-blue-600 hover:bg-blue-700 h-7 text-xs shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <Plus className="h-3.5 w-3.5 mr-1" />
                                         Add Button
                                     </Button>
                                 </div>
+
+                                {(!config.buttons || config.buttons.length === 0) && (
+                                    <div className="text-center py-4 text-xs text-yellow-400 bg-yellow-900/20 border border-yellow-700/30 rounded-lg">
+                                        ⚠️ At least {INTERACTIVE_NODE_LIMITS.MIN_BUTTONS} button is required
+                                    </div>
+                                )}
 
                                 {config.buttons && config.buttons.map((btn: any, idx: number) => (
                                     <div
@@ -708,9 +921,18 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                                 <TooltipTrigger asChild>
                                                     <button
                                                         onClick={() => {
+                                                            const updatedButtons = config.buttons.filter((b: any) => b.id !== btn.id);
+                                                            if (updatedButtons.length < INTERACTIVE_NODE_LIMITS.MIN_BUTTONS) {
+                                                                toast({
+                                                                    title: 'Cannot Delete',
+                                                                    description: `At least ${INTERACTIVE_NODE_LIMITS.MIN_BUTTONS} button is required`,
+                                                                    variant: 'destructive',
+                                                                });
+                                                                return;
+                                                            }
                                                             setConfig({
                                                                 ...config,
-                                                                buttons: config.buttons.filter((b: any) => b.id !== btn.id)
+                                                                buttons: updatedButtons
                                                             });
                                                         }}
                                                         className="p-1.5 hover:bg-red-900/60 rounded-lg transition-all hover:scale-105"
@@ -724,17 +946,23 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                             </Tooltip>
                                         </div>
 
-                                        <Input
-                                            value={btn.label}
-                                            onChange={(e) => {
-                                                const updated = config.buttons.map((b: any) =>
-                                                    b.id === btn.id ? { ...b, label: e.target.value } : b
-                                                );
-                                                setConfig({ ...config, buttons: updated });
-                                            }}
-                                            placeholder="Button label"
-                                            className="bg-slate-800 border-slate-600/50 text-slate-200 text-sm hover:border-slate-500 focus:border-blue-500 transition-colors"
-                                        />
+                                        <div className="space-y-2">
+                                            <Input
+                                                value={btn.label}
+                                                onChange={(e) => {
+                                                    const updated = config.buttons.map((b: any) =>
+                                                        b.id === btn.id ? { ...b, label: e.target.value } : b
+                                                    );
+                                                    setConfig({ ...config, buttons: updated });
+                                                }}
+                                                placeholder="Button label"
+                                                maxLength={INTERACTIVE_NODE_LIMITS.BUTTON_TITLE_MAX_LENGTH}
+                                                className="bg-slate-800 border-slate-600/50 text-slate-200 text-sm hover:border-slate-500 focus:border-blue-500 transition-colors"
+                                            />
+                                            <span className={`text-xs ${getCounterColor((btn.label || '').length, INTERACTIVE_NODE_LIMITS.BUTTON_TITLE_MAX_LENGTH)}`}>
+                                                {(btn.label || '').length}/{INTERACTIVE_NODE_LIMITS.BUTTON_TITLE_MAX_LENGTH}
+                                            </span>
+                                        </div>
 
                                         <Select
                                             value={btn.actionType}
@@ -837,9 +1065,14 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                     onChange={(value) => setConfig({ ...config, placeholder: value })}
                                     placeholder="Enter your placeholder text..."
                                 />
-                                <p className="text-xs text-slate-500 italic flex items-center gap-1.5">
-                                    <span className="text-blue-400">#</span> Type # to reference a variable
-                                </p>
+                                <div className="flex items-center justify-between text-xs">
+                                    <p className="text-slate-500 italic flex items-center gap-1.5">
+                                        <span className="text-blue-400">#</span> Type # to reference a variable
+                                    </p>
+                                    <span className={getCounterColor(stripHtmlTags(config.placeholder || '').length, INPUT_NODE_LIMITS.QUESTION_TEXT_MAX_LENGTH)}>
+                                        {stripHtmlTags(config.placeholder || '').length}/{INPUT_NODE_LIMITS.QUESTION_TEXT_MAX_LENGTH}
+                                    </span>
+                                </div>
                             </div>
 
                             {/* Save Response to Variable */}
@@ -1239,8 +1472,8 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                                             onClick={() => setKbCrawlMode('single')}
                                                             disabled={kbCrawling}
                                                             className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-all ${kbCrawlMode === 'single'
-                                                                    ? 'bg-emerald-600/20 border-emerald-500 text-emerald-300'
-                                                                    : 'bg-slate-800 border-slate-600 text-slate-400 hover:border-slate-500'
+                                                                ? 'bg-emerald-600/20 border-emerald-500 text-emerald-300'
+                                                                : 'bg-slate-800 border-slate-600 text-slate-400 hover:border-slate-500'
                                                                 } ${kbCrawling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                                                         >
                                                             Single Page
@@ -1249,8 +1482,8 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                                             onClick={() => setKbCrawlMode('multi')}
                                                             disabled={kbCrawling}
                                                             className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-all ${kbCrawlMode === 'multi'
-                                                                    ? 'bg-emerald-600/20 border-emerald-500 text-emerald-300'
-                                                                    : 'bg-slate-800 border-slate-600 text-slate-400 hover:border-slate-500'
+                                                                ? 'bg-emerald-600/20 border-emerald-500 text-emerald-300'
+                                                                : 'bg-slate-800 border-slate-600 text-slate-400 hover:border-slate-500'
                                                                 } ${kbCrawling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                                                         >
                                                             All Pages
