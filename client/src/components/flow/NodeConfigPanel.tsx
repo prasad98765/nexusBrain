@@ -33,7 +33,7 @@ import {
 
 interface NodeConfigPanelProps {
     nodeId: string | null;
-    nodeType: 'button' | 'input' | 'ai' | 'apiLibrary' | 'knowledgeBase' | 'engine' | null;
+    nodeType: 'button' | 'input' | 'ai' | 'apiLibrary' | 'knowledgeBase' | 'engine' | 'condition' | null;
     nodeData: any;
     onClose: () => void;
     onSave: (data: any) => void;
