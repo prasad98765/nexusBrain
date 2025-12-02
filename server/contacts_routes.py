@@ -3,13 +3,61 @@ from sqlalchemy import or_, func
 from server.models import Contact, CustomField, Workspace, db
 from server.auth_utils import require_auth
 import math
+from flasgger import swag_from
 
 contacts_bp = Blueprint('contacts', __name__)
 
 @contacts_bp.route('/contacts', methods=['GET'])
 @require_auth
 def get_contacts():
-    """Get contacts with pagination, search, and filtering"""
+    """
+    List Contacts
+    ---
+    tags:
+      - Contacts
+    summary: Get all contacts with pagination and search
+    description: Retrieve paginated list of contacts for the current workspace with optional search filtering
+    security:
+      - Bearer: []
+    parameters:
+      - in: query
+        name: page
+        type: integer
+        default: 1
+        description: Page number
+      - in: query
+        name: limit
+        type: integer
+        default: 25
+        maximum: 100
+        description: Items per page (max 100)
+      - in: query
+        name: search
+        type: string
+        description: Search by name, email, or phone
+    responses:
+      200:
+        description: List of contacts
+        schema:
+          type: object
+          properties:
+            contacts:
+              type: array
+              items:
+                $ref: '#/definitions/Contact'
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalPages:
+              type: integer
+      401:
+        $ref: '#/responses/UnauthorizedError'
+      500:
+        $ref: '#/responses/InternalServerError'
+    """
     try:
         workspace_id = request.user.get('workspace_id')
         page = int(request.args.get('page', 1))
@@ -72,7 +120,37 @@ def get_contacts():
 @contacts_bp.route('/contacts', methods=['POST'])
 @require_auth
 def create_contact():
-    """Create a new contact"""
+    """
+    Create Contact
+    ---
+    tags:
+      - Contacts
+    summary: Create a new contact
+    description: Add a new contact to the workspace
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/CreateContactRequest'
+    responses:
+      201:
+        description: Contact created successfully
+        schema:
+          $ref: '#/definitions/Contact'
+      400:
+        $ref: '#/responses/BadRequestError'
+      401:
+        $ref: '#/responses/UnauthorizedError'
+      409:
+        description: Contact already exists
+        schema:
+          $ref: '#/definitions/Error'
+      500:
+        $ref: '#/responses/InternalServerError'
+    """
     try:
         data = request.get_json()
         
@@ -125,7 +203,47 @@ def create_contact():
 @contacts_bp.route('/contacts/<contact_id>', methods=['PATCH'])
 @require_auth
 def update_contact(contact_id):
-    """Update a contact"""
+    """
+    Update Contact
+    ---
+    tags:
+      - Contacts
+    summary: Update an existing contact
+    description: Modify contact details and custom fields
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: contact_id
+        required: true
+        type: string
+        description: Contact ID
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+            customFields:
+              type: object
+    responses:
+      200:
+        description: Contact updated successfully
+        schema:
+          $ref: '#/definitions/Contact'
+      401:
+        $ref: '#/responses/UnauthorizedError'
+      404:
+        $ref: '#/responses/NotFoundError'
+      500:
+        $ref: '#/responses/InternalServerError'
+    """
     try:
         contact = Contact.query.get_or_404(contact_id)
         data = request.get_json()
@@ -163,7 +281,36 @@ def update_contact(contact_id):
 @contacts_bp.route('/contacts/<contact_id>', methods=['DELETE'])
 @require_auth
 def delete_contact(contact_id):
-    """Delete a contact"""
+    """
+    Delete Contact
+    ---
+    tags:
+      - Contacts
+    summary: Delete a contact
+    description: Permanently remove a contact from the workspace
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: contact_id
+        required: true
+        type: string
+        description: Contact ID
+    responses:
+      200:
+        description: Contact deleted successfully
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+      401:
+        $ref: '#/responses/UnauthorizedError'
+      404:
+        $ref: '#/responses/NotFoundError'
+      500:
+        $ref: '#/responses/InternalServerError'
+    """
     try:
         contact = Contact.query.get_or_404(contact_id)
         db.session.delete(contact)
@@ -178,7 +325,52 @@ def delete_contact(contact_id):
 @contacts_bp.route('/custom-fields', methods=['GET'])
 @require_auth
 def get_custom_fields():
-    """Get custom fields for a workspace"""
+    """
+    List Custom Fields
+    ---
+    tags:
+      - Custom Fields
+    summary: Get all custom fields for a workspace
+    description: Retrieve all custom fields defined for the workspace
+    security:
+      - Bearer: []
+    parameters:
+      - in: query
+        name: page
+        type: integer
+        default: 1
+        description: Page number
+      - in: query
+        name: limit
+        type: integer
+        default: 25
+        maximum: 100
+        description: Items per page (max 100)
+      - in: query
+        name: search
+        type: string
+        description: Search by field name
+    responses:
+      200:
+        description: List of custom fields
+        schema:
+          type: object
+          properties:
+            fields:
+              type: array
+              items:
+                $ref: '#/definitions/CustomField'
+            total:
+              type: integer
+            page:
+              type: integer
+            totalPages:
+              type: integer
+      401:
+        $ref: '#/responses/UnauthorizedError'
+      500:
+        $ref: '#/responses/InternalServerError'
+    """
     try:
         workspace_id = request.user.get('workspace_id')
         
@@ -234,7 +426,33 @@ def get_custom_fields():
 @contacts_bp.route('/custom-fields', methods=['POST'])
 @require_auth
 def create_custom_field():
-    """Create a new custom field"""
+    """
+    Create Custom Field
+    ---
+    tags:
+      - Custom Fields
+    summary: Create a new custom field
+    description: Add a new custom field to the workspace
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/CreateCustomFieldRequest'
+    responses:
+      201:
+        description: Custom field created successfully
+        schema:
+          $ref: '#/definitions/CustomField'
+      400:
+        $ref: '#/responses/BadRequestError'
+      401:
+        $ref: '#/responses/UnauthorizedError'
+      500:
+        $ref: '#/responses/InternalServerError'
+    """
     try:
         data = request.get_json()
         workspace_id = request.user.get('workspace_id')
@@ -296,6 +514,38 @@ def create_custom_field():
 @require_auth
 def update_custom_field(field_id):
     """Update a custom field"""
+    """
+    Update Custom Field
+    ---
+    tags:
+      - Custom Fields
+    summary: Update an existing custom field
+    description: Modify custom field details
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: field_id
+        required: true
+        type: string
+        description: Custom Field ID
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/UpdateCustomFieldRequest'
+    responses:
+      200:
+        description: Custom field updated successfully
+        schema:
+          $ref: '#/definitions/CustomField'
+      401:
+        $ref: '#/responses/UnauthorizedError'
+      404:
+        $ref: '#/responses/NotFoundError'
+      500:
+        $ref: '#/responses/InternalServerError'
+    """ 
     try:
         custom_field = CustomField.query.get_or_404(field_id)
         data = request.get_json()
@@ -353,7 +603,36 @@ def update_custom_field(field_id):
 @contacts_bp.route('/custom-fields/<field_id>', methods=['DELETE'])
 @require_auth
 def delete_custom_field(field_id):
-    """Delete a custom field"""
+    """
+    Delete Custom Field
+    ---
+    tags:
+      - Custom Fields
+    summary: Delete a custom field
+    description: Remove a custom field from the workspace
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: field_id
+        required: true
+        type: string
+        description: Custom Field ID
+    responses:
+      200:
+        description: Custom field deleted successfully
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+      401:
+        $ref: '#/responses/UnauthorizedError'
+      404:
+        $ref: '#/responses/NotFoundError'
+      500:
+        $ref: '#/responses/InternalServerError'
+    """
     try:
         custom_field = CustomField.query.get_or_404(field_id)
         db.session.delete(custom_field)

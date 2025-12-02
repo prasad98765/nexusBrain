@@ -27,8 +27,11 @@ import InputNode from '@/components/flow/InputNode';
 import ApiLibraryNode from '@/components/flow/ApiLibraryNode';
 import KnowledgeBaseNode from '@/components/flow/KnowledgeBaseNode';
 import EngineNode from '@/components/flow/EngineNode';
+import ConditionNode from '@/components/flow/ConditionNode';
 import NodeConfigPanel from '@/components/flow/NodeConfigPanel';
 import AgentPreviewPanel from '@/components/flow/AgentPreviewPanel';
+import ConditionConfigDrawer from '@/components/flow/ConditionConfigDrawer';
+import { ConditionRule, ConditionGroup } from '@/components/flow/ConditionNode';
 
 const nodeTypes: NodeTypes = {
     button: ButtonNode,
@@ -38,6 +41,7 @@ const nodeTypes: NodeTypes = {
     apiLibrary: ApiLibraryNode,
     knowledgeBase: KnowledgeBaseNode,
     engine: EngineNode,
+    condition: ConditionNode,
 };
 
 const initialNodes: Node[] = [];
@@ -53,9 +57,11 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-    const [editingNode, setEditingNode] = useState<{ id: string; type: 'button' | 'input' | 'ai' | 'apiLibrary' | 'knowledgeBase' } | null>(null);
+    const [editingNode, setEditingNode] = useState<{ id: string; type: 'button' | 'input' | 'ai' | 'apiLibrary' | 'knowledgeBase' | 'condition' } | null>(null);
     const [isLocked, setIsLocked] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
+    const [showConditionDrawer, setShowConditionDrawer] = useState(false);
+    const [editingConditionNodeId, setEditingConditionNodeId] = useState<string | null>(null);
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
     const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
     const { toast } = useToast();
@@ -147,7 +153,12 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                                                 selectedDocuments: [],
                                                 documentCount: 0,
                                             }
-                                            : {},
+                                            : type === 'condition'
+                                                ? {
+                                                    label: 'Condition',
+                                                    conditions: [],
+                                                }
+                                                : {},
             };
 
             setNodes((nds) => nds.concat(newNode));
@@ -199,7 +210,18 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
             const event = e as CustomEvent;
             const { nodeId, type } = event.detail;
 
-            // Always open/switch to the node's configuration panel
+            // For condition nodes, open the condition drawer
+            if (type === 'condition') {
+                setEditingConditionNodeId(nodeId);
+                setShowConditionDrawer(true);
+                // Auto-switch to full-screen mode if not already in full-screen
+                if (!isFullScreen) {
+                    onToggleFullScreen();
+                }
+                return;
+            }
+
+            // For other nodes, open/switch to the node's configuration panel
             setEditingNode({ id: nodeId, type });
 
             // Auto-switch to full-screen mode if not already in full-screen
@@ -294,6 +316,20 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
         );
     };
 
+    const handleSaveConditions = (data: { conditionGroups: ConditionGroup[] }) => {
+        if (!editingConditionNodeId) return;
+
+        setNodes((nds) =>
+            nds.map((node) =>
+                node.id === editingConditionNodeId
+                    ? { ...node, data: { ...node.data, conditionGroups: data.conditionGroups, conditions: undefined } }
+                    : node
+            )
+        );
+        setShowConditionDrawer(false);
+        setEditingConditionNodeId(null);
+    };
+
     // Custom control functions
     const handleZoomIn = () => {
         if (reactFlowInstance) {
@@ -381,6 +417,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                                 <div className="space-y-1">
                                     <ComponentItem label="Language Model" type="ai" />
                                     <ComponentItem label="Engine" type="engine" />
+                                    <ComponentItem label="Condition" type="condition" />
                                 </div>
                             </div>
                             <div>
@@ -479,6 +516,24 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                     onClose={() => setShowPreview(false)}
                 />
             )}
+
+            {/* Condition Configuration Drawer */}
+            {showConditionDrawer && editingConditionNodeId && (() => {
+                const node = nodes.find((n) => n.id === editingConditionNodeId);
+                return (
+                    <ConditionConfigDrawer
+                        isOpen={showConditionDrawer}
+                        onClose={() => {
+                            setShowConditionDrawer(false);
+                            setEditingConditionNodeId(null);
+                        }}
+                        nodeId={editingConditionNodeId}
+                        conditionGroups={node?.data?.conditionGroups}
+                        conditions={node?.data?.conditions}
+                        onSave={handleSaveConditions}
+                    />
+                );
+            })()}
         </div>
     );
 }
