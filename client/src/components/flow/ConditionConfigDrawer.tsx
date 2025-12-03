@@ -36,7 +36,8 @@ interface ConditionConfigDrawerProps {
     nodeId: string;
     conditions?: ConditionRule[]; // Legacy format for backward compatibility
     conditionGroups?: ConditionGroup[]; // New group-based format
-    onSave: (data: { conditionGroups: ConditionGroup[] }) => void;
+    hasDefaultOutput?: boolean; // Enable default/fallback output
+    onSave: (data: { conditionGroups: ConditionGroup[]; hasDefaultOutput: boolean }) => void;
 }
 
 const OPERATORS = [
@@ -56,9 +57,11 @@ export default function ConditionConfigDrawer({
     nodeId,
     conditions: legacyConditions,
     conditionGroups: initialConditionGroups,
+    hasDefaultOutput: initialHasDefaultOutput,
     onSave,
 }: ConditionConfigDrawerProps) {
     const [conditionGroups, setConditionGroups] = useState<ConditionGroup[]>([]);
+    const [hasDefaultOutput, setHasDefaultOutput] = useState(false);
     const [variables, setVariables] = useState<Variable[]>([]);
     const [loading, setLoading] = useState(false);
     const [testResults, setTestResults] = useState<{ [key: string]: boolean }>({});
@@ -86,8 +89,11 @@ export default function ConditionConfigDrawer({
             } else {
                 setConditionGroups([]);
             }
+
+            // Initialize default output state
+            setHasDefaultOutput(initialHasDefaultOutput || false);
         }
-    }, [isOpen, legacyConditions, initialConditionGroups]);
+    }, [isOpen, legacyConditions, initialConditionGroups, initialHasDefaultOutput]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -303,8 +309,8 @@ export default function ConditionConfigDrawer({
             return;
         }
 
-        // Save in group-based format
-        onSave({ conditionGroups });
+        // Save in group-based format with default output setting
+        onSave({ conditionGroups, hasDefaultOutput });
         toast({
             title: 'Success',
             description: 'Condition groups saved successfully',
@@ -387,6 +393,23 @@ export default function ConditionConfigDrawer({
                 </SheetHeader>
 
                 <div className="mt-6 space-y-6">
+                    {/* Default Output Toggle */}
+                    <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <Label className="text-sm font-medium text-slate-200">Enable Default Output</Label>
+                                <p className="text-xs text-slate-400">
+                                    Add a fallback path for cases where none of the conditions are met
+                                </p>
+                            </div>
+                            <Switch
+                                checked={hasDefaultOutput}
+                                onCheckedChange={setHasDefaultOutput}
+                                className="data-[state=checked]:bg-amber-500"
+                            />
+                        </div>
+                    </div>
+
                     {/* Condition Counter and Add Button */}
                     <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg border border-slate-700">
                         <div className="flex items-center gap-3">
@@ -666,17 +689,20 @@ export default function ConditionConfigDrawer({
                             </div>
                         ))}
                     </div>
-
-                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
+                    {/* Footer with Cancel and Save Changes Buttons */}
+                    <div className="flex-shrink-0 p-4 border-t border-slate-700/50 bg-gradient-to-r from-slate-800 to-slate-900 flex gap-3 backdrop-blur-sm">
                         <Button
                             variant="outline"
                             onClick={onClose}
-                            className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                            className="flex-1 border-slate-600/50 hover:bg-slate-800/70 text-slate-300 hover:border-slate-500 transition-all"
                         >
                             Cancel
                         </Button>
-                        <Button onClick={handleSave} className="bg-purple-600 hover:bg-purple-700">
-                            Save
+                        <Button
+                            onClick={handleSave}
+                            className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-500/20 transition-all hover:shadow-xl hover:shadow-blue-500/30"
+                        >
+                            Save Changes
                         </Button>
                     </div>
                 </div>
