@@ -446,7 +446,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
         <div
             className={`${isFullScreen ? 'fixed inset-0 z-50' : 'relative'
                 } bg-slate-900 flex flex-col transition-all duration-300`}
-            style={{ height: isFullScreen ? '100vh' : '700px' }}
+            style={{ height: isFullScreen ? '100vh' : '83vh' }}
         >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800/50">
