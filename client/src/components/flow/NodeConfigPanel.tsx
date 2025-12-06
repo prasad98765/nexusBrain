@@ -33,7 +33,7 @@ import {
 
 interface NodeConfigPanelProps {
     nodeId: string | null;
-    nodeType: 'button' | 'input' | 'ai' | 'apiLibrary' | 'knowledgeBase' | 'engine' | 'condition' | 'interactiveList' | null;
+    nodeType: 'button' | 'input' | 'ai' | 'apiLibrary' | 'knowledgeBase' | 'engine' | 'condition' | 'interactiveList' | 'simpleMessage' | null;
     nodeData: any;
     onClose: () => void;
     onSave: (data: any) => void;
@@ -766,7 +766,7 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                         </div>
                         <div>
                             <h3 className="text-base font-semibold text-slate-100">
-                                {nodeType === 'button' ? 'Interactive Node' : nodeType === 'input' ? 'Input Node' : nodeType === 'ai' ? 'AI Node' : nodeType === 'apiLibrary' ? 'API Library Node' : nodeType === 'interactiveList' ? 'Interactive List Node' : 'Knowledge Base Node'}
+                                {nodeType === 'button' ? 'Interactive Node' : nodeType === 'input' ? 'Input Node' : nodeType === 'ai' ? 'AI Node' : nodeType === 'apiLibrary' ? 'API Library Node' : nodeType === 'interactiveList' ? 'Interactive List Node' : nodeType === 'simpleMessage' ? 'Message Node' : 'Knowledge Base Node'}
                             </h3>
                             <p className="text-xs text-slate-500">Configure node settings</p>
                         </div>
@@ -1606,6 +1606,41 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                 onChange={(variableId) => setConfig({ ...config, save_response_variable_id: variableId })}
                                 label="Save Response To"
                             />
+                        </>
+                    )}
+
+                    {/* Simple Message Node Config */}
+                    {nodeType === 'simpleMessage' && (
+                        <>
+                            {/* Message Content with Variable Referencing */}
+                            <div className="space-y-3 p-4 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-700/50 shadow-inner">
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="message" className="text-sm font-medium text-slate-200 uppercase tracking-wide">
+                                        Message Content
+                                    </Label>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Info className="h-4 w-4 text-slate-500 cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs max-w-[200px]">
+                                            <p>The message shown to users. Use # to reference variables.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+                                <RichTextEditor
+                                    value={config.message || ''}
+                                    onChange={(value) => setConfig({ ...config, message: value })}
+                                    placeholder="Enter your message content..."
+                                />
+                                <div className="flex items-center justify-between text-xs">
+                                    <p className="text-slate-500 italic flex items-center gap-1.5">
+                                        <span className="text-amber-400">#</span> Type # to reference a variable
+                                    </p>
+                                    <span className={getCounterColor(stripHtmlTags(config.message || '').length, INPUT_NODE_LIMITS.QUESTION_TEXT_MAX_LENGTH)}>
+                                        {stripHtmlTags(config.message || '').length}/{INPUT_NODE_LIMITS.QUESTION_TEXT_MAX_LENGTH}
+                                    </span>
+                                </div>
+                            </div>
                         </>
                     )}
 

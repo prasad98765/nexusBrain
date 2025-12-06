@@ -30,6 +30,7 @@ import EngineNode from '@/components/flow/EngineNode';
 import ConditionNode from '@/components/flow/ConditionNode';
 import NotesNode from '@/components/flow/NotesNode';
 import InteractiveListNode from '@/components/flow/InteractiveListNode';
+import SimpleMessageNode from '@/components/flow/SimpleMessageNode';
 import NodeConfigPanel from '@/components/flow/NodeConfigPanel';
 import AgentPreviewPanel from '@/components/flow/AgentPreviewPanel';
 import ConditionConfigDrawer from '@/components/flow/ConditionConfigDrawer';
@@ -46,6 +47,7 @@ const nodeTypes: NodeTypes = {
     condition: ConditionNode,
     notes: NotesNode,
     interactiveList: InteractiveListNode,
+    simpleMessage: SimpleMessageNode,
 };
 
 const initialNodes: Node[] = [];
@@ -61,7 +63,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-    const [editingNode, setEditingNode] = useState<{ id: string; type: 'button' | 'input' | 'ai' | 'apiLibrary' | 'knowledgeBase' | 'condition' | 'interactiveList' } | null>(null);
+    const [editingNode, setEditingNode] = useState<{ id: string; type: 'button' | 'input' | 'ai' | 'apiLibrary' | 'knowledgeBase' | 'condition' | 'interactiveList' | 'simpleMessage' } | null>(null);
     const [isLocked, setIsLocked] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
     const [showConditionDrawer, setShowConditionDrawer] = useState(false);
@@ -205,7 +207,12 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                                                             ],
                                                             footer: '',
                                                         }
-                                                        : {},
+                                                        : type === 'simpleMessage'
+                                                            ? {
+                                                                label: 'Message',
+                                                                message: '',
+                                                            }
+                                                            : {},
             };
 
             setNodes((nds) => nds.concat(newNode));
@@ -504,6 +511,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                                     <ComponentItem label="Interactive Node" type="button" />
                                     <ComponentItem label="Interactive List" type="interactiveList" />
                                     <ComponentItem label="Input Node" type="input" />
+                                    <ComponentItem label="Message" type="simpleMessage" />
                                 </div>
                             </div>
                             <div>

@@ -173,6 +173,9 @@ from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, System
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 
+# Variable resolution utility
+from .variable_resolver import resolve_variables, VariableResolverOptions
+
 # Database imports for variable label lookup
 from .database import db
 from .models import VariableMapping
@@ -1300,17 +1303,64 @@ def run_node(
         message_text = node_config.get('message', 'What would you like to do?')
         buttons = node_config.get('buttons', [])
         media = node_config.get('media')
+        footer_text = node_config.get('footer', '')
         message_text = strip_html_tags(message_text)
-        response = message_text
+        
+        # Resolve variables in the message text
+        resolved_message = resolve_variables(
+            message_text,
+            user_data,
+            VariableResolverOptions(
+                default_value='',
+                case_sensitive=False
+            )
+        )
+        
+        # Resolve variables in footer text if it exists
+        resolved_footer = None
+        if footer_text and footer_text.strip():
+            resolved_footer = resolve_variables(
+                footer_text,
+                user_data,
+                VariableResolverOptions(
+                    default_value='',
+                    case_sensitive=False
+                )
+            )
+        
+        # Extract header text from media if it's text type
+        header_text = None
+        if media and media.get('type') == 'text' and media.get('text'):
+            header_text = media.get('text')
+            # Resolve variables in header text
+            header_text = resolve_variables(
+                header_text,
+                user_data,
+                VariableResolverOptions(
+                    default_value='',
+                    case_sensitive=False
+                )
+            )
+        
+        response = resolved_message
         user_data[f'{current_node_id}_buttons'] = buttons
         
+        # Build UI schema
         ui_schema = {
             'type': 'interactive',
-            'message': message_text,
+            'message': resolved_message,
             'buttons': buttons,
             'media': media,
             'expects_input': len(buttons) > 0
         }
+        
+        # Add header text if available (from text media type)
+        if header_text:
+            ui_schema['headerText'] = header_text
+        
+        # Add footer if available
+        if resolved_footer:
+            ui_schema['footer'] = resolved_footer
         
         if user_input:
             # Get workspace_id from state for database lookup
@@ -1336,13 +1386,33 @@ def run_node(
         input_type = node_config.get('inputType', 'text')
         placeholder = node_config.get('placeholder', 'Enter your response')
         placeholder_text = strip_html_tags(placeholder)
-        response = placeholder_text
+        
+        # Resolve variables in label and placeholder
+        resolved_label = resolve_variables(
+            label,
+            user_data,
+            VariableResolverOptions(
+                default_value='',
+                case_sensitive=False
+            )
+        )
+        
+        resolved_placeholder = resolve_variables(
+            placeholder_text,
+            user_data,
+            VariableResolverOptions(
+                default_value='',
+                case_sensitive=False
+            )
+        )
+        
+        response = resolved_placeholder
         
         ui_schema = {
             'type': 'input',
-            'label': label,
+            'label': resolved_label,
             'inputType': input_type,
-            'placeholder': placeholder_text,
+            'placeholder': resolved_placeholder,
             'expects_input': True
         }
         
@@ -1352,6 +1422,115 @@ def run_node(
             variable_key = get_variable_key_for_node(current_node_id, node_config, workspace_id)
             user_data[variable_key] = user_input
             lc_messages.append(HumanMessage(content=user_input))
+        
+        lc_messages.append(AIMessage(content=response))
+    
+    elif current_node_type == 'simpleMessage':
+        # Simple message node - just displays a message with variable support
+        message_text = node_config.get('message', '')
+        message_text = strip_html_tags(message_text)
+        
+        # Resolve variables in the message using user_data from state
+        # Variables are in format #{VariableName}
+        resolved_message = resolve_variables(
+            message_text,
+            user_data,
+            VariableResolverOptions(
+                default_value='',  # Use empty string for missing variables
+                case_sensitive=False  # Case-insensitive matching (#{name} matches Name)
+            )
+        )
+        
+        response = resolved_message
+        
+        ui_schema = {
+            'type': 'info',
+            'message': resolved_message,
+            'expects_input': False
+        }
+        
+        lc_messages.append(AIMessage(content=response))
+    
+    elif current_node_type == 'interactiveList':
+        # Interactive List node - organized button sections with header, context, and footer
+        # All text fields support variable resolution
+        message_text = node_config.get('message', '')
+        header_text = node_config.get('headerText', '')
+        footer_text = node_config.get('footer', '')
+        button_list_title = node_config.get('buttonListTitle', 'Options')
+        sections = node_config.get('sections', [])
+        
+        # Strip HTML from text fields
+        message_text = strip_html_tags(message_text)
+        
+        # Resolve variables in header text
+        resolved_header = None
+        if header_text and header_text.strip():
+            resolved_header = resolve_variables(
+                header_text,
+                user_data,
+                VariableResolverOptions(
+                    default_value='',
+                    case_sensitive=False
+                )
+            )
+        
+        # Resolve variables in message (context) text
+        resolved_message = resolve_variables(
+            message_text,
+            user_data,
+            VariableResolverOptions(
+                default_value='',
+                case_sensitive=False
+            )
+        )
+        
+        # Resolve variables in footer text
+        resolved_footer = None
+        if footer_text and footer_text.strip():
+            resolved_footer = resolve_variables(
+                footer_text,
+                user_data,
+                VariableResolverOptions(
+                    default_value='',
+                    case_sensitive=False
+                )
+            )
+        
+        response = resolved_message
+        user_data[f'{current_node_id}_sections'] = sections
+        
+        # Build UI schema - only include headerText/footer if they have values
+        ui_schema = {
+            'type': 'interactiveList',
+            'message': resolved_message,
+            'buttonListTitle': button_list_title,
+            'sections': sections,
+            'expects_input': len(sections) > 0 and any(len(s.get('buttons', [])) > 0 for s in sections)
+        }
+        
+        # Only add headerText if it exists and has content
+        if resolved_header:
+            ui_schema['headerText'] = resolved_header
+        
+        # Only add footer if it exists and has content  
+        if resolved_footer:
+            ui_schema['footer'] = resolved_footer
+        
+        if user_input:
+            # Get workspace_id from state for database lookup
+            workspace_id = state.get('workspace_id')
+            variable_key = get_variable_key_for_node(current_node_id, node_config, workspace_id)
+            
+            # Store against the variable name
+            user_data[variable_key] = user_input
+            logger.info(f"[INTERACTIVE LIST NODE] Stored button selection against variable: {variable_key}")
+            
+            # Backward compatibility fallback
+            if variable_key == current_node_id:
+                user_data[f'{current_node_id}_action'] = user_input
+            
+            lc_messages.append(HumanMessage(content=f"Selected: {user_input}"))
         
         lc_messages.append(AIMessage(content=response))
         

@@ -128,7 +128,7 @@ export default function VariableInput({ value, onChange, placeholder, className 
         const beforeHash = value.substring(0, variableStartIndex.current);
         const afterCursor = value.substring(cursorPosition);
 
-        const newValue = `${beforeHash}#{${variable.name}} ${afterCursor}`;
+        const newValue = `${beforeHash}#{${variable.name}}${afterCursor}`;
         onChange(newValue);
 
         setShowMenu(false);

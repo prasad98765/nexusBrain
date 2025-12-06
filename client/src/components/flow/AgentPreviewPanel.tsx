@@ -22,6 +22,14 @@ interface Message {
     timestamp: Date;
     nodeType?: string; // Track the node type that generated this message
     buttons?: Array<{ id: string; label: string; actionType: string; actionValue?: string }>;
+    headerText?: string; // For interactive list header
+    footer?: string; // For interactive list footer
+    buttonListTitle?: string; // For interactive list
+    sections?: Array<{
+        id: string;
+        sectionName: string;
+        buttons: Array<{ id: string; label: string; actionType: string; actionValue?: string }>;
+    }>; // For interactive list sections
     media?: {
         type: 'image' | 'video' | 'document';
         url: string;
@@ -38,13 +46,26 @@ interface StepState {
 }
 
 interface UISchema {
-    type: 'interactive' | 'input' | 'processing' | 'complete' | 'info';
+    type: 'interactive' | 'input' | 'processing' | 'complete' | 'info' | 'interactiveList';
     message?: string;
     buttons?: Array<{ id: string; label: string; actionType: string; actionValue?: string }>;
+    headerText?: string;
+    footer?: string;
+    buttonListTitle?: string;
+    sections?: Array<{
+        id: string;
+        sectionName: string;
+        buttons: Array<{ id: string; label: string; actionType: string; actionValue?: string }>;
+    }>;
     label?: string;
     inputType?: string;
     placeholder?: string;
     expects_input: boolean;
+    media?: {
+        type: 'image' | 'video' | 'document';
+        url: string;
+        name?: string;
+    };
 }
 
 interface AgentPreviewPanelProps {
@@ -161,11 +182,15 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                 : data.response;
 
             const newMessage: Message = {
-                role: data.ui_schema.type === 'interactive' ? 'interactive' : 'assistant',
+                role: data.ui_schema.type === 'interactive' || data.ui_schema.type === 'interactiveList' ? 'interactive' : 'assistant',
                 content: messageContent,
                 timestamp: new Date(),
                 nodeType: data.node_type, // Track which node type generated this message
                 buttons: data.ui_schema.buttons,
+                headerText: data.ui_schema.headerText,
+                footer: data.ui_schema.footer,
+                buttonListTitle: data.ui_schema.buttonListTitle,
+                sections: data.ui_schema.sections,
                 media: data.ui_schema.media
             };
             setMessages(prev => [...prev, newMessage]);
@@ -565,7 +590,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold text-slate-100">Agent Preview</h3>
-                            <p className="text-xs text-slate-400">{agentName}</p>
+                            <p className="text-xs text-slate-400">Flow Agent {agentName}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -601,7 +626,8 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
 
                                     <div className="max-w-[70%]">
                                         <div
-                                            className={`rounded-lg p-3 ${message.role === 'user'
+                                            className={`rounded-lg p-3 ${
+message.role === 'user'
                                                 ? 'bg-indigo-600 text-white'
                                                 : message.nodeType === 'interactive' || message.nodeType === 'button' || message.nodeType === 'message'
                                                     ? 'bg-gradient-to-br from-slate-800 to-slate-900 text-slate-100 border border-gray-600/30'
@@ -613,9 +639,18 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                                                                 ? 'bg-gradient-to-br from-purple-900/40 to-purple-800/30 text-slate-100 border border-purple-600/30'
                                                                 : message.nodeType === 'knowledgeBase'
                                                                     ? 'bg-gradient-to-br from-purple-900/40 to-purple-800/30 text-slate-100 border border-purple-600/30'
-                                                                    : 'bg-slate-800 text-slate-100'
+                                                                    : message.nodeType === 'interactiveList'
+                                                                        ? 'bg-gradient-to-br from-slate-800 to-slate-900 text-slate-100 border border-purple-600/30'
+                                                                        : 'bg-slate-800 text-slate-100'
                                                 }`}
                                         >
+                                            {/* Header Text (for interactive list) */}
+                                            {message.headerText && (
+                                                <div className="mb-2 pb-2 border-b border-slate-700">
+                                                    <p className="text-sm font-semibold text-slate-200">{message.headerText}</p>
+                                                </div>
+                                            )}
+                                            
                                             {/* Render media if available */}
                                             {message.media && message.media.type === 'image' && message.media.url && (
                                                 <div className="mb-2">
@@ -650,7 +685,17 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                                                     </a>
                                                 </div>
                                             )}
+                                            
+                                            {/* Message Content */}
                                             <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                            
+                                            {/* Footer Text (for interactive list) */}
+                                            {message.footer && (
+                                                <div className="mt-2 pt-2 border-t border-slate-700">
+                                                    <p className="text-xs text-slate-400 italic">{message.footer}</p>
+                                                </div>
+                                            )}
+                                            
                                             <p className="text-xs opacity-60 mt-1">
                                                 {message?.timestamp?.toLocaleTimeString([], {
                                                     hour: '2-digit',
@@ -659,8 +704,8 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                                             </p>
                                         </div>
 
-                                        {/* Interactive Buttons */}
-                                        {message.role === 'interactive' && message.buttons && message.buttons.length > 0 && (
+                                        {/* Interactive Buttons (for regular interactive nodes) */}
+                                        {message.role === 'interactive' && message.buttons && message.buttons.length > 0 && !message.sections && (
                                             <div className="mt-2 flex flex-wrap gap-2">
                                                 {message.buttons.map((button, btnIndex) => (
                                                     <Button
@@ -672,6 +717,35 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                                                     >
                                                         {button.label}
                                                     </Button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        
+                                        {/* Interactive List Sections */}
+                                        {message.role === 'interactive' && message.sections && message.sections.length > 0 && (
+                                            <div className="mt-2 space-y-2">
+                                                {message.buttonListTitle && (
+                                                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">
+                                                        {message.buttonListTitle}
+                                                    </p>
+                                                )}
+                                                {message.sections.map((section) => (
+                                                    <div key={section.id} className="space-y-1.5">
+                                                        <p className="text-xs text-slate-300 font-semibold">{section.sectionName}</p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {section.buttons.map((button, btnIndex) => (
+                                                                <Button
+                                                                    key={button.id}
+                                                                    onClick={() => handleButtonClick(button, btnIndex)}
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className="border-purple-500 text-purple-400 hover:bg-purple-500/10"
+                                                                >
+                                                                    {button.label}
+                                                                </Button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
                                                 ))}
                                             </div>
                                         )}

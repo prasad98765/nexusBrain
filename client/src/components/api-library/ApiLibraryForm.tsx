@@ -81,7 +81,7 @@ export default function ApiLibraryForm({ initialData, onChange }: ApiLibraryForm
     useEffect(() => {
         if (initialData) {
             setFormData(initialData);
-            
+
             // Only reset accordion state on initial load, not on every data change
             if (!isInitialized) {
                 setExpandedSections({
@@ -194,7 +194,7 @@ export default function ApiLibraryForm({ initialData, onChange }: ApiLibraryForm
                     value={formData.name}
                     onChange={(e) => updateField('name', e.target.value)}
                     placeholder="e.g., Get Weather Data, Send Email, Create User"
-                    className="bg-[#0f1419] border-gray-700 text-gray-200 h-10"
+                    className="bg-[#rgb(30 41 59 / 0.5)] border-gray-700 text-gray-200 h-10"
                 />
             </div>
 
@@ -216,7 +216,7 @@ export default function ApiLibraryForm({ initialData, onChange }: ApiLibraryForm
             <div className="space-y-2">
                 <SectionHeader title="Prompt Instructions" section="prompt" />
                 {expandedSections.prompt && (
-                    <div className="p-5 bg-[#0f1419] rounded-lg border border-gray-700/30 space-y-3">
+                    <div className="p-5 bg-[#rgb(30 41 59 / 0.5)] rounded-lg border border-gray-700/30 space-y-3">
                         <LabelWithTooltip
                             label="Instruction"
                             tooltip="Write a clear, concise instruction that tells the AI when and how to use this API. Be specific about the purpose and expected outcome."
@@ -225,7 +225,7 @@ export default function ApiLibraryForm({ initialData, onChange }: ApiLibraryForm
                             value={formData.prompt_instructions}
                             onChange={(value) => updateField('prompt_instructions', value)}
                             placeholder="Example: Get the current weather forecast for a given location. Use this when the user asks about weather conditions."
-                            className="bg-[#0a0e14] border-gray-700 text-gray-200 min-h-[120px]"
+                            className="bg-[#1e293a80] border-gray-700 text-gray-200 min-h-[120px]"
                             rows={5}
                         />
                         <p className="text-xs text-gray-500 italic">
@@ -239,7 +239,7 @@ export default function ApiLibraryForm({ initialData, onChange }: ApiLibraryForm
             <div className="space-y-2">
                 <SectionHeader title="HTTP Request Configuration" section="handler" />
                 {expandedSections.handler && (
-                    <div className="p-5 bg-[#0f1419] rounded-lg border border-gray-700/30 space-y-5">
+                    <div className="p-5 bg-[#rgb(30 41 59 / 0.5)] rounded-lg border border-gray-700/30 space-y-5">
                         {/* Method */}
                         <div className="space-y-2">
                             <LabelWithTooltip
@@ -302,7 +302,7 @@ export default function ApiLibraryForm({ initialData, onChange }: ApiLibraryForm
                                             placeholder="Header name (e.g., Authorization)"
                                             value={header.key}
                                             onChange={(e) => updateHeader(index, 'key', e.target.value)}
-                                            className="flex-1 bg-[#0a0e14] border-gray-700 text-gray-200 text-sm h-10"
+                                            className="flex-1 bg-[#1e293a80] border-gray-700 text-gray-200 text-sm h-10"
                                         />
                                         <VariableInput
                                             placeholder="Header value (e.g., Bearer #{token})"
@@ -350,7 +350,7 @@ export default function ApiLibraryForm({ initialData, onChange }: ApiLibraryForm
                                         value={formData.body_raw}
                                         onChange={(value) => updateField('body_raw', value)}
                                         placeholder='{\n  "key": "value",\n  "user_id": "#{user_id}"\n}'
-                                        className="bg-[#0a0e14] border-gray-700 text-gray-200 font-mono text-sm"
+                                        className="bg-[#1e293a80] border-gray-700 text-gray-200 font-mono text-sm"
                                         rows={8}
                                     />
                                     <p className="text-xs text-gray-500 italic">
@@ -385,7 +385,7 @@ export default function ApiLibraryForm({ initialData, onChange }: ApiLibraryForm
                                                 placeholder="Field name"
                                                 value={field.key}
                                                 onChange={(e) => updateFormField(index, 'key', e.target.value)}
-                                                className="flex-1 bg-[#0a0e14] border-gray-700 text-gray-200 text-sm h-10"
+                                                className="flex-1 bg-[#1e293a80] border-gray-700 text-gray-200 text-sm h-10"
                                             />
                                             <VariableInput
                                                 placeholder={field.type === 'file' ? 'File path or #{file_var}' : 'Field value or #{variable}'}
@@ -439,7 +439,7 @@ export default function ApiLibraryForm({ initialData, onChange }: ApiLibraryForm
                                         value={formData.max_retries.toString()}
                                         onValueChange={(value) => updateField('max_retries', parseInt(value))}
                                     >
-                                        <SelectTrigger className="bg-[#0a0e14] border-gray-700 text-gray-200 w-40 h-10">
+                                        <SelectTrigger className="bg-[#1e293a80] border-gray-700 text-gray-200 w-40 h-10">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent className="bg-[#1a1f2e] border-gray-700">
@@ -459,7 +459,7 @@ export default function ApiLibraryForm({ initialData, onChange }: ApiLibraryForm
             <div className="space-y-2">
                 <SectionHeader title="Response Mapping" section="response" />
                 {expandedSections.response && (
-                    <div className="p-5 bg-[#0f1419] rounded-lg border border-gray-700/30 space-y-4">
+                    <div className="p-5 bg-[#rgb(30 41 59 / 0.5)] rounded-lg border border-gray-700/30 space-y-4">
                         <div className="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                             <Info className="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" />
                             <p className="text-xs text-gray-300">
@@ -499,7 +499,7 @@ export default function ApiLibraryForm({ initialData, onChange }: ApiLibraryForm
                                                 placeholder="e.g., result.data.id or result.name"
                                                 value={mapping.object_path}
                                                 onChange={(e) => updateResponseMapping(index, 'object_path', e.target.value)}
-                                                className="bg-[#0a0e14] border-gray-700 text-gray-200 text-sm h-10"
+                                                className="bg-[#1e293a80] border-gray-700 text-gray-200 text-sm h-10"
                                             />
                                         </div>
                                         <div className="flex-1 space-y-1">
