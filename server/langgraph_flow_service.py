@@ -1530,11 +1530,11 @@ def build_step_execution_graph(
             graph.add_edge(source, targets[0])
             logger.info(f"[GRAPH BUILD] Added edge: {source} -> {targets[0]}")
         else:
-            # Multiple outgoing edges - use conditional routing
-            # For now, just take the first edge as default
-            # In future, this can be enhanced with button-based routing
-            graph.add_edge(source, targets[0])
-            logger.info(f"[GRAPH BUILD] Added default edge for multi-path node: {source} -> {targets[0]} (note: node has {len(targets)} possible paths)")
+            # Multiple outgoing edges - add ALL edges to ensure reachability
+            # Step execution will still decide the next node via button_action or default routing
+            for target in targets:
+                graph.add_edge(source, target)
+                logger.info(f"[GRAPH BUILD] Added edge: {source} -> {target} (multi-path)")
     
     # Find terminal nodes (nodes with no outgoing edges) and connect to END
     source_nodes = set(edges_by_source.keys())
