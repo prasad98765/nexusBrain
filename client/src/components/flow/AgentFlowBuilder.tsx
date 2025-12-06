@@ -15,7 +15,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 
 import { Button } from '@/components/ui/button';
-import { Save, Minimize2, Maximize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, Eye } from 'lucide-react';
+import { Save, Minimize2, Maximize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, Eye, StickyNote } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { apiClient } from '@/lib/apiClient';
@@ -28,6 +28,8 @@ import ApiLibraryNode from '@/components/flow/ApiLibraryNode';
 import KnowledgeBaseNode from '@/components/flow/KnowledgeBaseNode';
 import EngineNode from '@/components/flow/EngineNode';
 import ConditionNode from '@/components/flow/ConditionNode';
+import NotesNode from '@/components/flow/NotesNode';
+import InteractiveListNode from '@/components/flow/InteractiveListNode';
 import NodeConfigPanel from '@/components/flow/NodeConfigPanel';
 import AgentPreviewPanel from '@/components/flow/AgentPreviewPanel';
 import ConditionConfigDrawer from '@/components/flow/ConditionConfigDrawer';
@@ -42,6 +44,8 @@ const nodeTypes: NodeTypes = {
     knowledgeBase: KnowledgeBaseNode,
     engine: EngineNode,
     condition: ConditionNode,
+    notes: NotesNode,
+    interactiveList: InteractiveListNode,
 };
 
 const initialNodes: Node[] = [];
@@ -57,7 +61,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-    const [editingNode, setEditingNode] = useState<{ id: string; type: 'button' | 'input' | 'ai' | 'apiLibrary' | 'knowledgeBase' | 'condition' } | null>(null);
+    const [editingNode, setEditingNode] = useState<{ id: string; type: 'button' | 'input' | 'ai' | 'apiLibrary' | 'knowledgeBase' | 'condition' | 'interactiveList' } | null>(null);
     const [isLocked, setIsLocked] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
     const [showConditionDrawer, setShowConditionDrawer] = useState(false);
@@ -156,9 +160,52 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                                             : type === 'condition'
                                                 ? {
                                                     label: 'Condition',
-                                                    conditions: [],
+                                                    conditionGroups: [
+                                                        {
+                                                            id: `group-${Date.now()}`,
+                                                            conditions: [
+                                                                {
+                                                                    id: `condition-${Date.now()}`,
+                                                                    variable: '',
+                                                                    operator: 'equals',
+                                                                    value: [],
+                                                                    valueType: 'static',
+                                                                    logicOperator: undefined,
+                                                                }
+                                                            ],
+                                                            groupLogicOperator: undefined,
+                                                        }
+                                                    ],
                                                 }
-                                                : {},
+                                                : type === 'notes'
+                                                    ? {
+                                                        content: '',
+                                                        width: 250,
+                                                        height: 200,
+                                                    }
+                                                    : type === 'interactiveList'
+                                                        ? {
+                                                            label: 'Interactive List',
+                                                            message: 'Please select an option:',
+                                                            headerText: '',
+                                                            buttonListTitle: 'Options',
+                                                            sections: [
+                                                                {
+                                                                    id: `section-${Date.now()}`,
+                                                                    sectionName: 'Section 1',
+                                                                    buttons: [
+                                                                        {
+                                                                            id: `btn-${Date.now()}`,
+                                                                            label: 'Button 1',
+                                                                            actionType: 'connect_to_node',
+                                                                            actionValue: '',
+                                                                        }
+                                                                    ],
+                                                                }
+                                                            ],
+                                                            footer: '',
+                                                        }
+                                                        : {},
             };
 
             setNodes((nds) => nds.concat(newNode));
@@ -240,11 +287,22 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
             );
         };
 
+        const handleUpdateNodeData = (e: Event) => {
+            const event = e as CustomEvent;
+            const { nodeId, data } = event.detail;
+            setNodes((nds) =>
+                nds.map((node) =>
+                    node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node
+                )
+            );
+        };
+
         window.addEventListener('deleteNode', handleDeleteNode);
         window.addEventListener('duplicateNode', handleDuplicateNode);
         window.addEventListener('toggleNodeMinimize', handleToggleNodeMinimize);
         window.addEventListener('editNode', handleEditNode);
         window.addEventListener('updateNodeLabel', handleUpdateNodeLabel);
+        window.addEventListener('updateNodeData', handleUpdateNodeData);
 
         return () => {
             window.removeEventListener('deleteNode', handleDeleteNode);
@@ -252,6 +310,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
             window.removeEventListener('toggleNodeMinimize', handleToggleNodeMinimize);
             window.removeEventListener('editNode', handleEditNode);
             window.removeEventListener('updateNodeLabel', handleUpdateNodeLabel);
+            window.removeEventListener('updateNodeData', handleUpdateNodeData);
         };
     }, [nodes, setNodes, setEdges, toast, isFullScreen, onToggleFullScreen]);
 
@@ -316,13 +375,21 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
         );
     };
 
-    const handleSaveConditions = (data: { conditionGroups: ConditionGroup[] }) => {
+    const handleSaveConditions = (data: { conditionGroups: ConditionGroup[]; hasDefaultOutput: boolean }) => {
         if (!editingConditionNodeId) return;
 
         setNodes((nds) =>
             nds.map((node) =>
                 node.id === editingConditionNodeId
-                    ? { ...node, data: { ...node.data, conditionGroups: data.conditionGroups, conditions: undefined } }
+                    ? {
+                        ...node,
+                        data: {
+                            ...node.data,
+                            conditionGroups: data.conditionGroups,
+                            hasDefaultOutput: data.hasDefaultOutput,
+                            conditions: undefined
+                        }
+                    }
                     : node
             )
         );
@@ -347,6 +414,32 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
         if (reactFlowInstance) {
             reactFlowInstance.fitView({ padding: 0.2 });
         }
+    };
+
+    const handleAddNote = () => {
+        if (!reactFlowInstance) return;
+
+        // Get center of visible viewport
+        const { x, y, zoom } = reactFlowInstance.getViewport();
+        const centerX = (window.innerWidth / 2 - x) / zoom;
+        const centerY = (window.innerHeight / 2 - y) / zoom;
+
+        const newNote: Node = {
+            id: `notes-${Date.now()}`,
+            type: 'notes',
+            position: { x: centerX - 125, y: centerY - 100 }, // Center the note (250x200 default size)
+            data: {
+                content: '',
+                width: 250,
+                height: 200,
+            },
+        };
+
+        setNodes((nds) => [...nds, newNote]);
+        toast({
+            title: 'Note Added',
+            description: 'A new sticky note has been added to the canvas.',
+        });
     };
 
     return (
@@ -409,6 +502,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                                 <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Input/Output</h4>
                                 <div className="space-y-1">
                                     <ComponentItem label="Interactive Node" type="button" />
+                                    <ComponentItem label="Interactive List" type="interactiveList" />
                                     <ComponentItem label="Input Node" type="input" />
                                 </div>
                             </div>
@@ -480,6 +574,13 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                                 >
                                     <Maximize className="h-4 w-4" />
                                 </button>
+                                <button
+                                    onClick={handleAddNote}
+                                    className="p-2 hover:bg-slate-700 rounded transition-colors text-slate-300 hover:text-white"
+                                    title="Fit View"
+                                >
+                                    <StickyNote className="h-4 w-4" />
+                                </button>
                                 <div className="w-px h-6 bg-slate-600" />
                                 <button
                                     onClick={() => setIsLocked(!isLocked)}
@@ -530,6 +631,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                         nodeId={editingConditionNodeId}
                         conditionGroups={node?.data?.conditionGroups}
                         conditions={node?.data?.conditions}
+                        hasDefaultOutput={node?.data?.hasDefaultOutput}
                         onSave={handleSaveConditions}
                     />
                 );

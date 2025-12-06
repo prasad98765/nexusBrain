@@ -594,10 +594,10 @@ export default function KnowledgeBasePage() {
     const handleSelectAllFiltered = () => {
         const filtered = getFilteredPages();
         const filteredUrls = new Set(filtered.map(p => p.url));
-        
+
         // Check if all filtered pages are already selected
         const allFilteredSelected = filtered.every(p => selectedPages.has(p.url));
-        
+
         if (allFilteredSelected) {
             // Deselect all filtered pages
             setSelectedPages(prev => {
@@ -619,7 +619,7 @@ export default function KnowledgeBasePage() {
         if (!pageSearchQuery.trim()) {
             return discoveredPages;
         }
-        
+
         const query = pageSearchQuery.toLowerCase();
         return discoveredPages.filter(page => {
             const titleMatch = page.title.toLowerCase().includes(query);
@@ -1104,7 +1104,7 @@ export default function KnowledgeBasePage() {
                                         <div className="space-y-2">
                                             <Label className="text-slate-300">Crawl Mode</Label>
                                             <div className="grid grid-cols-3 gap-2">
-                                                <button
+                                                {/* <button
                                                     onClick={() => setCrawlMode('single')}
                                                     disabled={crawling || discovering}
                                                     className={`p-3 rounded-lg border-2 transition-all ${crawlMode === 'single'
@@ -1114,7 +1114,7 @@ export default function KnowledgeBasePage() {
                                                 >
                                                     <div className="text-sm font-medium">Single Page</div>
                                                     <div className="text-xs mt-1 opacity-80">Crawl one URL</div>
-                                                </button>
+                                                </button> */}
                                                 <button
                                                     onClick={() => setCrawlMode('multi')}
                                                     disabled={crawling || discovering}
@@ -1564,7 +1564,7 @@ export default function KnowledgeBasePage() {
                             <div className="flex-1 overflow-y-auto space-y-2 pr-2">
                                 {(() => {
                                     const filteredPages = getFilteredPages();
-                                    
+
                                     if (filteredPages.length === 0) {
                                         return (
                                             <div className="flex flex-col items-center justify-center py-12 text-slate-500">
@@ -1574,11 +1574,11 @@ export default function KnowledgeBasePage() {
                                             </div>
                                         );
                                     }
-                                    
+
                                     return filteredPages.map((page, index) => {
                                         const isSelected = selectedPages.has(page.url);
                                         const originalIndex = discoveredPages.findIndex(p => p.url === page.url);
-                                        
+
                                         return (
                                             <div
                                                 key={page.url}

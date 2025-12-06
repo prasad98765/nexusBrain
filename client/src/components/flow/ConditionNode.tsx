@@ -27,6 +27,7 @@ export interface ConditionNodeData {
     label: string;
     conditionGroups?: ConditionGroup[]; // New group-based structure
     conditions?: ConditionRule[]; // Legacy flat structure for backward compatibility
+    hasDefaultOutput?: boolean; // Enable default/fallback output
     isMinimized?: boolean;
 }
 
@@ -83,13 +84,25 @@ export default function ConditionNode({ id, data, selected }: NodeProps<Conditio
     const conditionGroups = data.conditionGroups || [];
     const totalGroups = conditionGroups.length;
     const totalConditions = conditionGroups.reduce((sum, group) => sum + group.conditions.length, 0);
+    const hasDefaultOutput = data.hasDefaultOutput || false;
 
     // Generate dynamic output handles based on number of groups
     const outputHandles = conditionGroups.map((group, index) => ({
         id: `output-group-${index}`,
         label: `Group ${index + 1}`,
         position: index,
+        isDefault: false,
     }));
+
+    // Add default output handle if enabled
+    if (hasDefaultOutput) {
+        outputHandles.push({
+            id: 'output-default',
+            label: 'Default',
+            position: outputHandles.length,
+            isDefault: true,
+        });
+    }
 
     return (
         <TooltipProvider>
@@ -216,6 +229,14 @@ export default function ConditionNode({ id, data, selected }: NodeProps<Conditio
                                     {totalGroups} {totalGroups === 1 ? 'group' : 'groups'} • {totalConditions} condition{totalConditions !== 1 ? 's' : ''}
                                 </span>
                             </div>
+                            
+                            {/* Default Output Indicator */}
+                            {hasDefaultOutput && (
+                                <div className="flex items-center gap-2 text-xs px-2 py-1 bg-slate-500/10 border border-slate-500/30 rounded">
+                                    <div className="w-2 h-2 rounded-full bg-slate-500"></div>
+                                    <span className="text-slate-400">Default output enabled</span>
+                                </div>
+                            )}
 
                             {totalGroups === 0 ? (
                                 <div className="text-xs text-slate-500 bg-slate-800/50 p-3 rounded border border-slate-700/50 text-center">
@@ -263,19 +284,28 @@ export default function ConditionNode({ id, data, selected }: NodeProps<Conditio
                     </div>
                 )}
 
-                {/* Dynamic Output Handles - One per Group */}
+                {/* Dynamic Output Handles - One per Group + Optional Default */}
                 {outputHandles.length > 0 ? (
                     outputHandles.map((handle, index) => (
-                        <Handle
-                            key={handle.id}
-                            type="source"
-                            position={Position.Right}
-                            id={handle.id}
-                            style={{
-                                top: `${((index + 1) / (outputHandles.length + 1)) * 100}%`,
-                            }}
-                            className="!w-3 !h-3 !bg-amber-500 !border-2 !border-slate-900"
-                        />
+                        <Tooltip key={handle.id}>
+                            <TooltipTrigger asChild>
+                                <Handle
+                                    type="source"
+                                    position={Position.Right}
+                                    id={handle.id}
+                                    style={{
+                                        top: `${((index + 1) / (outputHandles.length + 1)) * 100}%`,
+                                    }}
+                                    className={handle.isDefault 
+                                        ? "!w-3 !h-3 !bg-slate-500 !border-2 !border-slate-900" 
+                                        : "!w-3 !h-3 !bg-amber-500 !border-2 !border-slate-900"
+                                    }
+                                />
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="bg-slate-900 border-slate-700 text-xs">
+                                <p>{handle.isDefault ? 'Default (Fallback)' : handle.label}</p>
+                            </TooltipContent>
+                        </Tooltip>
                     ))
                 ) : (
                     <Handle

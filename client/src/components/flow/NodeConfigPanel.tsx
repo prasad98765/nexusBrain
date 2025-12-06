@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Trash2, GripVertical, Upload, Link as LinkIcon, Settings2, Image as ImageIcon, Video, FileText, Info, ExternalLink, Database, Eye, CheckSquare, Square, Loader2, RefreshCw, Sparkles, Search, Globe, AlertCircle } from 'lucide-react';
+import { X, Plus, Trash2, GripVertical, Upload, Link as LinkIcon, Settings2, Image as ImageIcon, Video, FileText, Info, ExternalLink, Database, Eye, CheckSquare, Square, Loader2, RefreshCw, Sparkles, Search, Globe, AlertCircle, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,7 +33,7 @@ import {
 
 interface NodeConfigPanelProps {
     nodeId: string | null;
-    nodeType: 'button' | 'input' | 'ai' | 'apiLibrary' | 'knowledgeBase' | 'engine' | 'condition' | null;
+    nodeType: 'button' | 'input' | 'ai' | 'apiLibrary' | 'knowledgeBase' | 'engine' | 'condition' | 'interactiveList' | null;
     nodeData: any;
     onClose: () => void;
     onSave: (data: any) => void;
@@ -47,6 +47,18 @@ const INTERACTIVE_NODE_LIMITS = {
     BUTTON_TITLE_MAX_LENGTH: 20,
     MIN_BUTTONS: 1,
     MAX_BUTTONS: 3,
+};
+
+// Validation constants for Interactive List Node
+const INTERACTIVE_LIST_LIMITS = {
+    MESSAGE_MAX_LENGTH: 1024,
+    HEADER_TEXT_MAX_LENGTH: 60,
+    BUTTON_LIST_TITLE_MAX_LENGTH: 20,
+    SECTION_NAME_MAX_LENGTH: 24,
+    FOOTER_MAX_LENGTH: 60,
+    MAX_SECTIONS: 10,
+    MAX_BUTTONS_PER_SECTION: 10,
+    BUTTON_TITLE_MAX_LENGTH: 20,
 };
 
 // Validation constants for Input Node
@@ -76,6 +88,11 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
     const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+    // Interactive List Node states
+    const [collapsedSections, setCollapsedSections] = useState<{ [key: string]: boolean }>({});
+    const [draggedSection, setDraggedSection] = useState<number | null>(null);
+    const [draggedButtonInSection, setDraggedButtonInSection] = useState<{ sectionId: string; buttonIndex: number } | null>(null);
 
     // API Library states
     const [apiLibraries, setApiLibraries] = useState<any[]>([]);
@@ -496,6 +513,66 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
         return errors;
     };
 
+    // Validation function for Interactive List Node
+    const validateInteractiveListNode = (): string[] => {
+        const errors: string[] = [];
+
+        // Validate message content length
+        const messageText = stripHtmlTags(config.message || '');
+        if (messageText.length > INTERACTIVE_LIST_LIMITS.MESSAGE_MAX_LENGTH) {
+            errors.push(`Message content exceeds ${INTERACTIVE_LIST_LIMITS.MESSAGE_MAX_LENGTH} characters (current: ${messageText.length})`);
+        }
+
+        // Validate header text length if present
+        if (config.headerText && config.headerText.length > INTERACTIVE_LIST_LIMITS.HEADER_TEXT_MAX_LENGTH) {
+            errors.push(`Header text exceeds ${INTERACTIVE_LIST_LIMITS.HEADER_TEXT_MAX_LENGTH} characters (current: ${config.headerText.length})`);
+        }
+
+        // Validate button list title
+        if (config.buttonListTitle && config.buttonListTitle.length > INTERACTIVE_LIST_LIMITS.BUTTON_LIST_TITLE_MAX_LENGTH) {
+            errors.push(`Button list title exceeds ${INTERACTIVE_LIST_LIMITS.BUTTON_LIST_TITLE_MAX_LENGTH} characters (current: ${config.buttonListTitle.length})`);
+        }
+
+        // Validate footer length if present
+        if (config.footer && config.footer.length > INTERACTIVE_LIST_LIMITS.FOOTER_MAX_LENGTH) {
+            errors.push(`Footer exceeds ${INTERACTIVE_LIST_LIMITS.FOOTER_MAX_LENGTH} characters (current: ${config.footer.length})`);
+        }
+
+        // Validate sections
+        const sections = config.sections || [];
+        if (sections.length === 0) {
+            errors.push('At least 1 section is required');
+        }
+        if (sections.length > INTERACTIVE_LIST_LIMITS.MAX_SECTIONS) {
+            errors.push(`Maximum ${INTERACTIVE_LIST_LIMITS.MAX_SECTIONS} sections allowed (current: ${sections.length})`);
+        }
+
+        // Validate each section
+        sections.forEach((section: any, sectionIdx: number) => {
+            if (!section.sectionName || section.sectionName.trim().length === 0) {
+                errors.push(`Section ${sectionIdx + 1} must have a name`);
+            } else if (section.sectionName.length > INTERACTIVE_LIST_LIMITS.SECTION_NAME_MAX_LENGTH) {
+                errors.push(`Section ${sectionIdx + 1} name exceeds ${INTERACTIVE_LIST_LIMITS.SECTION_NAME_MAX_LENGTH} characters (current: ${section.sectionName.length})`);
+            }
+
+            // Validate buttons in section
+            const buttons = section.buttons || [];
+            if (buttons.length > INTERACTIVE_LIST_LIMITS.MAX_BUTTONS_PER_SECTION) {
+                errors.push(`Section ${sectionIdx + 1} exceeds ${INTERACTIVE_LIST_LIMITS.MAX_BUTTONS_PER_SECTION} buttons (current: ${buttons.length})`);
+            }
+
+            buttons.forEach((btn: any, btnIdx: number) => {
+                if (!btn.label || btn.label.trim().length === 0) {
+                    errors.push(`Section ${sectionIdx + 1}, Button ${btnIdx + 1} must have a title`);
+                } else if (btn.label.length > INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH) {
+                    errors.push(`Section ${sectionIdx + 1}, Button ${btnIdx + 1} title exceeds ${INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH} characters`);
+                }
+            });
+        });
+
+        return errors;
+    };
+
     const handleSave = () => {
         // Validate Interactive Node before saving
         if (nodeType === 'button') {
@@ -514,6 +591,20 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
         // Validate Input Node before saving
         if (nodeType === 'input') {
             const errors = validateInputNode();
+            if (errors.length > 0) {
+                setValidationErrors(errors);
+                toast({
+                    title: 'Validation Failed',
+                    description: errors[0],
+                    variant: 'destructive',
+                });
+                return;
+            }
+        }
+
+        // Validate Interactive List Node before saving
+        if (nodeType === 'interactiveList') {
+            const errors = validateInteractiveListNode();
             if (errors.length > 0) {
                 setValidationErrors(errors);
                 toast({
@@ -604,6 +695,64 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
         setDraggedButton(null);
     };
 
+    // Drag and drop handlers for Interactive List sections
+    const handleSectionDragStart = (index: number) => {
+        setDraggedSection(index);
+    };
+
+    const handleSectionDragOver = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
+        if (draggedSection === null || draggedSection === index) return;
+
+        const sections = [...config.sections];
+        const draggedItem = sections[draggedSection];
+        sections.splice(draggedSection, 1);
+        sections.splice(index, 0, draggedItem);
+
+        setConfig({ ...config, sections });
+        setDraggedSection(index);
+    };
+
+    const handleSectionDragEnd = () => {
+        setDraggedSection(null);
+    };
+
+    // Drag and drop handlers for buttons within sections
+    const handleButtonInSectionDragStart = (sectionId: string, buttonIndex: number) => {
+        setDraggedButtonInSection({ sectionId, buttonIndex });
+    };
+
+    const handleButtonInSectionDragOver = (e: React.DragEvent, sectionId: string, buttonIndex: number) => {
+        e.preventDefault();
+        if (!draggedButtonInSection || draggedButtonInSection.sectionId !== sectionId || draggedButtonInSection.buttonIndex === buttonIndex) return;
+
+        const sections = config.sections.map((s: any) => {
+            if (s.id === sectionId) {
+                const buttons = [...s.buttons];
+                const draggedItem = buttons[draggedButtonInSection.buttonIndex];
+                buttons.splice(draggedButtonInSection.buttonIndex, 1);
+                buttons.splice(buttonIndex, 0, draggedItem);
+                return { ...s, buttons };
+            }
+            return s;
+        });
+
+        setConfig({ ...config, sections });
+        setDraggedButtonInSection({ sectionId, buttonIndex });
+    };
+
+    const handleButtonInSectionDragEnd = () => {
+        setDraggedButtonInSection(null);
+    };
+
+    // Toggle section collapse state
+    const toggleSectionCollapse = (sectionId: string) => {
+        setCollapsedSections(prev => ({
+            ...prev,
+            [sectionId]: !prev[sectionId]
+        }));
+    };
+
     if (!nodeId || !nodeType) return null;
 
     return (
@@ -617,7 +766,7 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                         </div>
                         <div>
                             <h3 className="text-base font-semibold text-slate-100">
-                                {nodeType === 'button' ? 'Interactive Node' : nodeType === 'input' ? 'Input Node' : nodeType === 'ai' ? 'AI Node' : nodeType === 'apiLibrary' ? 'API Library Node' : 'Knowledge Base Node'}
+                                {nodeType === 'button' ? 'Interactive Node' : nodeType === 'input' ? 'Input Node' : nodeType === 'ai' ? 'AI Node' : nodeType === 'apiLibrary' ? 'API Library Node' : nodeType === 'interactiveList' ? 'Interactive List Node' : 'Knowledge Base Node'}
                             </h3>
                             <p className="text-xs text-slate-500">Configure node settings</p>
                         </div>
@@ -1006,6 +1155,382 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                             </div>
 
                             {/* Save Response to Variable - At Interactive Node Level */}
+                            <VariableSelector
+                                value={config.save_response_variable_id}
+                                onChange={(variableId) => setConfig({ ...config, save_response_variable_id: variableId })}
+                                label="Save Response To"
+                            />
+                        </>
+                    )}
+
+                    {/* Interactive List Node Config */}
+                    {nodeType === 'interactiveList' && (
+                        <>
+                            {/* Header Text (Optional, Text Only, Max 60 chars) */}
+                            <div className="space-y-3 p-4 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-700/50 shadow-inner">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-sm font-medium text-slate-200 uppercase tracking-wide">
+                                        Header Text (Optional)
+                                    </Label>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Info className="h-4 w-4 text-slate-500 cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs max-w-[200px]">
+                                            <p>Text-only header (no media). Maximum 60 characters. Can be left empty.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+                                <Input
+                                    value={config.headerText || ''}
+                                    onChange={(e) => setConfig({ ...config, headerText: e.target.value })}
+                                    placeholder="Header text (optional)..."
+                                    maxLength={INTERACTIVE_LIST_LIMITS.HEADER_TEXT_MAX_LENGTH}
+                                    className="bg-slate-800 border-slate-600/50 text-slate-200 text-sm hover:border-slate-500 focus:border-purple-500 transition-colors"
+                                />
+                                <span className={`text-xs ${getCounterColor((config.headerText || '').length, INTERACTIVE_LIST_LIMITS.HEADER_TEXT_MAX_LENGTH)}`}>
+                                    {(config.headerText || '').length}/{INTERACTIVE_LIST_LIMITS.HEADER_TEXT_MAX_LENGTH}
+                                </span>
+                            </div>
+
+                            {/* Message Content */}
+                            <div className="space-y-3 p-4 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-700/50 shadow-inner">
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="message" className="text-sm font-medium text-slate-200 uppercase tracking-wide">
+                                        Message Content
+                                    </Label>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Info className="h-4 w-4 text-slate-500 cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs max-w-[200px]">
+                                            <p>The main message shown to users. Use # to reference variables.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+                                <RichTextEditor
+                                    value={config.message || ''}
+                                    onChange={(value) => setConfig({ ...config, message: value })}
+                                    placeholder="Enter your message..."
+                                />
+                                <div className="flex items-center justify-between text-xs">
+                                    <p className="text-slate-500 italic flex items-center gap-1.5">
+                                        <span className="text-purple-400">#</span> Type # to reference a variable
+                                    </p>
+                                    <span className={getCounterColor(stripHtmlTags(config.message || '').length, INTERACTIVE_LIST_LIMITS.MESSAGE_MAX_LENGTH)}>
+                                        {stripHtmlTags(config.message || '').length}/{INTERACTIVE_LIST_LIMITS.MESSAGE_MAX_LENGTH}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Button List Title */}
+                            <div className="space-y-3 p-4 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-700/50 shadow-inner">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-sm font-medium text-slate-200 uppercase tracking-wide">
+                                        Button List Title
+                                    </Label>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Info className="h-4 w-4 text-slate-500 cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs max-w-[200px]">
+                                            <p>Title for the button sections list. Maximum 20 characters.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+                                <Input
+                                    value={config.buttonListTitle || 'Options'}
+                                    onChange={(e) => setConfig({ ...config, buttonListTitle: e.target.value })}
+                                    placeholder="Button list title..."
+                                    maxLength={INTERACTIVE_LIST_LIMITS.BUTTON_LIST_TITLE_MAX_LENGTH}
+                                    className="bg-slate-800 border-slate-600/50 text-slate-200 text-sm hover:border-slate-500 focus:border-purple-500 transition-colors"
+                                />
+                                <span className={`text-xs ${getCounterColor((config.buttonListTitle || '').length, INTERACTIVE_LIST_LIMITS.BUTTON_LIST_TITLE_MAX_LENGTH)}`}>
+                                    {(config.buttonListTitle || '').length}/{INTERACTIVE_LIST_LIMITS.BUTTON_LIST_TITLE_MAX_LENGTH}
+                                </span>
+                            </div>
+
+                            {/* Sections Management */}
+                            <div className="space-y-3 p-4 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-700/50 shadow-inner">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-sm font-medium text-slate-200 uppercase tracking-wide">
+                                        Sections ({config.sections?.length || 0}/{INTERACTIVE_LIST_LIMITS.MAX_SECTIONS})
+                                    </Label>
+                                    <Button
+                                        size="sm"
+                                        onClick={() => {
+                                            const sections = config.sections || [];
+                                            if (sections.length >= INTERACTIVE_LIST_LIMITS.MAX_SECTIONS) {
+                                                toast({
+                                                    title: 'Maximum Sections Reached',
+                                                    description: `You can only have ${INTERACTIVE_LIST_LIMITS.MAX_SECTIONS} sections maximum`,
+                                                    variant: 'destructive',
+                                                });
+                                                return;
+                                            }
+                                            const newSection = {
+                                                id: `section-${Date.now()}`,
+                                                sectionName: `Section ${sections.length + 1}`,
+                                                buttons: []
+                                            };
+                                            setConfig({
+                                                ...config,
+                                                sections: [...sections, newSection]
+                                            });
+                                        }}
+                                        disabled={(config.sections?.length || 0) >= INTERACTIVE_LIST_LIMITS.MAX_SECTIONS}
+                                        className="bg-purple-600 hover:bg-purple-700 h-7 text-xs shadow-lg shadow-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <Plus className="h-3.5 w-3.5 mr-1" />
+                                        Add Section
+                                    </Button>
+                                </div>
+
+                                {(!config.sections || config.sections.length === 0) && (
+                                    <div className="text-center py-4 text-xs text-yellow-400 bg-yellow-900/20 border border-yellow-700/30 rounded-lg">
+                                        ⚠️ At least 1 section is required
+                                    </div>
+                                )}
+
+                                {config.sections && config.sections.map((section: any, sectionIdx: number) => {
+                                    const isCollapsed = collapsedSections[section.id] || false;
+                                    
+                                    return (
+                                    <div
+                                        key={section.id}
+                                        draggable
+                                        onDragStart={() => handleSectionDragStart(sectionIdx)}
+                                        onDragOver={(e) => handleSectionDragOver(e, sectionIdx)}
+                                        onDragEnd={handleSectionDragEnd}
+                                        className={`p-3.5 bg-gradient-to-br from-slate-700/80 to-slate-800/80 border border-slate-600/40 rounded-lg space-y-3 transition-all ${
+                                            draggedSection === sectionIdx ? 'opacity-50' : 'opacity-100'
+                                        } cursor-move hover:border-purple-500/50`}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <GripVertical className="h-4 w-4 text-slate-500" />
+                                                <button
+                                                    onClick={() => toggleSectionCollapse(section.id)}
+                                                    className="p-1 hover:bg-slate-600/50 rounded transition-all"
+                                                    type="button"
+                                                >
+                                                    <ChevronDown className={`h-3.5 w-3.5 text-purple-400 transition-transform ${
+                                                        isCollapsed ? '-rotate-90' : ''
+                                                    }`} />
+                                                </button>
+                                                <span className="text-xs text-slate-400 font-medium">Section {sectionIdx + 1}</span>
+                                            </div>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <button
+                                                        onClick={() => {
+                                                            const updatedSections = config.sections.filter((s: any) => s.id !== section.id);
+                                                            setConfig({
+                                                                ...config,
+                                                                sections: updatedSections
+                                                            });
+                                                        }}
+                                                        className="p-1.5 hover:bg-red-900/60 rounded-lg transition-all hover:scale-105"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5 text-red-400 hover:text-red-300" />
+                                                    </button>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs">
+                                                    <p>Delete section</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </div>
+
+                                        {!isCollapsed && (
+                                            <>
+
+                                        {/* Section Name */}
+                                        <div className="space-y-2">
+                                            <Label className="text-xs text-slate-400">Section Name</Label>
+                                            <Input
+                                                value={section.sectionName}
+                                                onChange={(e) => {
+                                                    const updated = config.sections.map((s: any) =>
+                                                        s.id === section.id ? { ...s, sectionName: e.target.value } : s
+                                                    );
+                                                    setConfig({ ...config, sections: updated });
+                                                }}
+                                                placeholder="Section name"
+                                                maxLength={INTERACTIVE_LIST_LIMITS.SECTION_NAME_MAX_LENGTH}
+                                                className="bg-slate-800 border-slate-600/50 text-slate-200 text-sm hover:border-slate-500 focus:border-purple-500 transition-colors"
+                                            />
+                                            <span className={`text-xs ${getCounterColor((section.sectionName || '').length, INTERACTIVE_LIST_LIMITS.SECTION_NAME_MAX_LENGTH)}`}>
+                                                {(section.sectionName || '').length}/{INTERACTIVE_LIST_LIMITS.SECTION_NAME_MAX_LENGTH}
+                                            </span>
+                                        </div>
+
+                                        {/* Buttons in Section */}
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <Label className="text-xs text-slate-400">Buttons ({section.buttons?.length || 0}/{INTERACTIVE_LIST_LIMITS.MAX_BUTTONS_PER_SECTION})</Label>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        const buttons = section.buttons || [];
+                                                        if (buttons.length >= INTERACTIVE_LIST_LIMITS.MAX_BUTTONS_PER_SECTION) {
+                                                            toast({
+                                                                title: 'Maximum Buttons Reached',
+                                                                description: `Maximum ${INTERACTIVE_LIST_LIMITS.MAX_BUTTONS_PER_SECTION} buttons per section`,
+                                                                variant: 'destructive',
+                                                            });
+                                                            return;
+                                                        }
+                                                        const newButton = {
+                                                            id: `btn-${Date.now()}`,
+                                                            label: 'New Button',
+                                                            actionType: 'connect_to_node' as const,
+                                                            actionValue: ''
+                                                        };
+                                                        const updated = config.sections.map((s: any) =>
+                                                            s.id === section.id ? { ...s, buttons: [...buttons, newButton] } : s
+                                                        );
+                                                        setConfig({ ...config, sections: updated });
+                                                    }}
+                                                    disabled={(section.buttons?.length || 0) >= INTERACTIVE_LIST_LIMITS.MAX_BUTTONS_PER_SECTION}
+                                                    className="bg-purple-600 hover:bg-purple-700 h-6 text-xs px-2"
+                                                >
+                                                    <Plus className="h-3 w-3 mr-1" />
+                                                    Add Button
+                                                </Button>
+                                            </div>
+
+                                            {section.buttons && section.buttons.map((btn: any, btnIdx: number) => (
+                                                <div
+                                                    key={btn.id}
+                                                    draggable
+                                                    onDragStart={() => handleButtonInSectionDragStart(section.id, btnIdx)}
+                                                    onDragOver={(e) => handleButtonInSectionDragOver(e, section.id, btnIdx)}
+                                                    onDragEnd={handleButtonInSectionDragEnd}
+                                                    className={`p-2.5 bg-slate-800/60 border border-slate-600/40 rounded-md space-y-2 transition-all ${
+                                                        draggedButtonInSection?.sectionId === section.id && draggedButtonInSection?.buttonIndex === btnIdx ? 'opacity-50' : 'opacity-100'
+                                                    } cursor-move hover:border-purple-500/30`}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <GripVertical className="h-3 w-3 text-slate-500" />
+                                                            <span className="text-xs text-slate-500">Button {btnIdx + 1}</span>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                const updatedButtons = section.buttons.filter((b: any) => b.id !== btn.id);
+                                                                const updated = config.sections.map((s: any) =>
+                                                                    s.id === section.id ? { ...s, buttons: updatedButtons } : s
+                                                                );
+                                                                setConfig({ ...config, sections: updated });
+                                                            }}
+                                                            className="p-1 hover:bg-red-900/60 rounded transition-all"
+                                                        >
+                                                            <Trash2 className="h-3 w-3 text-red-400" />
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <Input
+                                                            value={btn.label}
+                                                            onChange={(e) => {
+                                                                const updatedButtons = section.buttons.map((b: any) =>
+                                                                    b.id === btn.id ? { ...b, label: e.target.value } : b
+                                                                );
+                                                                const updated = config.sections.map((s: any) =>
+                                                                    s.id === section.id ? { ...s, buttons: updatedButtons } : s
+                                                                );
+                                                                setConfig({ ...config, sections: updated });
+                                                            }}
+                                                            placeholder="Button label"
+                                                            maxLength={INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH}
+                                                            className="bg-slate-800 border-slate-600/50 text-slate-200 text-xs hover:border-slate-500 focus:border-purple-500 transition-colors"
+                                                        />
+                                                        <span className={`text-xs ${getCounterColor((btn.label || '').length, INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH)}`}>
+                                                            {(btn.label || '').length}/{INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH}
+                                                        </span>
+                                                    </div>
+
+                                                    <Select
+                                                        value={btn.actionType}
+                                                        onValueChange={(value) => {
+                                                            const updatedButtons = section.buttons.map((b: any) =>
+                                                                b.id === btn.id ? { ...b, actionType: value } : b
+                                                            );
+                                                            const updated = config.sections.map((s: any) =>
+                                                                s.id === section.id ? { ...s, buttons: updatedButtons } : s
+                                                            );
+                                                            setConfig({ ...config, sections: updated });
+                                                        }}
+                                                    >
+                                                        <SelectTrigger className="bg-slate-800 border-slate-600/50 text-slate-200 text-xs hover:border-slate-500 transition-colors">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent className="bg-slate-800 border-slate-700">
+                                                            <SelectItem value="connect_to_node">Connect to Node</SelectItem>
+                                                            <SelectItem value="call_number">Call Number</SelectItem>
+                                                            <SelectItem value="send_email">Send Email</SelectItem>
+                                                            <SelectItem value="open_url">Open URL</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+
+                                                    {btn.actionType !== 'connect_to_node' && (
+                                                        <Input
+                                                            value={btn.actionValue || ''}
+                                                            onChange={(e) => {
+                                                                const updatedButtons = section.buttons.map((b: any) =>
+                                                                    b.id === btn.id ? { ...b, actionValue: e.target.value } : b
+                                                                );
+                                                                const updated = config.sections.map((s: any) =>
+                                                                    s.id === section.id ? { ...s, buttons: updatedButtons } : s
+                                                                );
+                                                                setConfig({ ...config, sections: updated });
+                                                            }}
+                                                            placeholder={
+                                                                btn.actionType === 'call_number' ? 'Phone number' :
+                                                                    btn.actionType === 'send_email' ? 'Email address' :
+                                                                        'URL'
+                                                            }
+                                                            className="bg-slate-800 border-slate-600/50 text-slate-200 text-xs hover:border-slate-500 focus:border-purple-500 transition-colors"
+                                                        />
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                            </>
+                                        )}
+                                    </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Footer Text */}
+                            <div className="space-y-3 p-4 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-700/50 shadow-inner">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-sm font-medium text-slate-200 uppercase tracking-wide">
+                                        Footer Text (Optional)
+                                    </Label>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Info className="h-4 w-4 text-slate-500 cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs max-w-[200px]">
+                                            <p>Optional footer text. Maximum 60 characters.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+                                <Input
+                                    value={config.footer || ''}
+                                    onChange={(e) => setConfig({ ...config, footer: e.target.value })}
+                                    placeholder="Footer text..."
+                                    maxLength={INTERACTIVE_LIST_LIMITS.FOOTER_MAX_LENGTH}
+                                    className="bg-slate-800 border-slate-600/50 text-slate-200 text-sm hover:border-slate-500 focus:border-purple-500 transition-colors"
+                                />
+                                <span className={`text-xs ${getCounterColor((config.footer || '').length, INTERACTIVE_LIST_LIMITS.FOOTER_MAX_LENGTH)}`}>
+                                    {(config.footer || '').length}/{INTERACTIVE_LIST_LIMITS.FOOTER_MAX_LENGTH}
+                                </span>
+                            </div>
+
+                            {/* Save Response to Variable */}
                             <VariableSelector
                                 value={config.save_response_variable_id}
                                 onChange={(variableId) => setConfig({ ...config, save_response_variable_id: variableId })}
