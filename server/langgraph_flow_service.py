@@ -1474,10 +1474,22 @@ def build_step_execution_graph(
     # Store node executors for direct access
     node_executors = {}
     
-    # Add all nodes to the graph
+    # Identify reachable nodes (entry point + nodes with incoming edges)
+    entry_node_id = find_entry_node(flow_nodes, flow_edges)
+    target_nodes = {edge.get('target') for edge in flow_edges if edge.get('target')}
+    reachable_nodes = target_nodes.copy()
+    if entry_node_id:
+        reachable_nodes.add(entry_node_id)
+    
+    # Add only reachable nodes to the graph
     for node in flow_nodes:
         node_id = node['id']
         node_type = node.get('type')
+        
+        # Skip unreachable nodes
+        if node_id not in reachable_nodes:
+            logger.warning(f"[GRAPH BUILD] Skipping unreachable node: {node_id} (type: {node_type})")
+            continue
         
         # Create node executor function using unified run_node()
         def create_node_executor(current_node_id: str, current_node_type: str):
@@ -1507,13 +1519,15 @@ def build_step_execution_graph(
         graph.add_node(node_id, executor)
         logger.info(f"[GRAPH BUILD] Added node: {node_id} (type: {node_type})")
     
-    # Set entry point
-    entry_node_id = find_entry_node(flow_nodes, flow_edges)
+    # Set entry point (already found earlier)
     if entry_node_id:
         graph.set_entry_point(entry_node_id)
         logger.info(f"[GRAPH BUILD] Set entry point: {entry_node_id}")
+    else:
+        logger.error("[GRAPH BUILD] No entry node found in flow!")
     
     # Group edges by source node to detect multiple outgoing edges
+    # Use a set to avoid duplicate targets
     edges_by_source = {}
     for edge in flow_edges:
         source = edge.get('source')
@@ -1521,7 +1535,9 @@ def build_step_execution_graph(
         if source and target:
             if source not in edges_by_source:
                 edges_by_source[source] = []
-            edges_by_source[source].append(target)
+            # Avoid duplicate targets from same source
+            if target not in edges_by_source[source]:
+                edges_by_source[source].append(target)
     
     # Add edges - use conditional routing for nodes with multiple outgoing edges
     for source, targets in edges_by_source.items():
@@ -1530,16 +1546,40 @@ def build_step_execution_graph(
             graph.add_edge(source, targets[0])
             logger.info(f"[GRAPH BUILD] Added edge: {source} -> {targets[0]}")
         else:
-            # Multiple outgoing edges - add ALL edges to ensure reachability
-            # Step execution will still decide the next node via button_action or default routing
-            for target in targets:
-                graph.add_edge(source, target)
-                logger.info(f"[GRAPH BUILD] Added edge: {source} -> {target} (multi-path)")
+            # Multiple outgoing edges - use conditional routing
+            # Create a routing function that uses the state's next_node_id
+            def create_router(possible_targets):
+                def route(state: StepExecutionState) -> str:
+                    next_node = state.get('next_node_id')
+                    if next_node and next_node in possible_targets:
+                        logger.info(f"[CONDITIONAL ROUTING] Routing to: {next_node}")
+                        return next_node
+                    # Fallback to first target if next_node_id not set
+                    fallback = possible_targets[0]
+                    logger.warning(f"[CONDITIONAL ROUTING] next_node_id not set, using fallback: {fallback}")
+                    return fallback
+                return route
+            
+            # Create mapping of target nodes
+            target_mapping = {target: target for target in targets}
+            
+            # Use add_conditional_edges with the routing function
+            graph.add_conditional_edges(
+                source,
+                create_router(targets),
+                target_mapping
+            )
+            logger.info(f"[GRAPH BUILD] Added conditional edges from {source} to {targets}")
     
     # Find terminal nodes (nodes with no outgoing edges) and connect to END
+    # Only process reachable nodes that were actually added to the graph
     source_nodes = set(edges_by_source.keys())
     for node in flow_nodes:
         node_id = node.get('id')
+        # Skip if node is unreachable (wasn't added to graph)
+        if node_id not in reachable_nodes:
+            continue
+        # Connect terminal nodes to END
         if node_id not in source_nodes:
             graph.add_edge(node_id, END)
             logger.info(f"[GRAPH BUILD] Added terminal edge: {node_id} -> END")
@@ -1684,6 +1724,7 @@ def execute_single_node(
         }
         
         # Prepare state for this single node execution
+        # IMPORTANT: Set next_node_id BEFORE execution for conditional edge routing
         initial_state: StepExecutionState = {
             'node_id': node_id,
             'user_input': user_input or '',
@@ -1697,6 +1738,14 @@ def execute_single_node(
             'agent_id': agent_id,
             'conversation_id': conversation_id
         }
+        
+        # Pre-determine next node for conditional edge routing
+        if button_action:
+            initial_state['next_node_id'] = find_next_node_id(node_id, flow_edges, button_action)
+        else:
+            initial_state['next_node_id'] = find_next_node_id(node_id, flow_edges)
+        
+        logger.info(f"[STEP EXECUTION] Pre-determined next_node_id: {initial_state['next_node_id']}")
         
         # Try to get cached state from MemorySaver checkpoint
         try:
