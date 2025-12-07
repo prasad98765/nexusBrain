@@ -45,13 +45,13 @@ class VariableResolverOptions:
 
 
 # Regular expression to match variable placeholders in text.
-# Matches patterns like #{VariableName}, #{Variable_Name}, #{Variable123}
+# Matches patterns like #{VariableName}, #{Variable_Name}, #{Variable Name}, #{Variable123}
 #
 # Pattern breakdown:
 # - #\{ - matches literal "#{"
-# - ([a-zA-Z_][a-zA-Z0-9_]*) - captures variable name (must start with letter or underscore)
+# - ([a-zA-Z_][a-zA-Z0-9_ ]*) - captures variable name (must start with letter or underscore, can contain spaces)
 # - \} - matches literal "}"
-VARIABLE_PATTERN = re.compile(r'#\{([a-zA-Z_][a-zA-Z0-9_]*)\}')
+VARIABLE_PATTERN = re.compile(r'#\{([a-zA-Z_][a-zA-Z0-9_ ]*)\}')
 
 
 def resolve_variables(
@@ -199,7 +199,7 @@ def validate_variables(text: str) -> Dict[str, Union[bool, List[str]]]:
     """
     Validate variable names in text to ensure they follow naming conventions.
     Variable names must start with a letter or underscore and contain only
-    letters, numbers, and underscores.
+    letters, numbers, underscores, and spaces.
     
     Args:
         text: The text to validate
@@ -213,7 +213,7 @@ def validate_variables(text: str) -> Dict[str, Union[bool, List[str]]]:
     """
     # This pattern matches ANY #{...} including invalid ones
     any_variable_pattern = re.compile(r'#\{([^}]+)\}')
-    valid_name_pattern = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+    valid_name_pattern = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_ ]*$')
     
     invalid_vars = []
     matches = any_variable_pattern.findall(text)

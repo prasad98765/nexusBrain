@@ -86,6 +86,8 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
 
     const onConnect = useCallback(
         (params: Connection) => {
+            console.log('[API LIBRARY DEBUG] New connection params:', params);
+            
             // Determine edge style based on connection type
             let edgeStyle = { stroke: '#4b5563', strokeWidth: 2 };
             let animated = true;
@@ -96,12 +98,16 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                 animated = true;
             }
 
-            setEdges((eds) => addEdge({
+            const newEdge = {
                 ...params,
                 type: 'smoothstep',
                 animated,
                 style: edgeStyle
-            }, eds));
+            };
+            
+            console.log('[API LIBRARY DEBUG] New edge being added:', newEdge);
+            
+            setEdges((eds) => addEdge(newEdge, eds));
         },
         [setEdges]
     );
@@ -507,6 +513,20 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
         if (!reactFlowInstance) return;
 
         const flow = reactFlowInstance.toObject();
+        
+        // Debug: Log all edges with their sourceHandle values
+        console.log('[SAVE FLOW DEBUG] === Edges being saved ===');
+        flow.edges.forEach((edge: any, idx: number) => {
+            console.log(`[SAVE FLOW DEBUG] Edge #${idx}:`, {
+                id: edge.id,
+                source: edge.source,
+                target: edge.target,
+                sourceHandle: edge.sourceHandle,
+                targetHandle: edge.targetHandle
+            });
+        });
+        console.log('[SAVE FLOW DEBUG] === End edges ===');
+        
         try {
             const response = await apiClient.patch(`/api/flow-agents/${agentId}/flow`, {
                 flowData: flow

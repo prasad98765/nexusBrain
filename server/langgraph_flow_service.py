@@ -668,20 +668,50 @@ def clamp_ai_parameters(temperature: float, max_tokens: int) -> tuple[float, int
 
 
 
-def find_next_node_id(current_node_id: str, edges: List[Dict[str, Any]], button_action: Optional[Dict[str, Any]] = None) -> Optional[str]:
+def find_next_node_id(current_node_id: str, edges: List[Dict[str, Any]], button_action: Optional[Dict[str, Any]] = None, api_status: Optional[str] = None) -> Optional[str]:
     """
-    Find the next node ID based on current node, edges, and optional button action.
-    Supports button-specific routing via button index.
+    Find the next node ID based on current node, edges, and optional button action or API status.
+    Supports button-specific routing via button index and API Library success/failure routing.
     
     Args:
         current_node_id: Current node ID
         edges: List of edge connections
         button_action: Optional button action info with button_index, action_type, action_value
+        api_status: Optional API Library status ('success' or 'failure')
         
     Returns:
         Next node ID or None if at end of flow
     """
-    logger.info(f"[ROUTING] Finding next node from {current_node_id} with button_action: {button_action}")
+    logger.info(f"[ROUTING] Finding next node from {current_node_id} with button_action: {button_action}, api_status: {api_status}")
+    logger.info(f"[ROUTING] All edges in flow: {len(edges)} total")
+    
+    # Log all edges from the current node for debugging
+    edges_from_current = [e for e in edges if e.get('source') == current_node_id]
+    logger.info(f"[ROUTING] Edges from {current_node_id}: {len(edges_from_current)} edges")
+    for edge in edges_from_current:
+        logger.info(f"[ROUTING] Edge: {edge.get('id')} -> source={edge.get('source')}, target={edge.get('target')}, sourceHandle={edge.get('sourceHandle')}")
+    
+    # If API status provided (for API Library nodes)
+    if api_status:
+        # Look for edge with matching sourceHandle ("success" or "failure")
+        logger.info(f"[ROUTING] Looking for edge with sourceHandle: {api_status}")
+        logger.info(f"[ROUTING] Total edges from {current_node_id}: {sum(1 for e in edges if e.get('source') == current_node_id)}")
+        
+        for edge in edges:
+            if edge.get('source') == current_node_id:
+                source_handle = edge.get('sourceHandle')
+                target = edge.get('target')
+                logger.info(f"[ROUTING DEBUG] Edge details: source={edge.get('source')}, target={target}, sourceHandle='{source_handle}' (type: {type(source_handle)}), searching for: '{api_status}' (type: {type(api_status)})")
+                if source_handle == api_status:
+                    logger.info(f"[ROUTING] ✓ Found matching API {api_status} edge: {current_node_id} -> {target}")
+                    return target
+                else:
+                    logger.info(f"[ROUTING] ✗ No match: '{source_handle}' != '{api_status}'")
+        
+        # For API Library nodes, if no matching status edge found, do NOT fall back
+        # This ensures we don't accidentally route to wrong path
+        logger.warning(f"[ROUTING] No edge found for API status {api_status}, returning None (no fallback for API Library)")
+        return None
     
     # If button action provided and action type is 'connect_to_node'
     if button_action and button_action.get('action_type') == 'connect_to_node':
@@ -1317,7 +1347,7 @@ def run_node(
         buttons = node_config.get('buttons', [])
         media = node_config.get('media')
         footer_text = node_config.get('footer', '')
-        message_text = strip_html_tags(message_text)
+        # Preserve HTML formatting - do not strip tags
         
         # Resolve variables in the message text
         resolved_message = resolve_variables(
@@ -1398,7 +1428,7 @@ def run_node(
         label = node_config.get('label', 'Please provide your input')
         input_type = node_config.get('inputType', 'text')
         placeholder = node_config.get('placeholder', 'Enter your response')
-        placeholder_text = strip_html_tags(placeholder)
+        # Preserve HTML formatting - do not strip tags
         
         # Resolve variables in label and placeholder
         resolved_label = resolve_variables(
@@ -1411,7 +1441,7 @@ def run_node(
         )
         
         resolved_placeholder = resolve_variables(
-            placeholder_text,
+            placeholder,
             user_data,
             VariableResolverOptions(
                 default_value='',
@@ -1441,7 +1471,7 @@ def run_node(
     elif current_node_type == 'simpleMessage':
         # Simple message node - just displays a message with variable support
         message_text = node_config.get('message', '')
-        message_text = strip_html_tags(message_text)
+        # Preserve HTML formatting - do not strip tags
         
         # Resolve variables in the message using user_data from state
         # Variables are in format #{VariableName}
@@ -1473,8 +1503,7 @@ def run_node(
         button_list_title = node_config.get('buttonListTitle', 'Options')
         sections = node_config.get('sections', [])
         
-        # Strip HTML from text fields
-        message_text = strip_html_tags(message_text)
+        # Preserve HTML formatting - do not strip tags
         
         # Resolve variables in header text
         resolved_header = None
@@ -1611,20 +1640,259 @@ def run_node(
     
     elif current_node_type == 'apiLibrary':
         # API Library node - makes API call
+        from server.models import ApiLibrary, ApiLibraryRun, VariableMapping
+        from server.database import db
+        import requests
+        import time
+        import json
+        import re
+        
+        # Get workspace_id from state early for use throughout the function
+        workspace_id = state.get('workspace_id')
+        
+        api_library_id = node_config.get('apiLibraryId')
         api_name = node_config.get('apiName', 'API')
         api_method = node_config.get('apiMethod', '')
         
-        # For now, just indicate that API would be called
-        # In production, this would make the actual API call
-        response = f"API call to {api_name} {api_method} completed"
-        
-        ui_schema = {
-            'type': 'processing',
-            'message': response,
-            'expects_input': False
-        }
-        
-        lc_messages.append(AIMessage(content=response))
+        if not api_library_id:
+            # No API configured
+            response = f"No API configured for {api_name}"
+            ui_schema = {
+                'type': 'error',
+                'message': response,
+                'expects_input': False
+            }
+            lc_messages.append(AIMessage(content=response))
+        else:
+            # Fetch API configuration from database
+            api_config = ApiLibrary.query.get(api_library_id)
+            
+            if not api_config:
+                response = f"API configuration not found: {api_library_id}"
+                ui_schema = {
+                    'type': 'error',
+                    'message': response,
+                    'expects_input': False
+                }
+                lc_messages.append(AIMessage(content=response))
+            else:
+                # Resolve variables in prompt instructions
+                prompt_instructions = api_config.prompt_instructions or ''
+                if prompt_instructions:
+                    resolved_instructions = resolve_variables(prompt_instructions, user_data, VariableResolverOptions())
+                    logger.info(f"[API LIBRARY] Resolved prompt instructions: {resolved_instructions}")
+                
+                # Helper function to resolve variables in API config
+                def resolve_api_variables(text, user_data_dict):
+                    """Replace #{variable_name} with actual values from user_data (case-insensitive)"""
+                    if not text or not user_data_dict:
+                        return text
+                    
+                    # Create case-insensitive lookup
+                    data_lookup = {k.lower(): k for k in user_data_dict.keys()}
+                    
+                    pattern = r'#\{([^}]+)\}'
+                    def replacer(match):
+                        var_name = match.group(1).strip()  # Strip whitespace from variable name
+                        # Try case-insensitive lookup
+                        actual_key = data_lookup.get(var_name.lower())
+                        if actual_key and actual_key in user_data_dict:
+                            return str(user_data_dict[actual_key])
+                        return match.group(0)  # Keep placeholder if not found
+                    return re.sub(pattern, replacer, text)
+                
+                def process_variable_substitution_nested(data, user_data_dict):
+                    """Recursively process data structure and replace variables"""
+                    if isinstance(data, dict):
+                        return {k: process_variable_substitution_nested(v, user_data_dict) for k, v in data.items()}
+                    elif isinstance(data, list):
+                        return [process_variable_substitution_nested(item, user_data_dict) for item in data]
+                    elif isinstance(data, str):
+                        return resolve_api_variables(data, user_data_dict)
+                    return data
+                
+                # Start timing
+                start_time = time.time()
+                retry_count = 0
+                max_retries = api_config.max_retries if api_config.retry_enabled else 1
+                
+                # Resolve endpoint URL
+                endpoint = resolve_api_variables(api_config.endpoint, user_data)
+                logger.info(f"[API LIBRARY] Calling endpoint: {endpoint}")
+                
+                # Resolve headers
+                headers = {}
+                if api_config.headers:
+                    for header in api_config.headers:
+                        key = resolve_api_variables(header.get('key', ''), user_data)
+                        value = resolve_api_variables(header.get('value', ''), user_data)
+                        if key:
+                            headers[key] = value
+                logger.info(f"[API LIBRARY] Headers: {headers}")
+                
+                # Resolve body
+                body = None
+                if api_config.method in ['POST', 'PUT', 'PATCH']:
+                    if api_config.body_mode == 'raw' and api_config.body_raw:
+                        body_str = resolve_api_variables(api_config.body_raw, user_data)
+                        try:
+                            body = json.loads(body_str)
+                            # Recursively resolve variables in parsed JSON
+                            body = process_variable_substitution_nested(body, user_data)
+                        except:
+                            body = body_str
+                    elif api_config.body_mode == 'form' and api_config.body_form:
+                        body = {}
+                        for field in api_config.body_form:
+                            key = resolve_api_variables(field.get('key', ''), user_data)
+                            value = resolve_api_variables(field.get('value', ''), user_data)
+                            if key:
+                                body[key] = value
+                logger.info(f"[API LIBRARY] Request body: {body}")
+                
+                # Execute API call with retry logic
+                last_error = None
+                response_data = None
+                status_code = None
+                success = False
+                
+                for attempt in range(max_retries):
+                    try:
+                        retry_count = attempt
+                        logger.info(f"[API LIBRARY] Attempt {attempt + 1}/{max_retries}")
+                        
+                        api_response = requests.request(
+                            method=api_config.method,
+                            url=endpoint,
+                            headers=headers,
+                            json=body if isinstance(body, dict) else None,
+                            data=body if isinstance(body, str) else None,
+                            timeout=30
+                        )
+                        
+                        status_code = api_response.status_code
+                        logger.info(f"[API LIBRARY] Status code: {status_code}")
+                        
+                        # Try to parse JSON response, wrap in result key
+                        try:
+                            response_data = {'result': api_response.json()}
+                        except:
+                            response_data = {'result': api_response.text}
+                        
+                        # Success only if status code is exactly 200
+                        success = status_code == 200
+                        logger.info(f"[API LIBRARY] API success determination: status_code={status_code}, success={success}")
+                        
+                        # If not successful, capture error details from response
+                        if not success:
+                            if isinstance(response_data.get('result'), dict):
+                                error_msg = response_data['result'].get('error') or response_data['result'].get('message') or api_response.text
+                            else:
+                                error_msg = response_data.get('result') or api_response.text
+                            last_error = f"HTTP {status_code}: {error_msg}"
+                            logger.error(f"[API LIBRARY] API returned error: {last_error}")
+                        
+                        if success:
+                            break
+                            
+                    except Exception as e:
+                        last_error = str(e)
+                        logger.error(f"[API LIBRARY] Error on attempt {attempt + 1}: {last_error}")
+                        if attempt == max_retries - 1:
+                            status_code = None
+                            response_data = None
+                
+                duration_ms = int((time.time() - start_time) * 1000)
+                logger.info(f"[API LIBRARY] Call completed in {duration_ms}ms")
+                
+                # Save API call log to database
+                try:
+                    run = ApiLibraryRun(
+                        api_id=api_config.id,
+                        workspace_id=workspace_id,
+                        status_code=status_code,
+                        success=success,
+                        request_data={
+                            'endpoint': endpoint,
+                            'method': api_config.method,
+                            'headers': headers,
+                            'body': body
+                        },
+                        response_data=response_data,
+                        error_message=last_error if not success else None,
+                        duration_ms=duration_ms,
+                        retry_count=retry_count
+                    )
+                    db.session.add(run)
+                    db.session.commit()
+                    logger.info(f"[API LIBRARY] Logged API call run: {run.id}")
+                except Exception as log_error:
+                    logger.error(f"[API LIBRARY] Failed to log API run: {log_error}")
+                
+                # Process response mappings if successful
+                if success and response_data and api_config.response_mappings:
+                    logger.info(f"[API LIBRARY] Processing {len(api_config.response_mappings)} response mappings")
+                    
+                    for mapping in api_config.response_mappings:
+                        object_path = mapping.get('object_path', '')
+                        variable_id = mapping.get('variable_id', '')
+                        
+                        if not object_path or not variable_id:
+                            continue
+                        
+                        # Extract value from response using object path (e.g., "result.user.name")
+                        value = response_data
+                        try:
+                            for key in object_path.split('.'):
+                                if isinstance(value, dict):
+                                    value = value.get(key)
+                                elif isinstance(value, list) and key.isdigit():
+                                    value = value[int(key)]
+                                else:
+                                    value = None
+                                    break
+                        except:
+                            value = None
+                        
+                        if value is not None:
+                            # Get variable name from database
+                            variable = VariableMapping.query.filter_by(
+                                id=variable_id,
+                                workspace_id=workspace_id
+                            ).first()
+                            
+                            if variable:
+                                variable_name = variable.name
+                                user_data[variable_name] = value
+                                logger.info(f"[API LIBRARY] Mapped {object_path} -> {variable_name}: {value}")
+                            else:
+                                logger.warning(f"[API LIBRARY] Variable not found: {variable_id}")
+                
+                # Generate response message
+                if success:
+                    response = f"✓ API call to {api_name} completed successfully"
+                else:
+                    response = f"✗ API call to {api_name} failed: {last_error or 'Unknown error'}"
+                
+                # Store API status in user_data for routing decisions
+                user_data[f'{current_node_id}_api_status'] = 'success' if success else 'failure'
+                
+                logger.info(f"[API LIBRARY] Final status: success={success}, status_code={status_code}, will route to {'success' if success else 'failure'} path")
+                
+                ui_schema = {
+                    'type': 'processing',
+                    'message': response,
+                    'expects_input': False,
+                    'api_status': 'success' if success else 'error',
+                    'status_code': status_code,
+                    'duration_ms': duration_ms,
+                    'api_success': success,  # Add success flag for routing
+                    'node_type' : "apiLibrary"
+                }
+
+                logger.info(f"[API LIBRARY] Final: {ui_schema}")
+
+                lc_messages.append(AIMessage(content=response))
     
     elif current_node_type == 'knowledgeBase':
         # Knowledge Base node - retrieves information
@@ -1876,6 +2144,7 @@ def execute_single_node(
         - thread_id: Thread identifier for checkpointing
         Or error response if validation fails
     """
+    
     context = f"workspace_id={workspace_id}, agent_id={agent_id}, conversation_id={conversation_id}"
     logger.info(f"[STEP EXECUTION] Executing node: {node_id} [{context}]")
     
@@ -2136,7 +2405,19 @@ def execute_single_node(
                         logger.warning(f"[MEMORY CACHE] Could not save state: {save_err}")
                     
                     # Find next node after the connected node
-                    final_next_node_id = find_next_node_id(next_node_id, flow_edges)
+                    # IMPORTANT: Check if connected node is API Library and extract api_status
+                    if next_node.get('type') == 'apiLibrary':
+                        api_success = next_result.get('ui_schema', {}).get('api_success')
+                        if api_success is not None:
+                            api_status = 'success' if api_success else 'failure'
+                            logger.info(f"[BUTTON ROUTING] Connected API Library node result: api_success={api_success} -> routing to '{api_status}' path")
+                            final_next_node_id = find_next_node_id(next_node_id, flow_edges, api_status=api_status)
+                        else:
+                            logger.warning(f"[BUTTON ROUTING] API Library node has no api_success in ui_schema, using default routing")
+                            final_next_node_id = find_next_node_id(next_node_id, flow_edges)
+                    else:
+                        final_next_node_id = find_next_node_id(next_node_id, flow_edges)
+                    
                     next_node_type = next_node.get('type')
                     is_complete = final_next_node_id is None or next_node_type == 'engine'
                     
@@ -2171,8 +2452,182 @@ def execute_single_node(
                 logger.warning(f"[BUTTON ROUTING] No edge found for button action, using default routing")
         
         # For non-connect_to_node actions or if connect failed, use default routing
+        # Check if current node is API Library node and route based on success/failure
+        # logger.info("[DEBUG] current_node: %s", current_node)
+        # logger.info("[DEBUG] === ALL EDGES IN THIS FLOW ===")
+        # for idx, edge in enumerate(flow_edges):
+        #     logger.info(f"[DEBUG] Edge #{idx}: id={edge.get('id')}, source={edge.get('source')}, target={edge.get('target')}, sourceHandle='{edge.get('sourceHandle')}'")
+        # logger.info("[DEBUG] === END EDGES ===")
+        
+        node_type = current_node.get('type')
+        logger.info(f"[ROUTING CHECK] Node type: '{node_type}', result ui_schema: {result.get('ui_schema', {})}")
+        logger.info(f"[ROUTING CHECK] Is API Library node? {node_type == 'apiLibrary'}")
+        
+        # if node_type == 'apiLibrary':
+        #     # Get API status from ui_schema
+        #     api_success = result.get('ui_schema', {}).get('api_success')
+        #     logger.info(f"[API LIBRARY ROUTING] Extracted api_success: {api_success} (type: {type(api_success)})")
+        #     logger.info(f"[API LIBRARY ROUTING] ui_schema content: {result.get('ui_schema', {})}")
+        #     logger.info(f"[API LIBRARY ROUTING] Full result keys: {list(result.keys())}")
+            
+        #     if api_success is not None:
+        #         api_status = 'success' if api_success else 'failure'
+        #         logger.info(f"[API LIBRARY ROUTING] API call result: api_success={api_success} -> routing to '{api_status}' path")
+        #         logger.info(f"[API LIBRARY ROUTING] About to call find_next_node_id with node_id={node_id}, api_status={api_status}")
+        #         next_node_id = find_next_node_id(node_id, flow_edges, api_status=api_status)
+        #         logger.info(f"[API LIBRARY ROUTING] find_next_node_id returned: {next_node_id}")
+        #         logger.info(f"[API LIBRARY ROUTING] Will {'' if next_node_id else 'NOT '}execute next node")
+                
+        #         # Auto-execute the next node after API Library
+        #         if next_node_id:
+        #             logger.info(f"[API LIBRARY ROUTING] Found {api_status} path to node: {next_node_id}, executing it now")
+        #             # Find the next node
+        #             next_node = None
+        #             for node in flow_nodes:
+        #                 if node.get('id') == next_node_id:
+        #                     next_node = node
+        #                     break
+                    
+        #             if next_node:
+        #                 # Execute the connected node
+        #                 logger.info(f"[API LIBRARY ROUTING] Executing {api_status} path node {next_node_id} [{context}]")
+        #                 next_node_executor = get_node_executor(agent_id, next_node_id, workspace_id)
+                        
+        #                 # Prepare state for next node execution
+        #                 next_state: StepExecutionState = {
+        #                     'node_id': next_node_id,
+        #                     'user_input': '',
+        #                     'user_data': result.get('user_data', {}),
+        #                     'messages': result.get('messages', []),
+        #                     'response': '',
+        #                     'ui_schema': {},
+        #                     'next_node_id': None,
+        #                     'is_complete': False,
+        #                     'workspace_id': workspace_id,
+        #                     'agent_id': agent_id,
+        #                     'conversation_id': conversation_id
+        #                 }
+                        
+        #                 if next_node_executor and callable(next_node_executor):
+        #                     next_result = next_node_executor(next_state)
+        #                 else:
+        #                     next_result = run_node(
+        #                         current_node_id=next_node_id,
+        #                         current_node_type=next_node.get('type'),
+        #                         node_config=next_node.get('data', {}),
+        #                         state=next_state,
+        #                         flow_nodes=flow_nodes
+        #                     )
+                        
+        #                 # Save state after executing connected node
+        #                 try:
+        #                     compiled_graph.update_state(config, next_result)
+        #                     logger.info(f"[MEMORY CACHE] State saved after executing API {api_status} path node {next_node_id}")
+        #                 except Exception as save_err:
+        #                     logger.warning(f"[MEMORY CACHE] Could not save state: {save_err}")
+                        
+        #                 # Find next node after the connected node
+        #                 final_next_node_id = find_next_node_id(next_node_id, flow_edges)
+        #                 next_node_type = next_node.get('type')
+        #                 is_complete = final_next_node_id is None or next_node_type == 'engine'
+                        
+        #                 logger.info(f"[API LIBRARY ROUTING] Connected node executed. Current: {next_node_id}, Next: {final_next_node_id}, Complete: {is_complete}")
+                        
+        #                 # Return the connected node's result
+        #                 return {
+        #                     'success': True,
+        #                     'current_node_id': next_node_id,
+        #                     'node_type': next_node.get('type'),
+        #                     'current_node': {
+        #                         'id': next_node.get('id'),
+        #                         'type': next_node.get('type'),
+        #                         'label': next_node.get('data', {}).get('label', '')
+        #                     },
+        #                     'next_node_id': final_next_node_id,
+        #                     'state': {
+        #                         'user_data': next_result.get('user_data', {}),
+        #                         'messages': next_result.get('messages', []),
+        #                         'workspace_id': workspace_id,
+        #                         'agent_id': agent_id,
+        #                         'conversation_id': conversation_id
+        #                     },
+        #                     'ui_schema': next_result.get('ui_schema', {}),
+        #                     'response': next_result.get('response', ''),
+        #                     'is_complete': is_complete,
+        #                     'thread_id': thread_id
+        #                 }
+        #             else:
+        #                 logger.warning(f"[API LIBRARY ROUTING] Connected node {next_node_id} not found in flow")
+        #         else:
+        #             # No edge found for the API status - flow should stop here
+        #             logger.warning(f"[API LIBRARY ROUTING] No edge found for API {api_status}, flow will end")
+        #             # Return immediately without executing any more nodes
+        #             return {
+        #                 'success': True,
+        #                 'current_node_id': node_id,
+        #                 'node_type': current_node.get('type'),
+        #                 'current_node': {
+        #                     'id': current_node.get('id'),
+        #                     'type': current_node.get('type'),
+        #                     'label': current_node.get('data', {}).get('label', '')
+        #                 },
+        #                 'next_node_id': None,  # No next node - flow ends
+        #                 'state': {
+        #                     'user_data': result.get('user_data', {}),
+        #                     'messages': result.get('messages', []),
+        #                     'workspace_id': workspace_id,
+        #                     'agent_id': agent_id,
+        #                     'conversation_id': conversation_id
+        #                 },
+        #                 'ui_schema': result.get('ui_schema', {}),
+        #                 'response': result.get('response', ''),
+        #                 'is_complete': True,  # Mark as complete since no path exists
+        #                 'thread_id': thread_id
+        #             }
+        #     else:
+        #         logger.warning(f"[API LIBRARY ROUTING] api_success not found in ui_schema, flow will end")
+        #         # If api_success is not set, something is wrong - end the flow
+        #         return {
+        #             'success': True,
+        #             'current_node_id': node_id,
+        #             'node_type': current_node.get('type'),
+        #             'current_node': {
+        #                 'id': current_node.get('id'),
+        #                 'type': current_node.get('type'),
+        #                 'label': current_node.get('data', {}).get('label', '')
+        #             },
+        #             'next_node_id': None,
+        #             'state': {
+        #                 'user_data': result.get('user_data', {}),
+        #                 'messages': result.get('messages', []),
+        #                 'workspace_id': workspace_id,
+        #                 'agent_id': agent_id,
+        #                 'conversation_id': conversation_id
+        #             },
+        #             'ui_schema': result.get('ui_schema', {}),
+        #             'response': result.get('response', ''),
+        #             'is_complete': True,
+        #             'thread_id': thread_id
+        #         }
+        
+        # Default routing for non-API Library nodes or fallback
+        logger.info(f"[DEFAULT ROUTING] Reached default routing section. node_type='{node_type}'. This should NOT happen for apiLibrary nodes!")
+        
+        # SAFEGUARD: If this is somehow an API Library node, extract api_status
+        logger.info("result.get('ui_schema')",result.get('ui_schema'))
+        api_status_param = None
+        if node_type == 'apiLibrary':
+            logger.error(f"[DEFAULT ROUTING ERROR] API Library node fell through to default routing! Attempting to extract api_status...")
+            api_success = result.get('ui_schema', {}).get('api_success')
+            if api_success is not None:
+                api_status_param = 'success' if api_success else 'failure'
+                logger.error(f"[DEFAULT ROUTING ERROR] Extracted api_status: {api_status_param}")
         if button_action:
             next_node_id = find_next_node_id(node_id, flow_edges, button_action)
+        elif result.get('ui_schema').get('node_type') == "apiLibrary":
+            # Use API status if this is an API Library node that fell through
+            logger.error(f"[DEFAULT ROUTING ERROR] Using api_status={api_status_param} for routing")
+            next_node_id = find_next_node_id(node_id, flow_edges, api_status=api_status_param)
         else:
             next_node_id = find_next_node_id(node_id, flow_edges)
         

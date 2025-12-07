@@ -666,7 +666,10 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                                             {/* Render header text if available */}
                                             {message.headerText && (
                                                 <div className="mb-2 pb-2 border-b border-slate-600">
-                                                    <p className="text-sm font-semibold text-slate-200">{message.headerText}</p>
+                                                    <div 
+                                                        className="text-sm font-semibold text-slate-200 message-html-content"
+                                                        dangerouslySetInnerHTML={{ __html: message.headerText }}
+                                                    />
                                                 </div>
                                             )}
 
@@ -704,12 +707,18 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                                                     </a>
                                                 </div>
                                             )}
-                                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                            <div 
+                                                className="text-sm message-html-content"
+                                                dangerouslySetInnerHTML={{ __html: message.content }}
+                                            />
 
                                             {/* Render footer if available */}
                                             {message.footer && (
                                                 <div className="mt-2 pt-2 border-t border-slate-600">
-                                                    <p className="text-xs text-slate-400 italic">{message.footer}</p>
+                                                    <div 
+                                                        className="text-xs text-slate-400 italic message-html-content"
+                                                        dangerouslySetInnerHTML={{ __html: message.footer }}
+                                                    />
                                                 </div>
                                             )}
 
