@@ -1,6 +1,14 @@
+/**
+ * Agent Selector Node Component
+ * 
+ * Special node for selecting and configuring an existing agent
+ * Only shows agents where agentType === 'agent'
+ * Mutually exclusive with Engine node
+ */
+
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Zap, Trash2, Copy, Minimize2, Maximize2, Edit2 } from 'lucide-react';
+import { Bot, Trash2, Copy, Minimize2, Maximize2, Edit2 } from 'lucide-react';
 import {
     Tooltip,
     TooltipContent,
@@ -8,16 +16,18 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-interface EngineNodeData {
+interface AgentSelectorNodeData {
     label: string;
     isMinimized?: boolean;
-    isRequired?: boolean; // Cannot be deleted in Agent mode
+    selectedAgentId?: string;
+    selectedAgentName?: string;
+    selectedAgentDescription?: string;
 }
 
-export default function EngineNode({ id, data, selected }: NodeProps<EngineNodeData>) {
+export default function AgentSelectorNode({ id, data, selected }: NodeProps<AgentSelectorNodeData>) {
     const [isMinimized, setIsMinimized] = useState(data.isMinimized || false);
     const [isEditingLabel, setIsEditingLabel] = useState(false);
-    const [labelValue, setLabelValue] = useState(data.label || 'Engine');
+    const [labelValue, setLabelValue] = useState(data.label || 'Agent');
 
     const handleDelete = () => {
         const event = new CustomEvent('deleteNode', { detail: { nodeId: id } });
@@ -49,22 +59,32 @@ export default function EngineNode({ id, data, selected }: NodeProps<EngineNodeD
         if (e.key === 'Enter') {
             handleLabelSave();
         } else if (e.key === 'Escape') {
-            setLabelValue(data.label || 'Engine');
+            setLabelValue(data.label || 'Agent');
             setIsEditingLabel(false);
         }
+    };
+
+    const handleNodeClick = (e?: React.MouseEvent) => {
+        // Don't trigger if clicking on buttons inside the node
+        if (e && (e.target as HTMLElement).closest('button')) {
+            return;
+        }
+        const event = new CustomEvent('editNode', { detail: { nodeId: id, type: 'agentSelector' } });
+        window.dispatchEvent(event);
     };
 
     return (
         <TooltipProvider>
             <div
-                className={`bg-gradient-to-br from-[#1a1f2e] to-[#151922] rounded-lg border transition-all shadow-xl min-w-[280px] !p-0 !w-auto hover:shadow-2xl hover:shadow-orange-500/10 ${selected ? 'border-orange-500 ring-2 ring-orange-500/50 shadow-orange-500/20' : 'border-slate-700 hover:border-slate-600'
+                className={`bg-gradient-to-br from-[#1e1b2e] to-[#16131f] rounded-lg border transition-all shadow-xl min-w-[280px] !p-0 !w-auto hover:shadow-2xl hover:shadow-purple-500/10 ${selected ? 'border-purple-500 ring-2 ring-purple-500/50 shadow-purple-500/20' : 'border-slate-700 hover:border-slate-600'
                     }`}
+                onClick={handleNodeClick}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 bg-gradient-to-r from-orange-900/30 to-orange-800/20">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 bg-gradient-to-r from-purple-900/30 to-purple-800/20">
                     <div className="flex items-center gap-2.5 flex-1">
-                        <div className="p-1.5 bg-orange-500/20 rounded-md ring-1 ring-orange-500/30">
-                            <Zap className="h-4 w-4 text-orange-400" />
+                        <div className="p-1.5 bg-purple-500/20 rounded-md ring-1 ring-purple-500/30">
+                            <Bot className="h-4 w-4 text-purple-400" />
                         </div>
                         {isEditingLabel ? (
                             <input
@@ -73,13 +93,13 @@ export default function EngineNode({ id, data, selected }: NodeProps<EngineNodeD
                                 onChange={(e) => setLabelValue(e.target.value)}
                                 onBlur={handleLabelSave}
                                 onKeyDown={handleLabelKeyDown}
-                                className="text-sm font-semibold text-slate-100 bg-transparent border-b border-orange-400 outline-none px-1 focus:border-orange-300"
+                                className="text-sm font-semibold text-slate-100 bg-transparent border-b border-purple-400 outline-none px-1 focus:border-purple-300"
                                 autoFocus
                                 onClick={(e) => e.stopPropagation()}
                             />
                         ) : (
                             <span className="text-sm font-semibold text-slate-100">
-                                {data.label || 'Engine'}
+                                {data.label || 'Agent'}
                             </span>
                         )}
                     </div>
@@ -145,18 +165,13 @@ export default function EngineNode({ id, data, selected }: NodeProps<EngineNodeD
                                         e.stopPropagation();
                                         handleDelete();
                                     }}
-                                    className={`p-1.5 rounded transition-all hover:scale-105 ${data.isRequired
-                                            ? 'opacity-50 cursor-not-allowed'
-                                            : 'hover:bg-red-900/60'
-                                        }`}
-                                    disabled={data.isRequired}
+                                    className="p-1.5 hover:bg-red-900/60 rounded transition-all hover:scale-105"
                                 >
-                                    <Trash2 className={`h-3.5 w-3.5 ${data.isRequired ? 'text-slate-600' : 'text-red-400 hover:text-red-300'
-                                        }`} />
+                                    <Trash2 className="h-3.5 w-3.5 text-red-400 hover:text-red-300" />
                                 </button>
                             </TooltipTrigger>
                             <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-xs">
-                                <p>{data.isRequired ? 'Required node' : 'Delete node'}</p>
+                                <p>Delete node</p>
                             </TooltipContent>
                         </Tooltip>
                     </div>
@@ -165,9 +180,20 @@ export default function EngineNode({ id, data, selected }: NodeProps<EngineNodeD
                 {/* Body */}
                 {!isMinimized && (
                     <div className="p-4">
-                        <div className="text-center">
-                            <Zap className="h-8 w-8 text-orange-400 mx-auto mb-2 animate-pulse" />
-                            <p className="text-xs text-slate-400">Execution endpoint for the flow</p>
+                        <div className="text-center space-y-3">
+                            <Bot className="h-8 w-8 text-purple-400 mx-auto" />
+                            {data.selectedAgentId ? (
+                                <>
+                                    <div className="px-3 py-2 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                                        <p className="text-sm font-medium text-purple-300">{data.selectedAgentName}</p>
+                                        {data.selectedAgentDescription && (
+                                            <p className="text-xs text-slate-400 mt-1">{data.selectedAgentDescription}</p>
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <p className="text-xs text-slate-400">Click to select an agent</p>
+                            )}
                         </div>
                     </div>
                 )}
@@ -175,19 +201,21 @@ export default function EngineNode({ id, data, selected }: NodeProps<EngineNodeD
                 {isMinimized && (
                     <div className="p-3">
                         <div className="flex items-center gap-2">
-                            <div className="h-1.5 w-1.5 rounded-full bg-orange-400 animate-pulse" />
-                            <p className="text-xs text-slate-400 truncate font-medium">Engine</p>
+                            <div className="h-1.5 w-1.5 rounded-full bg-purple-400 animate-pulse" />
+                            <p className="text-xs text-slate-400 truncate font-medium">
+                                {data.selectedAgentName || 'Agent'}
+                            </p>
                         </div>
                     </div>
                 )}
 
-                {/* Input Handle - Only left side (no output) */}
+                {/* Input Handle - Left side */}
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Handle
                             type="target"
                             position={Position.Left}
-                            className="!w-3.5 !h-3.5 !bg-orange-500 !border-2 !border-gray-900 hover:!w-4 hover:!h-4 transition-all !shadow-lg !shadow-orange-500/50"
+                            className="!w-3.5 !h-3.5 !bg-purple-500 !border-2 !border-gray-900 hover:!w-4 hover:!h-4 transition-all !shadow-lg !shadow-purple-500/50"
                             style={{ top: '50%' }}
                         />
                     </TooltipTrigger>

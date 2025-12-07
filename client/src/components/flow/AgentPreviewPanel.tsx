@@ -22,19 +22,19 @@ interface Message {
     timestamp: Date;
     nodeType?: string; // Track the node type that generated this message
     buttons?: Array<{ id: string; label: string; actionType: string; actionValue?: string }>;
-    headerText?: string; // For interactive list header
-    footer?: string; // For interactive list footer
-    buttonListTitle?: string; // For interactive list
-    sections?: Array<{
-        id: string;
-        sectionName: string;
-        buttons: Array<{ id: string; label: string; actionType: string; actionValue?: string }>;
-    }>; // For interactive list sections
     media?: {
-        type: 'image' | 'video' | 'document';
-        url: string;
+        type: 'image' | 'video' | 'document' | 'text';
+        url?: string;
         name?: string;
+        text?: string; // For text media type
     };
+    headerText?: string;      // Header text for interactive nodes
+    footer?: string;          // Footer text for interactive nodes
+    buttonListTitle?: string; // Title for Interactive List button sections
+    sections?: Array<{        // Sections for Interactive List (max 10)
+        name: string;         // Section name (max 24 chars)
+        buttons: Array<{ id: string; label: string; actionType: string; actionValue?: string }>; // Max 10 buttons
+    }>;
 }
 
 interface StepState {
@@ -46,26 +46,13 @@ interface StepState {
 }
 
 interface UISchema {
-    type: 'interactive' | 'input' | 'processing' | 'complete' | 'info' | 'interactiveList';
+    type: 'interactive' | 'input' | 'processing' | 'complete' | 'info';
     message?: string;
     buttons?: Array<{ id: string; label: string; actionType: string; actionValue?: string }>;
-    headerText?: string;
-    footer?: string;
-    buttonListTitle?: string;
-    sections?: Array<{
-        id: string;
-        sectionName: string;
-        buttons: Array<{ id: string; label: string; actionType: string; actionValue?: string }>;
-    }>;
     label?: string;
     inputType?: string;
     placeholder?: string;
     expects_input: boolean;
-    media?: {
-        type: 'image' | 'video' | 'document';
-        url: string;
-        name?: string;
-    };
 }
 
 interface AgentPreviewPanelProps {
@@ -88,6 +75,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
     });
     const [uiSchema, setUiSchema] = useState<UISchema | null>(null);
     const [isComplete, setIsComplete] = useState(false);
+    const [conversationId, setConversationId] = useState<string>('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const isAutoProceeding = useRef(false);
 
@@ -98,8 +86,29 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
 
     const initializeFlow = async () => {
         setIsLoading(true);
+        
+        // Generate new conversation ID for this session
+        const newConversationId = `preview_${agentId}_${Date.now()}`;
+        setConversationId(newConversationId);
+        
+        // Reset all state
+        setMessages([]);
+        setCurrentNodeId(null);
+        setNextNodeId(null);
+        setFlowState({ user_data: {}, messages: [] });
+        setUiSchema(null);
+        setIsComplete(false);
+        setInputMessage('');
+        
+        // Show restart notification
+        toast({
+            title: 'Conversation Restarted',
+            description: 'Starting fresh from the beginning',
+        });
+        
         try {
-            // Clear cache to ensure fresh graph build
+            // Clear ALL caches for this agent (graph, node executors, checkpoints)
+            // This ensures any node configuration changes are reflected in preview
             try {
                 await fetch('/api/langgraph/clear-cache', {
                     method: 'POST',
@@ -109,9 +118,10 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                     },
                     body: JSON.stringify({
                         agent_id: agentId
+                        // NOT passing conversation_id to clear entire agent cache
                     })
                 });
-                console.log('[AgentPreviewPanel] Cache cleared for agent:', agentId);
+                console.log('[AgentPreviewPanel] Cleared ALL caches (graph, executors, checkpoints) for agent:', agentId);
             } catch (cacheError) {
                 console.warn('[AgentPreviewPanel] Failed to clear cache:', cacheError);
             }
@@ -128,7 +138,8 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                     user_input: '',
                     user_data: {},
                     messages: [],
-                    conversation_id: "1"
+                    conversation_id: newConversationId,  // Use new conversation ID
+                    is_start: true  // Flag to clear conversation cache and start fresh
                 })
             });
 
@@ -187,11 +198,11 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                 timestamp: new Date(),
                 nodeType: data.node_type, // Track which node type generated this message
                 buttons: data.ui_schema.buttons,
-                headerText: data.ui_schema.headerText,
-                footer: data.ui_schema.footer,
-                buttonListTitle: data.ui_schema.buttonListTitle,
-                sections: data.ui_schema.sections,
-                media: data.ui_schema.media
+                media: data.ui_schema.media,
+                headerText: data.ui_schema.headerText,     // Include header text
+                footer: data.ui_schema.footer,             // Include footer text
+                buttonListTitle: data.ui_schema.buttonListTitle, // Include button list title
+                sections: data.ui_schema.sections          // Include sections for Interactive List
             };
             setMessages(prev => [...prev, newMessage]);
         }
@@ -246,11 +257,10 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                 body: JSON.stringify({
                     agent_id: agentId,
                     node_id: nodeId,
-                    current_node_id: currentNodeId,
                     user_input: userInput,
                     user_data: state.user_data,
                     messages: state.messages,
-                    conversation_id: state.conversation_id
+                    conversation_id: conversationId || state.conversation_id
                 })
             });
 
@@ -283,7 +293,8 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
     const executeNextStep = async (userInput: string) => {
         console.log('[AgentPreviewPanel] executeNextStep called:', {
             userInput,
-            nextNodeId,
+            currentNodeId,  // Where input was provided
+            nextNodeId,      // What to execute next
             isComplete,
             willExecute: !(!nextNodeId || isComplete)
         });
@@ -305,12 +316,12 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                 },
                 body: JSON.stringify({
                     agent_id: agentId,
-                    node_id: nextNodeId,
-                    current_node_id: currentNodeId,
+                    node_id: nextNodeId,                // Node to execute
+                    current_node_id: currentNodeId,     // Node where input was provided
                     user_input: userInput,
                     user_data: flowState.user_data,
                     messages: flowState.messages,
-                    conversation_id: flowState.conversation_id
+                    conversation_id: conversationId || flowState.conversation_id
                 })
             });
 
@@ -365,11 +376,12 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                 },
                 body: JSON.stringify({
                     agent_id: agentId,
-                    node_id: currentNodeId,
+                    node_id: currentNodeId,              // Node to execute (button's node)
+                    current_node_id: currentNodeId,      // Node where input was provided (same as button's node)
                     user_input: button.label,
                     user_data: flowState.user_data,
                     messages: flowState.messages,
-                    conversation_id: flowState.conversation_id,
+                    conversation_id: conversationId || flowState.conversation_id,
                     button_action: {
                         button_index: buttonIndex,
                         action_type: button.actionType,
@@ -590,10 +602,20 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold text-slate-100">Agent Preview</h3>
-                            <p className="text-xs text-slate-400">Flow Agent {agentName}</p>
+                            <p className="text-xs text-slate-400">{agentName}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={initializeFlow}
+                            disabled={isLoading}
+                            className="text-slate-400 hover:text-white hover:bg-slate-800"
+                            title="Restart conversation"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        </Button>
                         <Button
                             variant="ghost"
                             size="sm"
@@ -626,8 +648,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
 
                                     <div className="max-w-[70%]">
                                         <div
-                                            className={`rounded-lg p-3 ${
-message.role === 'user'
+                                            className={`rounded-lg p-3 ${message.role === 'user'
                                                 ? 'bg-indigo-600 text-white'
                                                 : message.nodeType === 'interactive' || message.nodeType === 'button' || message.nodeType === 'message'
                                                     ? 'bg-gradient-to-br from-slate-800 to-slate-900 text-slate-100 border border-gray-600/30'
@@ -639,19 +660,17 @@ message.role === 'user'
                                                                 ? 'bg-gradient-to-br from-purple-900/40 to-purple-800/30 text-slate-100 border border-purple-600/30'
                                                                 : message.nodeType === 'knowledgeBase'
                                                                     ? 'bg-gradient-to-br from-purple-900/40 to-purple-800/30 text-slate-100 border border-purple-600/30'
-                                                                    : message.nodeType === 'interactiveList'
-                                                                        ? 'bg-gradient-to-br from-slate-800 to-slate-900 text-slate-100 border border-purple-600/30'
-                                                                        : 'bg-slate-800 text-slate-100'
+                                                                    : 'bg-slate-800 text-slate-100'
                                                 }`}
                                         >
-                                            {/* Header Text (for interactive list) */}
+                                            {/* Render header text if available */}
                                             {message.headerText && (
-                                                <div className="mb-2 pb-2 border-b border-slate-700">
+                                                <div className="mb-2 pb-2 border-b border-slate-600">
                                                     <p className="text-sm font-semibold text-slate-200">{message.headerText}</p>
                                                 </div>
                                             )}
-                                            
-                                            {/* Render media if available */}
+
+                                            {/* Render media if available (but not text type, as it's already in headerText) */}
                                             {message.media && message.media.type === 'image' && message.media.url && (
                                                 <div className="mb-2">
                                                     <img
@@ -685,17 +704,15 @@ message.role === 'user'
                                                     </a>
                                                 </div>
                                             )}
-                                            
-                                            {/* Message Content */}
                                             <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                                            
-                                            {/* Footer Text (for interactive list) */}
+
+                                            {/* Render footer if available */}
                                             {message.footer && (
-                                                <div className="mt-2 pt-2 border-t border-slate-700">
+                                                <div className="mt-2 pt-2 border-t border-slate-600">
                                                     <p className="text-xs text-slate-400 italic">{message.footer}</p>
                                                 </div>
                                             )}
-                                            
+
                                             <p className="text-xs opacity-60 mt-1">
                                                 {message?.timestamp?.toLocaleTimeString([], {
                                                     hour: '2-digit',
@@ -704,50 +721,53 @@ message.role === 'user'
                                             </p>
                                         </div>
 
-                                        {/* Interactive Buttons (for regular interactive nodes) */}
-                                        {message.role === 'interactive' && message.buttons && message.buttons.length > 0 && !message.sections && (
-                                            <div className="mt-2 flex flex-wrap gap-2">
-                                                {message.buttons.map((button, btnIndex) => (
-                                                    <Button
-                                                        key={btnIndex}
-                                                        onClick={() => handleButtonClick(button, btnIndex)}
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="border-indigo-500 text-indigo-400 hover:bg-indigo-500/10"
-                                                    >
-                                                        {button.label}
-                                                    </Button>
-                                                ))}
-                                            </div>
-                                        )}
-                                        
-                                        {/* Interactive List Sections */}
-                                        {message.role === 'interactive' && message.sections && message.sections.length > 0 && (
-                                            <div className="mt-2 space-y-2">
-                                                {message.buttonListTitle && (
-                                                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">
-                                                        {message.buttonListTitle}
-                                                    </p>
-                                                )}
-                                                {message.sections.map((section) => (
-                                                    <div key={section.id} className="space-y-1.5">
-                                                        <p className="text-xs text-slate-300 font-semibold">{section.sectionName}</p>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {section.buttons.map((button, btnIndex) => (
+                                        {/* Interactive Buttons - Simple or Sectioned */}
+                                        {message.role === 'interactive' && (
+                                            <>
+                                                {/* Interactive List with Sections - Flatten all buttons */}
+                                                {message.sections && message.sections.length > 0 && (() => {
+                                                    // Flatten all buttons from all sections into a single array
+                                                    const allButtons: Array<{ button: any; sectionIndex: number; buttonIndex: number }> = [];
+                                                    message.sections.slice(0, 10).forEach((section, sectionIndex) => {
+                                                        section.buttons.slice(0, 10).forEach((button, btnIndex) => {
+                                                            allButtons.push({ button, sectionIndex, buttonIndex: btnIndex });
+                                                        });
+                                                    });
+                                                    
+                                                    return (
+                                                        <div className="mt-2 flex flex-wrap gap-2">
+                                                            {allButtons.map((item, globalIndex) => (
                                                                 <Button
-                                                                    key={button.id}
-                                                                    onClick={() => handleButtonClick(button, btnIndex)}
+                                                                    key={`${item.sectionIndex}-${item.buttonIndex}`}
+                                                                    onClick={() => handleButtonClick(item.button, globalIndex)}
                                                                     size="sm"
                                                                     variant="outline"
-                                                                    className="border-purple-500 text-purple-400 hover:bg-purple-500/10"
+                                                                    className="border-indigo-500 text-indigo-400 hover:bg-indigo-500/10"
                                                                 >
-                                                                    {button.label}
+                                                                    {item.button.label}
                                                                 </Button>
                                                             ))}
                                                         </div>
+                                                    );
+                                                })()}
+
+                                                {/* Simple Interactive Buttons (no sections) */}
+                                                {message.buttons && message.buttons.length > 0 && !message.sections && (
+                                                    <div className="mt-2 flex flex-wrap gap-2">
+                                                        {message.buttons.map((button, btnIndex) => (
+                                                            <Button
+                                                                key={btnIndex}
+                                                                onClick={() => handleButtonClick(button, btnIndex)}
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="border-indigo-500 text-indigo-400 hover:bg-indigo-500/10"
+                                                            >
+                                                                {button.label}
+                                                            </Button>
+                                                        ))}
                                                     </div>
-                                                ))}
-                                            </div>
+                                                )}
+                                            </>
                                         )}
                                     </div>
 

@@ -56,7 +56,8 @@ def execute_flow_step():
             "user_data": dict,         # Optional: Previously collected data
             "messages": list,          # Optional: Previous conversation messages
             "conversation_id": str,    # Optional: Conversation ID for context
-            "button_action": dict      # Optional: Button action with button_index, action_type, action_value
+            "button_action": dict,     # Optional: Button action with button_index, action_type, action_value
+            "is_start": bool           # Optional: Clear conversation memory and start fresh (default: False)
         }
     
     Response:
@@ -120,15 +121,22 @@ def execute_flow_step():
         # Get node_id - if not provided, start from entry node
         node_id = data.get('node_id')
         current_node_id = data.get('current_node_id')  # Node where user provided input
+        conversation_id = data.get('conversation_id')
+        is_start = data.get('is_start', False)  # Flag to indicate fresh start
         
         if not node_id:
             node_id = find_entry_node(flow_nodes, flow_edges)
             logger.info(f"[LANGGRAPH STEP] Starting from entry node: {node_id}")
+            is_start = True  # If no node_id provided, it's a fresh start
+        
+        # Clear conversation cache if starting fresh (e.g., preview opened)
+        if is_start and conversation_id:
+            logger.info(f"[LANGGRAPH STEP] Fresh start - clearing conversation cache for: {conversation_id}")
+            clear_graph_cache(agent_id=agent_id, conversation_id=conversation_id, workspace_id=workspace_id)
         
         # Execute single node
         result = execute_single_node(
             node_id=node_id,
-            current_node_id=current_node_id,  # Pass the current node ID
             user_input=data.get('user_input', ''),
             flow_nodes=flow_nodes,
             flow_edges=flow_edges,
@@ -136,8 +144,9 @@ def execute_flow_step():
             messages=data.get('messages', []),
             workspace_id=workspace_id,
             agent_id=agent_id,
-            conversation_id=data.get('conversation_id'),
-            button_action=data.get('button_action')  # Pass button action to service
+            conversation_id=conversation_id,
+            button_action=data.get('button_action'),  # Pass button action to service
+            current_node_id=current_node_id  # Pass the node where user provided input
         )
         
         return jsonify(result), 200

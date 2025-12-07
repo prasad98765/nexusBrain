@@ -16,6 +16,7 @@ interface AINodeData {
     systemPrompt?: string;
     save_response_variable_id?: string;
     isMinimized?: boolean;
+    isRequired?: boolean; // Cannot be deleted in Agent mode
 }
 
 export default function AINode({ id, data, selected }: NodeProps<AINodeData>) {
@@ -167,13 +168,20 @@ export default function AINode({ id, data, selected }: NodeProps<AINodeData>) {
                                         e.stopPropagation();
                                         handleDelete();
                                     }}
-                                    className="p-1.5 hover:bg-red-900/60 rounded transition-all hover:scale-105"
+                                    className={`p-1.5 rounded transition-all hover:scale-105 ${
+                                        data.isRequired
+                                            ? 'opacity-50 cursor-not-allowed'
+                                            : 'hover:bg-red-900/60'
+                                    }`}
+                                    disabled={data.isRequired}
                                 >
-                                    <Trash2 className="h-3.5 w-3.5 text-red-400 hover:text-red-300" />
+                                    <Trash2 className={`h-3.5 w-3.5 ${
+                                        data.isRequired ? 'text-slate-600' : 'text-red-400 hover:text-red-300'
+                                    }`} />
                                 </button>
                             </TooltipTrigger>
                             <TooltipContent side="top" className="bg-slate-900 border-slate-700 text-xs">
-                                <p>Delete node</p>
+                                <p>{data.isRequired ? 'Required node' : 'Delete node'}</p>
                             </TooltipContent>
                         </Tooltip>
                     </div>

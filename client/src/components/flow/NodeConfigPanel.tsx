@@ -37,6 +37,7 @@ interface NodeConfigPanelProps {
     nodeData: any;
     onClose: () => void;
     onSave: (data: any) => void;
+    agentType?: 'agent' | 'assistant' | null;
 }
 
 // Validation constants for Interactive Node
@@ -81,7 +82,7 @@ const getCounterColor = (current: number, max: number): string => {
     return 'text-slate-400';
 };
 
-export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, onSave }: NodeConfigPanelProps) {
+export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, onSave, agentType }: NodeConfigPanelProps) {
     const [config, setConfig] = useState<any>({});
     const [draggedButton, setDraggedButton] = useState<number | null>(null);
     const [mediaUploadType, setMediaUploadType] = useState<'upload' | 'link'>('link');
@@ -1294,211 +1295,208 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
 
                                 {config.sections && config.sections.map((section: any, sectionIdx: number) => {
                                     const isCollapsed = collapsedSections[section.id] || false;
-                                    
+
                                     return (
-                                    <div
-                                        key={section.id}
-                                        draggable
-                                        onDragStart={() => handleSectionDragStart(sectionIdx)}
-                                        onDragOver={(e) => handleSectionDragOver(e, sectionIdx)}
-                                        onDragEnd={handleSectionDragEnd}
-                                        className={`p-3.5 bg-gradient-to-br from-slate-700/80 to-slate-800/80 border border-slate-600/40 rounded-lg space-y-3 transition-all ${
-                                            draggedSection === sectionIdx ? 'opacity-50' : 'opacity-100'
-                                        } cursor-move hover:border-purple-500/50`}
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <GripVertical className="h-4 w-4 text-slate-500" />
-                                                <button
-                                                    onClick={() => toggleSectionCollapse(section.id)}
-                                                    className="p-1 hover:bg-slate-600/50 rounded transition-all"
-                                                    type="button"
-                                                >
-                                                    <ChevronDown className={`h-3.5 w-3.5 text-purple-400 transition-transform ${
-                                                        isCollapsed ? '-rotate-90' : ''
-                                                    }`} />
-                                                </button>
-                                                <span className="text-xs text-slate-400 font-medium">Section {sectionIdx + 1}</span>
-                                            </div>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <button
-                                                        onClick={() => {
-                                                            const updatedSections = config.sections.filter((s: any) => s.id !== section.id);
-                                                            setConfig({
-                                                                ...config,
-                                                                sections: updatedSections
-                                                            });
-                                                        }}
-                                                        className="p-1.5 hover:bg-red-900/60 rounded-lg transition-all hover:scale-105"
-                                                    >
-                                                        <Trash2 className="h-3.5 w-3.5 text-red-400 hover:text-red-300" />
-                                                    </button>
-                                                </TooltipTrigger>
-                                                <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs">
-                                                    <p>Delete section</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </div>
-
-                                        {!isCollapsed && (
-                                            <>
-
-                                        {/* Section Name */}
-                                        <div className="space-y-2">
-                                            <Label className="text-xs text-slate-400">Section Name</Label>
-                                            <Input
-                                                value={section.sectionName}
-                                                onChange={(e) => {
-                                                    const updated = config.sections.map((s: any) =>
-                                                        s.id === section.id ? { ...s, sectionName: e.target.value } : s
-                                                    );
-                                                    setConfig({ ...config, sections: updated });
-                                                }}
-                                                placeholder="Section name"
-                                                maxLength={INTERACTIVE_LIST_LIMITS.SECTION_NAME_MAX_LENGTH}
-                                                className="bg-slate-800 border-slate-600/50 text-slate-200 text-sm hover:border-slate-500 focus:border-purple-500 transition-colors"
-                                            />
-                                            <span className={`text-xs ${getCounterColor((section.sectionName || '').length, INTERACTIVE_LIST_LIMITS.SECTION_NAME_MAX_LENGTH)}`}>
-                                                {(section.sectionName || '').length}/{INTERACTIVE_LIST_LIMITS.SECTION_NAME_MAX_LENGTH}
-                                            </span>
-                                        </div>
-
-                                        {/* Buttons in Section */}
-                                        <div className="space-y-2">
+                                        <div
+                                            key={section.id}
+                                            draggable
+                                            onDragStart={() => handleSectionDragStart(sectionIdx)}
+                                            onDragOver={(e) => handleSectionDragOver(e, sectionIdx)}
+                                            onDragEnd={handleSectionDragEnd}
+                                            className={`p-3.5 bg-gradient-to-br from-slate-700/80 to-slate-800/80 border border-slate-600/40 rounded-lg space-y-3 transition-all ${draggedSection === sectionIdx ? 'opacity-50' : 'opacity-100'
+                                                } cursor-move hover:border-purple-500/50`}
+                                        >
                                             <div className="flex items-center justify-between">
-                                                <Label className="text-xs text-slate-400">Buttons ({section.buttons?.length || 0}/{INTERACTIVE_LIST_LIMITS.MAX_BUTTONS_PER_SECTION})</Label>
-                                                <Button
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        const buttons = section.buttons || [];
-                                                        if (buttons.length >= INTERACTIVE_LIST_LIMITS.MAX_BUTTONS_PER_SECTION) {
-                                                            toast({
-                                                                title: 'Maximum Buttons Reached',
-                                                                description: `Maximum ${INTERACTIVE_LIST_LIMITS.MAX_BUTTONS_PER_SECTION} buttons per section`,
-                                                                variant: 'destructive',
-                                                            });
-                                                            return;
-                                                        }
-                                                        const newButton = {
-                                                            id: `btn-${Date.now()}`,
-                                                            label: 'New Button',
-                                                            actionType: 'connect_to_node' as const,
-                                                            actionValue: ''
-                                                        };
-                                                        const updated = config.sections.map((s: any) =>
-                                                            s.id === section.id ? { ...s, buttons: [...buttons, newButton] } : s
-                                                        );
-                                                        setConfig({ ...config, sections: updated });
-                                                    }}
-                                                    disabled={(section.buttons?.length || 0) >= INTERACTIVE_LIST_LIMITS.MAX_BUTTONS_PER_SECTION}
-                                                    className="bg-purple-600 hover:bg-purple-700 h-6 text-xs px-2"
-                                                >
-                                                    <Plus className="h-3 w-3 mr-1" />
-                                                    Add Button
-                                                </Button>
-                                            </div>
-
-                                            {section.buttons && section.buttons.map((btn: any, btnIdx: number) => (
-                                                <div
-                                                    key={btn.id}
-                                                    draggable
-                                                    onDragStart={() => handleButtonInSectionDragStart(section.id, btnIdx)}
-                                                    onDragOver={(e) => handleButtonInSectionDragOver(e, section.id, btnIdx)}
-                                                    onDragEnd={handleButtonInSectionDragEnd}
-                                                    className={`p-2.5 bg-slate-800/60 border border-slate-600/40 rounded-md space-y-2 transition-all ${
-                                                        draggedButtonInSection?.sectionId === section.id && draggedButtonInSection?.buttonIndex === btnIdx ? 'opacity-50' : 'opacity-100'
-                                                    } cursor-move hover:border-purple-500/30`}
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-1.5">
-                                                            <GripVertical className="h-3 w-3 text-slate-500" />
-                                                            <span className="text-xs text-slate-500">Button {btnIdx + 1}</span>
-                                                        </div>
+                                                <div className="flex items-center gap-2">
+                                                    <GripVertical className="h-4 w-4 text-slate-500" />
+                                                    <button
+                                                        onClick={() => toggleSectionCollapse(section.id)}
+                                                        className="p-1 hover:bg-slate-600/50 rounded transition-all"
+                                                        type="button"
+                                                    >
+                                                        <ChevronDown className={`h-3.5 w-3.5 text-purple-400 transition-transform ${isCollapsed ? '-rotate-90' : ''
+                                                            }`} />
+                                                    </button>
+                                                    <span className="text-xs text-slate-400 font-medium">Section {sectionIdx + 1}</span>
+                                                </div>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
                                                         <button
                                                             onClick={() => {
-                                                                const updatedButtons = section.buttons.filter((b: any) => b.id !== btn.id);
-                                                                const updated = config.sections.map((s: any) =>
-                                                                    s.id === section.id ? { ...s, buttons: updatedButtons } : s
-                                                                );
-                                                                setConfig({ ...config, sections: updated });
+                                                                const updatedSections = config.sections.filter((s: any) => s.id !== section.id);
+                                                                setConfig({
+                                                                    ...config,
+                                                                    sections: updatedSections
+                                                                });
                                                             }}
-                                                            className="p-1 hover:bg-red-900/60 rounded transition-all"
+                                                            className="p-1.5 hover:bg-red-900/60 rounded-lg transition-all hover:scale-105"
                                                         >
-                                                            <Trash2 className="h-3 w-3 text-red-400" />
+                                                            <Trash2 className="h-3.5 w-3.5 text-red-400 hover:text-red-300" />
                                                         </button>
-                                                    </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs">
+                                                        <p>Delete section</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </div>
 
+                                            {!isCollapsed && (
+                                                <>
+
+                                                    {/* Section Name */}
                                                     <div className="space-y-2">
+                                                        <Label className="text-xs text-slate-400">Section Name</Label>
                                                         <Input
-                                                            value={btn.label}
+                                                            value={section.sectionName}
                                                             onChange={(e) => {
-                                                                const updatedButtons = section.buttons.map((b: any) =>
-                                                                    b.id === btn.id ? { ...b, label: e.target.value } : b
-                                                                );
                                                                 const updated = config.sections.map((s: any) =>
-                                                                    s.id === section.id ? { ...s, buttons: updatedButtons } : s
+                                                                    s.id === section.id ? { ...s, sectionName: e.target.value } : s
                                                                 );
                                                                 setConfig({ ...config, sections: updated });
                                                             }}
-                                                            placeholder="Button label"
-                                                            maxLength={INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH}
-                                                            className="bg-slate-800 border-slate-600/50 text-slate-200 text-xs hover:border-slate-500 focus:border-purple-500 transition-colors"
+                                                            placeholder="Section name"
+                                                            maxLength={INTERACTIVE_LIST_LIMITS.SECTION_NAME_MAX_LENGTH}
+                                                            className="bg-slate-800 border-slate-600/50 text-slate-200 text-sm hover:border-slate-500 focus:border-purple-500 transition-colors"
                                                         />
-                                                        <span className={`text-xs ${getCounterColor((btn.label || '').length, INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH)}`}>
-                                                            {(btn.label || '').length}/{INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH}
+                                                        <span className={`text-xs ${getCounterColor((section.sectionName || '').length, INTERACTIVE_LIST_LIMITS.SECTION_NAME_MAX_LENGTH)}`}>
+                                                            {(section.sectionName || '').length}/{INTERACTIVE_LIST_LIMITS.SECTION_NAME_MAX_LENGTH}
                                                         </span>
                                                     </div>
 
-                                                    <Select
-                                                        value={btn.actionType}
-                                                        onValueChange={(value) => {
-                                                            const updatedButtons = section.buttons.map((b: any) =>
-                                                                b.id === btn.id ? { ...b, actionType: value } : b
-                                                            );
-                                                            const updated = config.sections.map((s: any) =>
-                                                                s.id === section.id ? { ...s, buttons: updatedButtons } : s
-                                                            );
-                                                            setConfig({ ...config, sections: updated });
-                                                        }}
-                                                    >
-                                                        <SelectTrigger className="bg-slate-800 border-slate-600/50 text-slate-200 text-xs hover:border-slate-500 transition-colors">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent className="bg-slate-800 border-slate-700">
-                                                            <SelectItem value="connect_to_node">Connect to Node</SelectItem>
-                                                            <SelectItem value="call_number">Call Number</SelectItem>
-                                                            <SelectItem value="send_email">Send Email</SelectItem>
-                                                            <SelectItem value="open_url">Open URL</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
+                                                    {/* Buttons in Section */}
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <Label className="text-xs text-slate-400">Buttons ({section.buttons?.length || 0}/{INTERACTIVE_LIST_LIMITS.MAX_BUTTONS_PER_SECTION})</Label>
+                                                            <Button
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    const buttons = section.buttons || [];
+                                                                    if (buttons.length >= INTERACTIVE_LIST_LIMITS.MAX_BUTTONS_PER_SECTION) {
+                                                                        toast({
+                                                                            title: 'Maximum Buttons Reached',
+                                                                            description: `Maximum ${INTERACTIVE_LIST_LIMITS.MAX_BUTTONS_PER_SECTION} buttons per section`,
+                                                                            variant: 'destructive',
+                                                                        });
+                                                                        return;
+                                                                    }
+                                                                    const newButton = {
+                                                                        id: `btn-${Date.now()}`,
+                                                                        label: 'New Button',
+                                                                        actionType: 'connect_to_node' as const,
+                                                                        actionValue: ''
+                                                                    };
+                                                                    const updated = config.sections.map((s: any) =>
+                                                                        s.id === section.id ? { ...s, buttons: [...buttons, newButton] } : s
+                                                                    );
+                                                                    setConfig({ ...config, sections: updated });
+                                                                }}
+                                                                disabled={(section.buttons?.length || 0) >= INTERACTIVE_LIST_LIMITS.MAX_BUTTONS_PER_SECTION}
+                                                                className="bg-purple-600 hover:bg-purple-700 h-6 text-xs px-2"
+                                                            >
+                                                                <Plus className="h-3 w-3 mr-1" />
+                                                                Add Button
+                                                            </Button>
+                                                        </div>
 
-                                                    {btn.actionType !== 'connect_to_node' && (
-                                                        <Input
-                                                            value={btn.actionValue || ''}
-                                                            onChange={(e) => {
-                                                                const updatedButtons = section.buttons.map((b: any) =>
-                                                                    b.id === btn.id ? { ...b, actionValue: e.target.value } : b
-                                                                );
-                                                                const updated = config.sections.map((s: any) =>
-                                                                    s.id === section.id ? { ...s, buttons: updatedButtons } : s
-                                                                );
-                                                                setConfig({ ...config, sections: updated });
-                                                            }}
-                                                            placeholder={
-                                                                btn.actionType === 'call_number' ? 'Phone number' :
-                                                                    btn.actionType === 'send_email' ? 'Email address' :
-                                                                        'URL'
-                                                            }
-                                                            className="bg-slate-800 border-slate-600/50 text-slate-200 text-xs hover:border-slate-500 focus:border-purple-500 transition-colors"
-                                                        />
-                                                    )}
-                                                </div>
-                                            ))}
+                                                        {section.buttons && section.buttons.map((btn: any, btnIdx: number) => (
+                                                            <div
+                                                                key={btn.id}
+                                                                draggable
+                                                                onDragStart={() => handleButtonInSectionDragStart(section.id, btnIdx)}
+                                                                onDragOver={(e) => handleButtonInSectionDragOver(e, section.id, btnIdx)}
+                                                                onDragEnd={handleButtonInSectionDragEnd}
+                                                                className={`p-2.5 bg-slate-800/60 border border-slate-600/40 rounded-md space-y-2 transition-all ${draggedButtonInSection?.sectionId === section.id && draggedButtonInSection?.buttonIndex === btnIdx ? 'opacity-50' : 'opacity-100'
+                                                                    } cursor-move hover:border-purple-500/30`}
+                                                            >
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <GripVertical className="h-3 w-3 text-slate-500" />
+                                                                        <span className="text-xs text-slate-500">Button {btnIdx + 1}</span>
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const updatedButtons = section.buttons.filter((b: any) => b.id !== btn.id);
+                                                                            const updated = config.sections.map((s: any) =>
+                                                                                s.id === section.id ? { ...s, buttons: updatedButtons } : s
+                                                                            );
+                                                                            setConfig({ ...config, sections: updated });
+                                                                        }}
+                                                                        className="p-1 hover:bg-red-900/60 rounded transition-all"
+                                                                    >
+                                                                        <Trash2 className="h-3 w-3 text-red-400" />
+                                                                    </button>
+                                                                </div>
+
+                                                                <div className="space-y-2">
+                                                                    <Input
+                                                                        value={btn.label}
+                                                                        onChange={(e) => {
+                                                                            const updatedButtons = section.buttons.map((b: any) =>
+                                                                                b.id === btn.id ? { ...b, label: e.target.value } : b
+                                                                            );
+                                                                            const updated = config.sections.map((s: any) =>
+                                                                                s.id === section.id ? { ...s, buttons: updatedButtons } : s
+                                                                            );
+                                                                            setConfig({ ...config, sections: updated });
+                                                                        }}
+                                                                        placeholder="Button label"
+                                                                        maxLength={INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH}
+                                                                        className="bg-slate-800 border-slate-600/50 text-slate-200 text-xs hover:border-slate-500 focus:border-purple-500 transition-colors"
+                                                                    />
+                                                                    <span className={`text-xs ${getCounterColor((btn.label || '').length, INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH)}`}>
+                                                                        {(btn.label || '').length}/{INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH}
+                                                                    </span>
+                                                                </div>
+
+                                                                <Select
+                                                                    value={btn.actionType}
+                                                                    onValueChange={(value) => {
+                                                                        const updatedButtons = section.buttons.map((b: any) =>
+                                                                            b.id === btn.id ? { ...b, actionType: value } : b
+                                                                        );
+                                                                        const updated = config.sections.map((s: any) =>
+                                                                            s.id === section.id ? { ...s, buttons: updatedButtons } : s
+                                                                        );
+                                                                        setConfig({ ...config, sections: updated });
+                                                                    }}
+                                                                >
+                                                                    <SelectTrigger className="bg-slate-800 border-slate-600/50 text-slate-200 text-xs hover:border-slate-500 transition-colors">
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent className="bg-slate-800 border-slate-700">
+                                                                        <SelectItem value="connect_to_node">Connect to Node</SelectItem>
+                                                                        <SelectItem value="call_number">Call Number</SelectItem>
+                                                                        <SelectItem value="send_email">Send Email</SelectItem>
+                                                                        <SelectItem value="open_url">Open URL</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+
+                                                                {btn.actionType !== 'connect_to_node' && (
+                                                                    <Input
+                                                                        value={btn.actionValue || ''}
+                                                                        onChange={(e) => {
+                                                                            const updatedButtons = section.buttons.map((b: any) =>
+                                                                                b.id === btn.id ? { ...b, actionValue: e.target.value } : b
+                                                                            );
+                                                                            const updated = config.sections.map((s: any) =>
+                                                                                s.id === section.id ? { ...s, buttons: updatedButtons } : s
+                                                                            );
+                                                                            setConfig({ ...config, sections: updated });
+                                                                        }}
+                                                                        placeholder={
+                                                                            btn.actionType === 'call_number' ? 'Phone number' :
+                                                                                btn.actionType === 'send_email' ? 'Email address' :
+                                                                                    'URL'
+                                                                        }
+                                                                        className="bg-slate-800 border-slate-600/50 text-slate-200 text-xs hover:border-slate-500 focus:border-purple-500 transition-colors"
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
-                                            </>
-                                        )}
-                                    </div>
                                     );
                                 })}
                             </div>
@@ -2191,7 +2189,7 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                             <Info className="h-4 w-4 text-slate-500 cursor-help" />
                                         </TooltipTrigger>
                                         <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs max-w-[200px]">
-                                            <p>Controls randomness: 0 = deterministic, 2 = very random</p>
+                                            <p>Controls randomness: 0 = deterministic, 1 = very random</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </div>
@@ -2199,11 +2197,11 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                     value={[config.temperature !== undefined ? config.temperature : 0.7]}
                                     onValueChange={(v) => setConfig({ ...config, temperature: v[0] })}
                                     min={0}
-                                    max={2}
+                                    max={1}
                                     step={0.1}
                                     className="py-2"
                                 />
-                                <p className="text-xs text-slate-500">Range: 0.0 (focused) - 2.0 (creative)</p>
+                                <p className="text-xs text-slate-500">Range: 0.0 (focused) - 1.0 (creative)</p>
                             </div>
 
                             {/* System Prompt */}
@@ -2228,6 +2226,33 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                     <span className="text-blue-400">#</span> Type # to reference a variable
                                 </p>
                             </div>
+
+                            {/* Question Input - Only show when agentType is 'assistant' */}
+                            {agentType === 'assistant' && (
+                                <div className="space-y-3 p-4 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-700/50 shadow-inner">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-sm font-medium text-slate-200 uppercase tracking-wide">Question</Label>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Info className="h-4 w-4 text-slate-500 cursor-help" />
+                                            </TooltipTrigger>
+                                            <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs max-w-[200px]">
+                                                <p>The question or prompt to send to the AI model</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
+                                    <Textarea
+                                        value={config.question || ''}
+                                        onChange={(e) => setConfig({ ...config, question: e.target.value })}
+                                        placeholder="Enter your question here..."
+                                        className="bg-slate-700 border-slate-600 text-slate-200 min-h-[100px]"
+                                        rows={4}
+                                    />
+                                    <p className="text-xs text-slate-500 italic flex items-center gap-1.5">
+                                        <span className="text-blue-400">#</span> Type # to reference a variable
+                                    </p>
+                                </div>
+                            )}
 
                             {/* Save Response to Variable */}
                             <VariableSelector

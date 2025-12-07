@@ -31,6 +31,10 @@ import ConditionNode from '@/components/flow/ConditionNode';
 import NotesNode from '@/components/flow/NotesNode';
 import InteractiveListNode from '@/components/flow/InteractiveListNode';
 import SimpleMessageNode from '@/components/flow/SimpleMessageNode';
+import AgentNode from '@/components/flow/AgentNode';
+import AgentSelectorNode from '@/components/flow/AgentSelectorNode';
+import AgentConfigPanel from '@/components/flow/AgentConfigPanel';
+import AgentSelectorConfigPanel from '@/components/flow/AgentSelectorConfigPanel';
 import NodeConfigPanel from '@/components/flow/NodeConfigPanel';
 import AgentPreviewPanel from '@/components/flow/AgentPreviewPanel';
 import ConditionConfigDrawer from '@/components/flow/ConditionConfigDrawer';
@@ -48,6 +52,8 @@ const nodeTypes: NodeTypes = {
     notes: NotesNode,
     interactiveList: InteractiveListNode,
     simpleMessage: SimpleMessageNode,
+    agent: AgentNode,
+    agentSelector: AgentSelectorNode,
 };
 
 const initialNodes: Node[] = [];
@@ -64,10 +70,15 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [editingNode, setEditingNode] = useState<{ id: string; type: 'button' | 'input' | 'ai' | 'apiLibrary' | 'knowledgeBase' | 'condition' | 'interactiveList' | 'simpleMessage' } | null>(null);
+    const [showAgentConfig, setShowAgentConfig] = useState(false);
+    const [editingAgentNodeId, setEditingAgentNodeId] = useState<string | null>(null);
+    const [showAgentSelectorConfig, setShowAgentSelectorConfig] = useState(false);
+    const [editingAgentSelectorNodeId, setEditingAgentSelectorNodeId] = useState<string | null>(null);
     const [isLocked, setIsLocked] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
     const [showConditionDrawer, setShowConditionDrawer] = useState(false);
     const [editingConditionNodeId, setEditingConditionNodeId] = useState<string | null>(null);
+    const [agentType, setAgentType] = useState<'agent' | 'assistant' | null>(null);
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
     const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
     const { toast } = useToast();
@@ -111,6 +122,31 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                 return;
             }
 
+            // Check mutual exclusion: Agent and Engine nodes
+            if (type === 'agentSelector') {
+                const hasEngine = nodes.some(node => node.type === 'engine');
+                if (hasEngine) {
+                    toast({
+                        title: 'Cannot Add Agent Node',
+                        description: 'Agent node cannot be used when Engine node is present. Please remove the Engine node first.',
+                        variant: 'destructive'
+                    });
+                    return;
+                }
+            }
+
+            if (type === 'engine') {
+                const hasAgentSelector = nodes.some(node => node.type === 'agentSelector');
+                if (hasAgentSelector) {
+                    toast({
+                        title: 'Cannot Add Engine Node',
+                        description: 'Engine node cannot be used when Agent node is present. Please remove the Agent node first.',
+                        variant: 'destructive'
+                    });
+                    return;
+                }
+            }
+
             const position = reactFlowInstance?.project({
                 x: event.clientX - reactFlowBounds.left,
                 y: event.clientY - reactFlowBounds.top,
@@ -146,78 +182,85 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                                     ? {
                                         label: 'Engine',
                                     }
-                                    : type === 'apiLibrary'
+                                    : type === 'agentSelector'
                                         ? {
-                                            label: 'API Library',
-                                            apiLibraryId: null,
-                                            apiName: '',
-                                            apiMethod: '',
+                                            label: 'Agent',
+                                            selectedAgentId: '',
+                                            selectedAgentName: '',
+                                            selectedAgentDescription: '',
                                         }
-                                        : type === 'knowledgeBase'
+                                        : type === 'apiLibrary'
                                             ? {
-                                                label: 'Knowledge Base',
-                                                selectedDocuments: [],
-                                                documentCount: 0,
+                                                label: 'API Library',
+                                                apiLibraryId: null,
+                                                apiName: '',
+                                                apiMethod: '',
                                             }
-                                            : type === 'condition'
+                                            : type === 'knowledgeBase'
                                                 ? {
-                                                    label: 'Condition',
-                                                    conditionGroups: [
-                                                        {
-                                                            id: `group-${Date.now()}`,
-                                                            conditions: [
-                                                                {
-                                                                    id: `condition-${Date.now()}`,
-                                                                    variable: '',
-                                                                    operator: 'equals',
-                                                                    value: [],
-                                                                    valueType: 'static',
-                                                                    logicOperator: undefined,
-                                                                }
-                                                            ],
-                                                            groupLogicOperator: undefined,
-                                                        }
-                                                    ],
+                                                    label: 'Knowledge Base',
+                                                    selectedDocuments: [],
+                                                    documentCount: 0,
                                                 }
-                                                : type === 'notes'
+                                                : type === 'condition'
                                                     ? {
-                                                        content: '',
-                                                        width: 250,
-                                                        height: 200,
-                                                    }
-                                                    : type === 'interactiveList'
-                                                        ? {
-                                                            label: 'Interactive List',
-                                                            message: 'Please select an option:',
-                                                            headerText: '',
-                                                            buttonListTitle: 'Options',
-                                                            sections: [
-                                                                {
-                                                                    id: `section-${Date.now()}`,
-                                                                    sectionName: 'Section 1',
-                                                                    buttons: [
-                                                                        {
-                                                                            id: `btn-${Date.now()}`,
-                                                                            label: 'Button 1',
-                                                                            actionType: 'connect_to_node',
-                                                                            actionValue: '',
-                                                                        }
-                                                                    ],
-                                                                }
-                                                            ],
-                                                            footer: '',
-                                                        }
-                                                        : type === 'simpleMessage'
-                                                            ? {
-                                                                label: 'Message',
-                                                                message: '',
+                                                        label: 'Condition',
+                                                        conditionGroups: [
+                                                            {
+                                                                id: `group-${Date.now()}`,
+                                                                conditions: [
+                                                                    {
+                                                                        id: `condition-${Date.now()}`,
+                                                                        variable: '',
+                                                                        operator: 'equals',
+                                                                        value: [],
+                                                                        valueType: 'static',
+                                                                        logicOperator: undefined,
+                                                                    }
+                                                                ],
+                                                                groupLogicOperator: undefined,
                                                             }
-                                                            : {},
+                                                        ],
+                                                    }
+                                                    : type === 'notes'
+                                                        ? {
+                                                            content: '',
+                                                            width: 250,
+                                                            height: 200,
+                                                        }
+                                                        : type === 'interactiveList'
+                                                            ? {
+                                                                label: 'Interactive List',
+                                                                message: 'Please select an option:',
+                                                                headerText: '',
+                                                                buttonListTitle: 'Options',
+                                                                sections: [
+                                                                    {
+                                                                        id: `section-${Date.now()}`,
+                                                                        sectionName: 'Section 1',
+                                                                        buttons: [
+                                                                            {
+                                                                                id: `btn-${Date.now()}`,
+                                                                                label: 'Button 1',
+                                                                                actionType: 'connect_to_node',
+                                                                                actionValue: '',
+                                                                            }
+                                                                        ],
+                                                                    }
+                                                                ],
+                                                                footer: '',
+                                                            }
+                                                            : type === 'simpleMessage'
+                                                                ? {
+                                                                    label: 'Message',
+                                                                    message: '',
+                                                                }
+                                                                : {},
             };
 
             setNodes((nds) => nds.concat(newNode));
         },
-        [reactFlowInstance, setNodes]
+        [reactFlowInstance, setNodes, nodes, toast]
     );
 
     // Event listeners for node actions
@@ -225,6 +268,18 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
         const handleDeleteNode = (e: Event) => {
             const event = e as CustomEvent;
             const { nodeId } = event.detail;
+
+            // Check if node is required (Agent mode)
+            const nodeToDelete = nodes.find(n => n.id === nodeId);
+            if (nodeToDelete?.data?.isRequired) {
+                toast({
+                    title: 'Cannot Delete',
+                    description: 'This node is required in Agent mode and cannot be deleted.',
+                    variant: 'destructive'
+                });
+                return;
+            }
+
             setNodes((nds) => nds.filter((node) => node.id !== nodeId));
             setEdges((eds) =>
                 eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
@@ -263,6 +318,28 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
         const handleEditNode = (e: Event) => {
             const event = e as CustomEvent;
             const { nodeId, type } = event.detail;
+
+            // For agent nodes, open the agent config panel
+            if (type === 'agent') {
+                setEditingAgentNodeId(nodeId);
+                setShowAgentConfig(true);
+                // Auto-switch to full-screen mode if not already in full-screen
+                if (!isFullScreen) {
+                    onToggleFullScreen();
+                }
+                return;
+            }
+
+            // For agent selector nodes, open the agent selector config panel
+            if (type === 'agentSelector') {
+                setEditingAgentSelectorNodeId(nodeId);
+                setShowAgentSelectorConfig(true);
+                // Auto-switch to full-screen mode if not already in full-screen
+                if (!isFullScreen) {
+                    onToggleFullScreen();
+                }
+                return;
+            }
 
             // For condition nodes, open the condition drawer
             if (type === 'condition') {
@@ -328,12 +405,21 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                 const response = await apiClient.get(`/api/flow-agents/${agentId}`);
                 if (response.ok) {
                     const data = await response.json();
+                    const fetchedAgentType = data.configuration?.agentType;
+                    setAgentType(fetchedAgentType);
+
                     if (data.flowData && reactFlowInstance) {
                         const { nodes: loadedNodes, edges: loadedEdges } = data.flowData;
                         if (loadedNodes?.length > 0) {
                             setNodes(loadedNodes);
                             setEdges(loadedEdges || []);
+                        } else if (fetchedAgentType === 'agent') {
+                            // For new Agent-type flows, create pre-loaded required nodes
+                            createAgentRequiredNodes();
                         }
+                    } else if (fetchedAgentType === 'agent') {
+                        // No flow data yet for Agent type - create required nodes
+                        createAgentRequiredNodes();
                     }
                 }
             } catch (error) {
@@ -341,10 +427,81 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
             }
         };
 
+        const createAgentRequiredNodes = () => {
+            const languageModelNode: Node = {
+                id: 'ai-required',
+                type: 'ai',
+                position: { x: 100, y: 250 },
+                data: {
+                    label: 'Language Model',
+                    model: 'meta-llama/llama-3.3-8b-instruct:free',
+                    maxTokens: 300,
+                    temperature: 0.7,
+                    systemPrompt: '',
+                    isRequired: true,
+                },
+            };
+
+            const agentNode: Node = {
+                id: 'agent-required',
+                type: 'agent',
+                position: { x: 500, y: 250 },
+                data: {
+                    label: 'Agent',
+                    isRequired: true,
+                    configuration: {
+                        button: { enabled: false, description: '' },
+                        card: { enabled: false, description: '' },
+                        carousel: { enabled: false, description: '' },
+                        webSearch: { enabled: false, description: '' },
+                        path: { enabled: false, subAgents: [] },
+                    },
+                },
+            };
+
+            const engineNode: Node = {
+                id: 'engine-required',
+                type: 'engine',
+                position: { x: 900, y: 250 },
+                data: {
+                    label: 'Engine',
+                    isRequired: true,
+                },
+            };
+
+            // Create required connections: Language Model → Agent → Engine
+            const edge1: Edge = {
+                id: 'lm-to-agent',
+                source: 'ai-required',
+                target: 'agent-required',
+                targetHandle: 'language-model',
+                type: 'smoothstep',
+                animated: true,
+                style: { stroke: '#6366f1', strokeWidth: 2 },
+            };
+
+            const edge2: Edge = {
+                id: 'agent-to-engine',
+                source: 'agent-required',
+                target: 'engine-required',
+                type: 'smoothstep',
+                animated: true,
+                style: { stroke: '#f97316', strokeWidth: 2 },
+            };
+
+            setNodes([languageModelNode, agentNode, engineNode]);
+            setEdges([edge1, edge2]);
+
+            toast({
+                title: 'Agent Flow Initialized',
+                description: 'Required nodes have been created. Language Model → Agent → Engine',
+            });
+        };
+
         if (agentId && reactFlowInstance) {
             loadFlow();
         }
-    }, [agentId, reactFlowInstance, setNodes, setEdges]);
+    }, [agentId, reactFlowInstance, setNodes, setEdges, toast]);
 
     const saveFlow = async () => {
         if (!reactFlowInstance) return;
@@ -402,6 +559,48 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
         );
         setShowConditionDrawer(false);
         setEditingConditionNodeId(null);
+    };
+
+    const handleSaveAgentConfig = (config: any) => {
+        if (!editingAgentNodeId) return;
+
+        setNodes((nds) =>
+            nds.map((node) =>
+                node.id === editingAgentNodeId
+                    ? {
+                        ...node,
+                        data: {
+                            ...node.data,
+                            configuration: config
+                        }
+                    }
+                    : node
+            )
+        );
+        setShowAgentConfig(false);
+        setEditingAgentNodeId(null);
+    };
+
+    const handleSaveAgentSelectorConfig = (config: any) => {
+        if (!editingAgentSelectorNodeId) return;
+
+        setNodes((nds) =>
+            nds.map((node) =>
+                node.id === editingAgentSelectorNodeId
+                    ? {
+                        ...node,
+                        data: {
+                            ...node.data,
+                            selectedAgentId: config.selectedAgentId,
+                            selectedAgentName: config.selectedAgentName,
+                            selectedAgentDescription: config.selectedAgentDescription,
+                        }
+                    }
+                    : node
+            )
+        );
+        setShowAgentSelectorConfig(false);
+        setEditingAgentSelectorNodeId(null);
     };
 
     // Custom control functions
@@ -505,30 +704,47 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                         <h3 className="text-sm font-semibold text-slate-100 mb-4">Node Types</h3>
 
                         <div className="space-y-3">
-                            <div>
-                                <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Input/Output</h4>
-                                <div className="space-y-1">
-                                    <ComponentItem label="Interactive Node" type="button" />
-                                    <ComponentItem label="Interactive List" type="interactiveList" />
-                                    <ComponentItem label="Input Node" type="input" />
-                                    <ComponentItem label="Message" type="simpleMessage" />
-                                </div>
-                            </div>
-                            <div>
-                                <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Processing</h4>
-                                <div className="space-y-1">
-                                    <ComponentItem label="Language Model" type="ai" />
-                                    <ComponentItem label="Engine" type="engine" />
-                                    <ComponentItem label="Condition" type="condition" />
-                                </div>
-                            </div>
-                            <div>
-                                <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Integration</h4>
-                                <div className="space-y-1">
-                                    <ComponentItem label="API Library" type="apiLibrary" />
-                                    <ComponentItem label="Knowledge Base" type="knowledgeBase" />
-                                </div>
-                            </div>
+                            {agentType === 'agent' ? (
+                                // Agent Mode: Show only Integration nodes (API Library and Knowledge Base) and Agent node
+                                <>
+                                    <div>
+                                        <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Integration</h4>
+                                        <div className="space-y-1">
+                                            <ComponentItem label="API Library" type="apiLibrary" />
+                                            <ComponentItem label="Knowledge Base" type="knowledgeBase" />
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                // Assistant Mode: Show all nodes
+                                <>
+                                    <div>
+                                        <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Input/Output</h4>
+                                        <div className="space-y-1">
+                                            <ComponentItem label="Interactive Node" type="button" />
+                                            <ComponentItem label="Interactive List" type="interactiveList" />
+                                            <ComponentItem label="Input Node" type="input" />
+                                            <ComponentItem label="Message" type="simpleMessage" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Processing</h4>
+                                        <div className="space-y-1">
+                                            <ComponentItem label="Language Model" type="ai" />
+                                            <ComponentItem label="Engine" type="engine" />
+                                            <ComponentItem label="Agent" type="agentSelector" />
+                                            <ComponentItem label="Condition" type="condition" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Integration</h4>
+                                        <div className="space-y-1">
+                                            <ComponentItem label="API Library" type="apiLibrary" />
+                                            <ComponentItem label="Knowledge Base" type="knowledgeBase" />
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -614,6 +830,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                     nodeData={nodes.find((n) => n.id === editingNode.id)?.data}
                     onClose={() => setEditingNode(null)}
                     onSave={handleSaveNodeConfig}
+                    agentType={agentType}
                 />
             )}
 
@@ -641,6 +858,44 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                         conditions={node?.data?.conditions}
                         hasDefaultOutput={node?.data?.hasDefaultOutput}
                         onSave={handleSaveConditions}
+                    />
+                );
+            })()}
+
+            {/* Agent Configuration Panel */}
+            {showAgentConfig && editingAgentNodeId && (() => {
+                const node = nodes.find((n) => n.id === editingAgentNodeId);
+                return (
+                    <AgentConfigPanel
+                        isOpen={showAgentConfig}
+                        onClose={() => {
+                            setShowAgentConfig(false);
+                            setEditingAgentNodeId(null);
+                        }}
+                        nodeId={editingAgentNodeId}
+                        config={node?.data?.configuration || {}}
+                        onSave={handleSaveAgentConfig}
+                    />
+                );
+            })()}
+
+            {/* Agent Selector Configuration Panel */}
+            {showAgentSelectorConfig && editingAgentSelectorNodeId && (() => {
+                const node = nodes.find((n) => n.id === editingAgentSelectorNodeId);
+                return (
+                    <AgentSelectorConfigPanel
+                        isOpen={showAgentSelectorConfig}
+                        onClose={() => {
+                            setShowAgentSelectorConfig(false);
+                            setEditingAgentSelectorNodeId(null);
+                        }}
+                        nodeId={editingAgentSelectorNodeId}
+                        config={{
+                            selectedAgentId: node?.data?.selectedAgentId,
+                            selectedAgentName: node?.data?.selectedAgentName,
+                            selectedAgentDescription: node?.data?.selectedAgentDescription,
+                        }}
+                        onSave={handleSaveAgentSelectorConfig}
                     />
                 );
             })()}

@@ -488,7 +488,20 @@ def validate_button_action(
             return {'valid': False, 'error': f"button_action missing 'button_index' for connect_to_node [{context}]"}
         
         # Check if button_index is within bounds
-        node_buttons = node.get('data', {}).get('buttons', [])
+        # For Interactive Message nodes: buttons are in data.buttons
+        # For Interactive List nodes: buttons are in data.sections[].buttons (flattened)
+        node_data = node.get('data', {})
+        node_buttons = node_data.get('buttons', [])
+        
+        # If no direct buttons, check for sections (Interactive List)
+        if not node_buttons:
+            sections = node_data.get('sections', [])
+            # Flatten all buttons from all sections
+            all_buttons = []
+            for section in sections[:10]:  # Max 10 sections
+                all_buttons.extend(section.get('buttons', [])[:10])  # Max 10 buttons per section
+            node_buttons = all_buttons
+        
         if not isinstance(button_index, int) or button_index < 0:
             return {'valid': False, 'error': f"button_index must be non-negative integer, got {button_index} [{context}]"}
         
@@ -1578,7 +1591,8 @@ def run_node(
         label_map = get_node_label_map(flow_nodes)
         collected_data = []
         for key, value in user_data.items():
-            if not key.endswith('_buttons') and not key.endswith('_action'):
+            # Filter out internal helper keys
+            if not key.endswith('_buttons') and not key.endswith('_action') and not key.endswith('_sections'):
                 readable_key = label_map.get(key, key)
                 collected_data.append(f"{readable_key}: {value}")
         
@@ -1589,6 +1603,50 @@ def run_node(
         
         ui_schema = {
             'type': 'complete',
+            'message': response,
+            'expects_input': False
+        }
+        
+        lc_messages.append(AIMessage(content=response))
+    
+    elif current_node_type == 'apiLibrary':
+        # API Library node - makes API call
+        api_name = node_config.get('apiName', 'API')
+        api_method = node_config.get('apiMethod', '')
+        
+        # For now, just indicate that API would be called
+        # In production, this would make the actual API call
+        response = f"API call to {api_name} {api_method} completed"
+        
+        ui_schema = {
+            'type': 'processing',
+            'message': response,
+            'expects_input': False
+        }
+        
+        lc_messages.append(AIMessage(content=response))
+    
+    elif current_node_type == 'knowledgeBase':
+        # Knowledge Base node - retrieves information
+        selected_docs = node_config.get('selectedDocuments', [])
+        doc_count = len(selected_docs)
+        
+        response = f"Retrieved information from {doc_count} document(s)"
+        
+        ui_schema = {
+            'type': 'processing',
+            'message': response,
+            'expects_input': False
+        }
+        
+        lc_messages.append(AIMessage(content=response))
+    
+    elif current_node_type == 'condition':
+        # Condition node - evaluates conditions and routes
+        response = "Evaluating conditions..."
+        
+        ui_schema = {
+            'type': 'processing',
             'message': response,
             'expects_input': False
         }
