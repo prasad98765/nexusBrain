@@ -690,20 +690,10 @@ export default function ConditionConfigDrawer({
                         ))}
                     </div>
                     {/* Footer with Cancel and Save Changes Buttons */}
-                    <div className="flex-shrink-0 p-4 border-t border-slate-700/50 bg-gradient-to-r from-slate-800 to-slate-900 flex gap-3 backdrop-blur-sm">
-                        <Button
-                            variant="outline"
-                            onClick={onClose}
-                            className="flex-1 border-slate-600/50 hover:bg-slate-800/70 text-slate-300 hover:border-slate-500 transition-all"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleSave}
-                            className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-500/20 transition-all hover:shadow-xl hover:shadow-blue-500/30"
-                        >
-                            Save Changes
-                        </Button>
+                    <div className="flex-shrink-0 p-3 border-t border-slate-700/50 bg-gradient-to-r from-slate-800 to-slate-900 backdrop-blur-sm">
+                        <p className="text-xs text-slate-400 text-center italic">
+                            Changes are saved automatically. Click the Save button in the toolbar to persist your flow.
+                        </p>
                     </div>
                 </div>
             </SheetContent>

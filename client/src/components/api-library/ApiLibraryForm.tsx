@@ -411,7 +411,7 @@ export default function ApiLibraryForm({ initialData, onChange }: ApiLibraryForm
                         </div>
 
                         {/* Retry Mechanism */}
-                        <div className="pt-4 border-t border-gray-700/50 space-y-3">
+                        {/* <div className="pt-4 border-t border-gray-700/50 space-y-3">
                             <div className="flex items-center space-x-2">
                                 <Checkbox
                                     id="retry"
@@ -450,7 +450,7 @@ export default function ApiLibraryForm({ initialData, onChange }: ApiLibraryForm
                                     </Select>
                                 </div>
                             )}
-                        </div>
+                        </div> */}
                     </div>
                 )}
             </div>
