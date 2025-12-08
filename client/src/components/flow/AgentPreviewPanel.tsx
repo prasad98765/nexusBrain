@@ -76,6 +76,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
     const [uiSchema, setUiSchema] = useState<UISchema | null>(null);
     const [isComplete, setIsComplete] = useState(false);
     const [conversationId, setConversationId] = useState<string>('');
+    const [validationError, setValidationError] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const isAutoProceeding = useRef(false);
 
@@ -86,11 +87,11 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
 
     const initializeFlow = async () => {
         setIsLoading(true);
-        
+
         // Generate new conversation ID for this session
         const newConversationId = `preview_${agentId}_${Date.now()}`;
         setConversationId(newConversationId);
-        
+
         // Reset all state
         setMessages([]);
         setCurrentNodeId(null);
@@ -99,13 +100,13 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
         setUiSchema(null);
         setIsComplete(false);
         setInputMessage('');
-        
+
         // Show restart notification
         toast({
             title: 'Conversation Restarted',
             description: 'Starting fresh from the beginning',
         });
-        
+
         try {
             // Clear ALL caches for this agent (graph, node executors, checkpoints)
             // This ensures any node configuration changes are reflected in preview
@@ -175,7 +176,8 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
             ui_schema: data.ui_schema,
             expects_input: data.ui_schema?.expects_input,
             is_complete: data.is_complete,
-            isAutoProceeding: isAutoProceeding.current
+            isAutoProceeding: isAutoProceeding.current,
+            validation_error: data.ui_schema?.validation_error
         });
 
         setCurrentNodeId(data.current_node_id);
@@ -184,27 +186,50 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
         setUiSchema(data.ui_schema);
         setIsComplete(data.is_complete || false);
 
+        // Check for validation error
+        if (data.ui_schema?.validation_error) {
+            setValidationError(data.ui_schema.validation_error);
+            // Still add the assistant's response (the placeholder/prompt) but don't proceed
+            if (data.response && data.ui_schema.type === 'input') {
+                // For input nodes with validation errors, we already have the user message
+                // No need to add another assistant message as it would duplicate the prompt
+            }
+            return;
+        }
+
+        // Clear validation error if none
+        setValidationError(null);
+
 
         // Display message based on UI schema
+        // Skip adding message for input nodes that have passed validation (expects_input: false)
+        // because we're about to auto-proceed to the next node
         if (data.ui_schema && data.response) {
-            // For input nodes, prefer placeholder text over response
-            const messageContent = data.ui_schema.type === 'input' && data.ui_schema.placeholder
-                ? data.ui_schema.placeholder
-                : data.response;
+            // Don't show message for input nodes that just passed validation
+            if (data.ui_schema.type === 'input' && data.ui_schema.expects_input === false) {
+                // Validation passed, skip showing "Received: ..." message
+                // The flow will auto-proceed to next node
+                setIsLoading(true);
+            } else {
+                // For input nodes, prefer placeholder text over response
+                const messageContent = data.ui_schema.type === 'input' && data.ui_schema.placeholder
+                    ? data.ui_schema.placeholder
+                    : data.response;
 
-            const newMessage: Message = {
-                role: data.ui_schema.type === 'interactive' || data.ui_schema.type === 'interactiveList' ? 'interactive' : 'assistant',
-                content: messageContent,
-                timestamp: new Date(),
-                nodeType: data.node_type, // Track which node type generated this message
-                buttons: data.ui_schema.buttons,
-                media: data.ui_schema.media,
-                headerText: data.ui_schema.headerText,     // Include header text
-                footer: data.ui_schema.footer,             // Include footer text
-                buttonListTitle: data.ui_schema.buttonListTitle, // Include button list title
-                sections: data.ui_schema.sections          // Include sections for Interactive List
-            };
-            setMessages(prev => [...prev, newMessage]);
+                const newMessage: Message = {
+                    role: data.ui_schema.type === 'interactive' || data.ui_schema.type === 'interactiveList' ? 'interactive' : 'assistant',
+                    content: messageContent,
+                    timestamp: new Date(),
+                    nodeType: data.node_type, // Track which node type generated this message
+                    buttons: data.ui_schema.buttons,
+                    media: data.ui_schema.media,
+                    headerText: data.ui_schema.headerText,     // Include header text
+                    footer: data.ui_schema.footer,             // Include footer text
+                    buttonListTitle: data.ui_schema.buttonListTitle, // Include button list title
+                    sections: data.ui_schema.sections          // Include sections for Interactive List
+                };
+                setMessages(prev => [...prev, newMessage]);
+            }
         }
 
         // Auto-proceed if expects_input is false
@@ -225,13 +250,13 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
         if (shouldAutoProceed) {
             console.log('[AgentPreviewPanel] Auto-proceeding to next node:', data.next_node_id);
             isAutoProceeding.current = true;
-            // Use a small delay to allow the message to be displayed first
+            // Minimal delay for smooth transition, loading state stays active
             setTimeout(() => {
                 console.log('[AgentPreviewPanel] Executing next step');
                 // Execute with the next_node_id from the response data, not state
                 executeNextStepDirect(data.next_node_id, '', data.state);
                 isAutoProceeding.current = false;
-            }, 500);
+            }, 50);
         }
     };
 
@@ -296,11 +321,11 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
             currentNodeId,  // Where input was provided
             nextNodeId,      // What to execute next
             isComplete,
-            willExecute: !(!nextNodeId || isComplete)
+            willExecute: !(!currentNodeId || isComplete)
         });
 
-        if (!nextNodeId || isComplete) {
-            console.log('[AgentPreviewPanel] Skipping execution - no next node or flow complete');
+        if (!currentNodeId || isComplete) {
+            console.log('[AgentPreviewPanel] Skipping execution - no current node or flow complete');
             return;
         }
 
@@ -316,7 +341,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                 },
                 body: JSON.stringify({
                     agent_id: agentId,
-                    node_id: nextNodeId,                // Node to execute
+                    node_id: currentNodeId,             // Re-execute current node to validate input
                     current_node_id: currentNodeId,     // Node where input was provided
                     user_input: userInput,
                     user_data: flowState.user_data,
@@ -328,6 +353,18 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
             const data = await response.json();
 
             if (data.success) {
+                // Check if we're going to auto-proceed to avoid clearing loading state
+                const willAutoProceed = data.ui_schema &&
+                    data.ui_schema.expects_input === false &&
+                    data.next_node_id &&
+                    !data.is_complete;
+                
+                if (!willAutoProceed) {
+                    // Only clear loading if we're NOT auto-proceeding
+                    // If auto-proceeding, keep loading active for smooth transition
+                    setIsLoading(false);
+                }
+                
                 handleStepResponse(data);
             } else {
                 const errorMessage: Message = {
@@ -336,6 +373,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                     timestamp: new Date()
                 };
                 setMessages(prev => [...prev, errorMessage]);
+                setIsLoading(false);
             }
         } catch (error) {
             console.error('Step execution error:', error);
@@ -345,16 +383,16 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                 timestamp: new Date()
             };
             setMessages(prev => [...prev, errorMessage]);
-        } finally {
             setIsLoading(false);
         }
     };
 
     // Execute next step with button action
-    const executeNextStepWithButton = async (button: { id: string; label: string; actionType: string; actionValue?: string }, buttonIndex: number) => {
+    const executeNextStepWithButton = async (button: { id: string; label: string; actionType: string; actionValue?: string }, buttonIndex: number, sectionIndex?: number) => {
         console.log('[AgentPreviewPanel] executeNextStepWithButton called:', {
             button,
             buttonIndex,
+            sectionIndex,
             currentNodeId,
             isComplete
         });
@@ -368,6 +406,19 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
 
         try {
             console.log('[AgentPreviewPanel] Sending button action to /api/langgraph/step');
+
+            // Build button_action payload
+            const buttonActionPayload: any = {
+                button_index: buttonIndex,
+                action_type: button.actionType,
+                action_value: button.actionValue
+            };
+
+            // Add section_index for Interactive List buttons
+            if (sectionIndex !== undefined) {
+                buttonActionPayload.section_index = sectionIndex;
+            }
+
             const response = await fetch('/api/langgraph/step', {
                 method: 'POST',
                 headers: {
@@ -382,11 +433,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                     user_data: flowState.user_data,
                     messages: flowState.messages,
                     conversation_id: conversationId || flowState.conversation_id,
-                    button_action: {
-                        button_index: buttonIndex,
-                        action_type: button.actionType,
-                        action_value: button.actionValue
-                    }
+                    button_action: buttonActionPayload
                 })
             });
 
@@ -416,8 +463,8 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
     };
 
     // Handle button click from interactive message
-    const handleButtonClick = (button: { id: string; label: string; actionType: string; actionValue?: string }, buttonIndex: number) => {
-        console.log('[AgentPreviewPanel] Button clicked:', { button, buttonIndex });
+    const handleButtonClick = (button: { id: string; label: string; actionType: string; actionValue?: string }, buttonIndex: number, sectionIndex?: number) => {
+        console.log('[AgentPreviewPanel] Button clicked:', { button, buttonIndex, sectionIndex });
 
         // Add user's choice as a message
         const userMessage: Message = {
@@ -440,12 +487,15 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
         // Always proceed to next step, passing button action info to server
         // Server will determine next node based on action type
         console.log('[AgentPreviewPanel] Proceeding to next step with button action');
-        executeNextStepWithButton(button, buttonIndex);
+        executeNextStepWithButton(button, buttonIndex, sectionIndex);
     };
 
     // Handle text input send
     const handleSendMessage = async () => {
         if (!inputMessage.trim() || isLoading) return;
+
+        // Clear any previous validation error
+        setValidationError(null);
 
         const userMessage: Message = {
             role: 'user',
@@ -666,7 +716,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                                             {/* Render header text if available */}
                                             {message.headerText && (
                                                 <div className="mb-2 pb-2 border-b border-slate-600">
-                                                    <div 
+                                                    <div
                                                         className="text-sm font-semibold text-slate-200 message-html-content"
                                                         dangerouslySetInnerHTML={{ __html: message.headerText }}
                                                     />
@@ -707,7 +757,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                                                     </a>
                                                 </div>
                                             )}
-                                            <div 
+                                            <div
                                                 className="text-sm message-html-content"
                                                 dangerouslySetInnerHTML={{ __html: message.content }}
                                             />
@@ -715,7 +765,7 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                                             {/* Render footer if available */}
                                             {message.footer && (
                                                 <div className="mt-2 pt-2 border-t border-slate-600">
-                                                    <div 
+                                                    <div
                                                         className="text-xs text-slate-400 italic message-html-content"
                                                         dangerouslySetInnerHTML={{ __html: message.footer }}
                                                     />
@@ -742,13 +792,13 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
                                                             allButtons.push({ button, sectionIndex, buttonIndex: btnIndex });
                                                         });
                                                     });
-                                                    
+
                                                     return (
                                                         <div className="mt-2 flex flex-wrap gap-2">
-                                                            {allButtons.map((item, globalIndex) => (
+                                                            {allButtons.map((item) => (
                                                                 <Button
                                                                     key={`${item.sectionIndex}-${item.buttonIndex}`}
-                                                                    onClick={() => handleButtonClick(item.button, globalIndex)}
+                                                                    onClick={() => handleButtonClick(item.button, item.buttonIndex, item.sectionIndex)}
                                                                     size="sm"
                                                                     variant="outline"
                                                                     className="border-indigo-500 text-indigo-400 hover:bg-indigo-500/10"
@@ -811,14 +861,29 @@ export default function AgentPreviewPanel({ agentId, agentName = 'Agent', onClos
 
                         {/* Input Area */}
                         <div className="border-t border-slate-700 p-4">
+                            {/* Validation Error Display */}
+                            {validationError && (
+                                <div className="mb-3 p-3 bg-red-900/20 border border-red-500/50 rounded-lg flex items-start gap-2">
+                                    <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
+                                    <span className="text-sm text-red-400">{validationError}</span>
+                                </div>
+                            )}
+
                             <div className="flex gap-2">
                                 <Input
                                     value={inputMessage}
-                                    onChange={(e) => setInputMessage(e.target.value)}
+                                    onChange={(e) => {
+                                        setInputMessage(e.target.value);
+                                        // Clear validation error when user starts typing
+                                        if (validationError) {
+                                            setValidationError(null);
+                                        }
+                                    }}
                                     onKeyDown={handleKeyPress}
                                     placeholder={isComplete ? "Flow completed" : (uiSchema?.expects_input === false ? "Processing..." : "Type your message...")}
                                     disabled={isLoading || isComplete || uiSchema?.expects_input === false}
-                                    className="bg-slate-800 border-slate-600 text-slate-100 placeholder-slate-500"
+                                    className={`bg-slate-800 border-slate-600 text-slate-100 placeholder-slate-500 ${validationError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                        }`}
                                 />
                                 <Button
                                     onClick={handleSendMessage}

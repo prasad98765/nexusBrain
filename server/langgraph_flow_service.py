@@ -600,6 +600,203 @@ def validate_interactive_node(
     }
 
 
+def validate_input_value(
+    value: str,
+    input_type: str
+) -> Dict[str, Any]:
+    """
+    Validate user input based on input type with specific validation rules.
+    
+    Validation rules:
+    1. Name: Required, max 50 chars, alphabetic + spaces/hyphens/apostrophes, must have at least one letter
+    2. Email: Required, valid email format (RFC 5322), max 254 chars
+    3. Phone (India): Required, normalize from 10-digit/91-prefix/+91-prefix to +91XXXXXXXXXX format
+    4. Number: Required, valid numeric value, range -999999999999.99 to 999999999999.99
+    
+    Args:
+        value: User input value
+        input_type: Type of input (name, email, phone, number, text, textarea)
+        
+    Returns:
+        {
+            'valid': bool,
+            'error': str or None,
+            'normalized_value': str (for phone, or original value for others)
+        }
+    """
+    import re
+    
+    # Text and textarea types have no validation
+    if input_type in ['text', 'textarea']:
+        return {
+            'valid': True,
+            'error': None,
+            'normalized_value': value
+        }
+    
+    # Name validation
+    if input_type == 'name':
+        if not value or not value.strip():
+            return {
+                'valid': False,
+                'error': 'Name is required',
+                'normalized_value': value
+            }
+        
+        if len(value) > 50:
+            return {
+                'valid': False,
+                'error': 'Please enter a valid name (letters, spaces, hyphens, and apostrophes only, max 50 characters)',
+                'normalized_value': value
+            }
+        
+        # Must contain at least one letter
+        if not re.search(r'[a-zA-Z]', value):
+            return {
+                'valid': False,
+                'error': 'Please enter a valid name (letters, spaces, hyphens, and apostrophes only, max 50 characters)',
+                'normalized_value': value
+            }
+        
+        # Only alphabetic characters, spaces, hyphens, and apostrophes
+        if not re.match(r"^[a-zA-Z\s\-']+$", value):
+            return {
+                'valid': False,
+                'error': 'Please enter a valid name (letters, spaces, hyphens, and apostrophes only, max 50 characters)',
+                'normalized_value': value
+            }
+        
+        return {
+            'valid': True,
+            'error': None,
+            'normalized_value': value
+        }
+    
+    # Email validation
+    if input_type == 'email':
+        if not value or not value.strip():
+            return {
+                'valid': False,
+                'error': 'Email is required',
+                'normalized_value': value
+            }
+        
+        if len(value) > 254:
+            return {
+                'valid': False,
+                'error': 'Please enter a valid email address',
+                'normalized_value': value
+            }
+        
+        # RFC 5322 compliant email regex (simplified but comprehensive)
+        email_pattern = r'^[a-zA-Z0-9.!#$%&\'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$'
+        
+        if not re.match(email_pattern, value):
+            return {
+                'valid': False,
+                'error': 'Please enter a valid email address',
+                'normalized_value': value
+            }
+        
+        return {
+            'valid': True,
+            'error': None,
+            'normalized_value': value
+        }
+    
+    # Phone validation (India-specific)
+    if input_type == 'phone':
+        if not value or not value.strip():
+            return {
+                'valid': False,
+                'error': 'Phone number is required',
+                'normalized_value': value
+            }
+        
+        # Remove all spaces and hyphens for processing
+        clean_value = re.sub(r'[\s\-]', '', value)
+        
+        normalized_phone = ''
+        
+        # Case 1: Already has +91 prefix
+        if clean_value.startswith('+91'):
+            normalized_phone = clean_value
+        # Case 2: Has 91 prefix without +
+        elif clean_value.startswith('91') and len(clean_value) == 12:
+            normalized_phone = '+' + clean_value
+        # Case 3: 10-digit number without prefix
+        elif len(clean_value) == 10 and re.match(r'^\d{10}$', clean_value):
+            normalized_phone = '+91' + clean_value
+        else:
+            return {
+                'valid': False,
+                'error': 'Please enter a valid Indian phone number (10 digits, or with 91/+91 prefix)',
+                'normalized_value': value
+            }
+        
+        # Validate the normalized format
+        # Should be exactly 13 characters: +91 (3) + 10 digits
+        if len(normalized_phone) != 13:
+            return {
+                'valid': False,
+                'error': 'Please enter a valid Indian phone number (10 digits, or with 91/+91 prefix)',
+                'normalized_value': value
+            }
+        
+        # Verify format: +91 followed by 10 digits
+        if not re.match(r'^\+91\d{10}$', normalized_phone):
+            return {
+                'valid': False,
+                'error': 'Please enter a valid Indian phone number (10 digits, or with 91/+91 prefix)',
+                'normalized_value': value
+            }
+        
+        return {
+            'valid': True,
+            'error': None,
+            'normalized_value': normalized_phone
+        }
+    
+    # Number validation
+    if input_type == 'number':
+        if not value or not value.strip():
+            return {
+                'valid': False,
+                'error': 'Number is required',
+                'normalized_value': value
+            }
+        
+        try:
+            num_value = float(value)
+            
+            # Check range
+            if num_value < -999999999999.99 or num_value > 999999999999.99:
+                return {
+                    'valid': False,
+                    'error': 'Please enter a valid number between -999999999999.99 and 999999999999.99',
+                    'normalized_value': value
+                }
+            
+            return {
+                'valid': True,
+                'error': None,
+                'normalized_value': value
+            }
+        except ValueError:
+            return {
+                'valid': False,
+                'error': 'Please enter a valid number between -999999999999.99 and 999999999999.99',
+                'normalized_value': value
+            }
+    
+    # Default: no validation for unknown types
+    return {
+        'valid': True,
+        'error': None,
+        'normalized_value': value
+    }
+
+
 def validate_input_node(
     node: Dict[str, Any],
     workspace_id: Optional[str] = None,
@@ -716,10 +913,18 @@ def find_next_node_id(current_node_id: str, edges: List[Dict[str, Any]], button_
     # If button action provided and action type is 'connect_to_node'
     if button_action and button_action.get('action_type') == 'connect_to_node':
         button_index = button_action.get('button_index')
+        section_index = button_action.get('section_index')  # For interactiveList nodes
+        
         if button_index is not None:
-            # Expected sourceHandle format: "button-0", "button-1", etc.
-            expected_source_handle = f"button-{button_index}"
-            logger.info(f"[ROUTING] Looking for edge with sourceHandle: {expected_source_handle}")
+            # Determine sourceHandle format based on whether it's from interactiveList
+            if section_index is not None:
+                # Interactive List button format: "section-0-button-0", "section-0-button-1", etc.
+                expected_source_handle = f"section-{section_index}-button-{button_index}"
+                logger.info(f"[ROUTING] Looking for Interactive List edge with sourceHandle: {expected_source_handle}")
+            else:
+                # Regular Interactive Node button format: "button-0", "button-1", etc.
+                expected_source_handle = f"button-{button_index}"
+                logger.info(f"[ROUTING] Looking for Interactive Node edge with sourceHandle: {expected_source_handle}")
             
             # Look for edge with matching sourceHandle
             for edge in edges:
@@ -730,7 +935,7 @@ def find_next_node_id(current_node_id: str, edges: List[Dict[str, Any]], button_
                         logger.info(f"[ROUTING] Found matching edge: {current_node_id} -> {target} via {source_handle}")
                         return target
             
-            logger.warning(f"[ROUTING] No edge found for button index {button_index} (sourceHandle: {expected_source_handle}), falling back to default routing")
+            logger.warning(f"[ROUTING] No edge found for button (sourceHandle: {expected_source_handle}), falling back to default routing")
         else:
             logger.warning(f"[ROUTING] button_index is None in button_action, falling back to default routing")
     
@@ -1460,11 +1665,42 @@ def run_node(
         }
         
         if user_input:
-            # Get workspace_id from state for database lookup
-            workspace_id = state.get('workspace_id')
-            variable_key = get_variable_key_for_node(current_node_id, node_config, workspace_id)
-            user_data[variable_key] = user_input
-            lc_messages.append(HumanMessage(content=user_input))
+            # Validate user input based on input type
+            validation_result = validate_input_value(user_input, input_type)
+            
+            if not validation_result['valid']:
+                # Validation failed - return error to client
+                response = resolved_placeholder
+                ui_schema = {
+                    'type': 'input',
+                    'label': resolved_label,
+                    'inputType': input_type,
+                    'placeholder': resolved_placeholder,
+                    'expects_input': True,
+                    'validation_error': validation_result['error']  # Add error message
+                }
+                logger.warning(f"[INPUT NODE] Validation failed for {input_type}: {validation_result['error']}")
+            else:
+                # Validation passed - store the value (use normalized value for phone)
+                workspace_id = state.get('workspace_id')
+                variable_key = get_variable_key_for_node(current_node_id, node_config, workspace_id)
+                stored_value = validation_result['normalized_value']
+                user_data[variable_key] = stored_value
+                logger.info(f"[INPUT NODE] Stored {input_type} value against variable: {variable_key}")
+                lc_messages.append(HumanMessage(content=stored_value))
+                
+                # Update ui_schema to indicate input was accepted and node is complete
+                ui_schema = {
+                    'type': 'input',
+                    'label': resolved_label,
+                    'inputType': input_type,
+                    'placeholder': resolved_placeholder,
+                    'expects_input': False  # Input accepted, ready to proceed
+                }
+                # Don't set response - client will auto-proceed to next node
+                # Setting a response would cause an extra message display
+                response = ''  # Empty response to avoid duplicate messages
+                logger.info(f"[INPUT NODE] Validation passed, expects_input set to False, ready to proceed")
         
         lc_messages.append(AIMessage(content=response))
     
@@ -2622,14 +2858,23 @@ def execute_single_node(
             if api_success is not None:
                 api_status_param = 'success' if api_success else 'failure'
                 logger.error(f"[DEFAULT ROUTING ERROR] Extracted api_status: {api_status_param}")
-        if button_action:
+        
+        # Check if there's a validation error - if so, don't proceed to next node
+        has_validation_error = result.get('ui_schema', {}).get('validation_error')
+        if has_validation_error:
+            logger.warning(f"[VALIDATION] Input validation failed: {has_validation_error}")
+            next_node_id = find_next_node_id(node_id, flow_edges, api_status=api_status_param)  # Don't proceed when validation fails
+        elif button_action:
+            logger.info(f"[ROUTING] Button action detected, finding next node")
             next_node_id = find_next_node_id(node_id, flow_edges, button_action)
         elif result.get('ui_schema').get('node_type') == "apiLibrary":
             # Use API status if this is an API Library node that fell through
             logger.error(f"[DEFAULT ROUTING ERROR] Using api_status={api_status_param} for routing")
             next_node_id = find_next_node_id(node_id, flow_edges, api_status=api_status_param)
         else:
+            logger.info(f"[ROUTING] Finding next node from edges, expects_input={result.get('ui_schema', {}).get('expects_input')}")
             next_node_id = find_next_node_id(node_id, flow_edges)
+            logger.info(f"[ROUTING] Next node ID determined: {next_node_id}")
         
         # Check if flow is complete
         node_type = current_node.get('type')

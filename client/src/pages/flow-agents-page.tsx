@@ -155,7 +155,7 @@ const AgentsGrid = React.memo<{
                                             : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
                                         }
                                     >
-                                        {agent.configuration?.agentType === 'agent' ? 'Agent' : 'Assistant'}
+                                        {agent.configuration?.agentType === 'agent' ? 'Agent' : 'Assistant Agent'}
                                     </Badge>
                                 </div>
                                 <span className="text-xs text-slate-500">

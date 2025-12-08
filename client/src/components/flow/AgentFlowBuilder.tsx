@@ -15,7 +15,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 
 import { Button } from '@/components/ui/button';
-import { Save, Minimize2, Maximize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, Eye, StickyNote } from 'lucide-react';
+import { Save, Minimize2, Maximize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, Eye, StickyNote, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { apiClient } from '@/lib/apiClient';
@@ -728,7 +728,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                                         <div className="space-y-1">
                                             <ComponentItem label="Language Model" type="ai" />
                                             <ComponentItem label="Engine" type="engine" />
-                                            <ComponentItem label="Agent" type="agentSelector" />
+                                            <ComponentItem label="Agent" type="agentSelector" comingSoon />
                                             <ComponentItem label="Condition" type="condition" />
                                         </div>
                                     </div>
@@ -908,11 +908,35 @@ export default function AgentFlowBuilder(props: AgentFlowBuilderProps) {
 }
 
 // Component Item for sidebar
-function ComponentItem({ label, type }: { label: string; type: string }) {
+function ComponentItem({ label, type, comingSoon = false }: { label: string; type: string; comingSoon?: boolean }) {
     const onDragStart = (event: React.DragEvent, nodeType: string) => {
+        if (comingSoon) {
+            event.preventDefault();
+            return;
+        }
         event.dataTransfer.setData('application/reactflow', nodeType);
         event.dataTransfer.effectAllowed = 'move';
     };
+
+    if (comingSoon) {
+        return (
+            <div className="relative">
+                <div
+                    className="px-4 py-2.5 text-sm rounded cursor-not-allowed transition-colors border-l-2 border-transparent overflow-hidden"
+                >
+                    {/* Blur effect - positioned behind text */}
+                    <div className="absolute inset-0 backdrop-blur-[2px] bg-slate-800/40"></div>
+                    {/* Text stays visible above blur */}
+                    <span className="font-medium text-slate-300 relative z-10">{label}</span>
+                </div>
+                {/* Coming Soon Badge */}
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 z-20 flex items-center gap-1 px-2 py-0.5 bg-slate-900/90 backdrop-blur-md rounded border border-purple-500/50 shadow-lg shadow-purple-500/20">
+                    <Clock className="h-3 w-3 text-purple-400 animate-pulse" />
+                    <span className="text-[10px] font-medium text-purple-400">Coming Soon</span>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div
