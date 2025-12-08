@@ -128,30 +128,6 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                 return;
             }
 
-            // Check mutual exclusion: Agent and Engine nodes
-            if (type === 'agentSelector') {
-                const hasEngine = nodes.some(node => node.type === 'engine');
-                if (hasEngine) {
-                    toast({
-                        title: 'Cannot Add Agent Node',
-                        description: 'Agent node cannot be used when Engine node is present. Please remove the Engine node first.',
-                        variant: 'destructive'
-                    });
-                    return;
-                }
-            }
-
-            if (type === 'engine') {
-                const hasAgentSelector = nodes.some(node => node.type === 'agentSelector');
-                if (hasAgentSelector) {
-                    toast({
-                        title: 'Cannot Add Engine Node',
-                        description: 'Engine node cannot be used when Agent node is present. Please remove the Agent node first.',
-                        variant: 'destructive'
-                    });
-                    return;
-                }
-            }
 
             const position = reactFlowInstance?.project({
                 x: event.clientX - reactFlowBounds.left,
