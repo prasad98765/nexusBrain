@@ -28,6 +28,7 @@ import SettingsPage from "@/pages/settings";
 import FlowBuilderInner from "@/pages/flow-builder";
 import FlowAgentsPage from "@/pages/flow-agents-page";
 import AgentsPage from "@/pages/agents-page";
+import OrchestrationEnginePage from "@/pages/orchestration-engine-page";
 import APIIntegrationsPage from "@/pages/API-integrations";
 import ApiDocumentation from "@/pages/api-documentation";
 import ApiTesting from "@/pages/api-testing";
@@ -134,6 +135,7 @@ function Router() {
         <Route index element={<Home />} />
         <Route path="flow" element={<FlowAgentsPage />} />
         <Route path="agents" element={<AgentsPage />} />
+        <Route path="orchestration-engine" element={<OrchestrationEnginePage />} />
         <Route path="contacts" element={<ComingSoon title="Contacts (Coming Soon)" />} />
         <Route path="settings" element={<SettingsPage />} />
         {/* <Route path="flow-builder" element={<ComingSoon title="Flow Builder (Coming Soon)" />} /> */}

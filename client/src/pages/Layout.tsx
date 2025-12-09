@@ -1,6 +1,6 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu, Bot, Users, Settings, Workflow, ChevronsLeftRightEllipsis, Activity, MessageCircle, Wallet, FileCode, Zap } from "lucide-react";
+import { LogOut, Menu, Bot, Users, Settings, Workflow, ChevronsLeftRightEllipsis, Activity, MessageCircle, Wallet, FileCode, Zap, Network } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -128,6 +128,23 @@ export default function Layout() {
           >
             <Zap
               className={`h-5 w-5 ${active === "agents"
+                ? "text-indigo-400"
+                : "text-slate-400 group-hover:text-slate-200"
+                }`}
+            />
+          </button>
+
+          <button
+            className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${active === "orchestration-engine" ? "bg-slate-700" : ""
+              }`}
+            onClick={() => {
+              setActive("orchestration-engine");
+              navigate("/nexus/orchestration-engine");
+            }}
+            title="Orchestration Engine"
+          >
+            <Network
+              className={`h-5 w-5 ${active === "orchestration-engine"
                 ? "text-indigo-400"
                 : "text-slate-400 group-hover:text-slate-200"
                 }`}
