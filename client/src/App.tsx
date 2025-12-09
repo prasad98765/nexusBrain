@@ -23,11 +23,11 @@ import ContactPropertiesPage from "@/pages/settings/contact-properties-page";
 import ContactsPage from "@/components/contacts/ContactsTable"
 import ChatPlayground from "@/pages/chat-playground.tsx";
 import { Routes, Route, BrowserRouter, useNavigate, useLocation, Navigate } from "react-router-dom";
-import AgentsPage from "./pages/agents-page";
 import Layout from "./pages/Layout";
 import SettingsPage from "@/pages/settings";
 import FlowBuilderInner from "@/pages/flow-builder";
 import FlowAgentsPage from "@/pages/flow-agents-page";
+import AgentsPage from "@/pages/agents-page";
 import APIIntegrationsPage from "@/pages/API-integrations";
 import ApiDocumentation from "@/pages/api-documentation";
 import ApiTesting from "@/pages/api-testing";
@@ -132,7 +132,8 @@ function Router() {
         }
       >
         <Route index element={<Home />} />
-        <Route path="agents" element={<FlowAgentsPage />} />
+        <Route path="flow" element={<FlowAgentsPage />} />
+        <Route path="agents" element={<AgentsPage />} />
         <Route path="contacts" element={<ComingSoon title="Contacts (Coming Soon)" />} />
         <Route path="settings" element={<SettingsPage />} />
         {/* <Route path="flow-builder" element={<ComingSoon title="Flow Builder (Coming Soon)" />} /> */}

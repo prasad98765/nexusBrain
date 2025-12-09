@@ -292,7 +292,6 @@ class FlowAgent(db.Model):
     id = db.Column(db.String, primary_key=True, default=lambda: str(uuid4()))
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
-    agent_type = db.Column(db.Text)
     flow_data = db.Column(db.JSON)  # Store ReactFlow nodes and edges
     workspace_id = db.Column(db.String, db.ForeignKey('workspaces.id'), nullable=False)
     is_active = db.Column(db.Boolean, default=True)

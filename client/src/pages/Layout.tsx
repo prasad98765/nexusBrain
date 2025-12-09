@@ -1,6 +1,6 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu, Bot, Users, Settings, Workflow, ChevronsLeftRightEllipsis, Activity, MessageCircle, Wallet, FileCode } from "lucide-react";
+import { LogOut, Menu, Bot, Users, Settings, Workflow, ChevronsLeftRightEllipsis, Activity, MessageCircle, Wallet, FileCode, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -101,6 +101,23 @@ export default function Layout() {
           </button>
 
           <button
+            className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${active === "flow" ? "bg-slate-700" : ""
+              }`}
+            onClick={() => {
+              setActive("flow");
+              navigate("/nexus/flow");
+            }}
+            title="Flow"
+          >
+            <Workflow
+              className={`h-5 w-5 ${active === "flow"
+                ? "text-indigo-400"
+                : "text-slate-400 group-hover:text-slate-200"
+                }`}
+            />
+          </button>
+
+          <button
             className={`p-3 rounded-lg hover:bg-slate-700 transition-colors group ${active === "agents" ? "bg-slate-700" : ""
               }`}
             onClick={() => {
@@ -109,7 +126,7 @@ export default function Layout() {
             }}
             title="Agents"
           >
-            <Bot
+            <Zap
               className={`h-5 w-5 ${active === "agents"
                 ? "text-indigo-400"
                 : "text-slate-400 group-hover:text-slate-200"

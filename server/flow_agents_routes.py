@@ -52,7 +52,6 @@ def get_flow_agents():
                 'flowData': agent.flow_data,
                 'workspaceId': agent.workspace_id,
                 'isActive': agent.is_active,
-                'agentType' : agent.agent_type,
                 'configuration': agent.configuration or {},
                 'createdAt': agent.created_at.isoformat(),
                 'updatedAt': agent.updated_at.isoformat() if agent.updated_at else agent.created_at.isoformat()

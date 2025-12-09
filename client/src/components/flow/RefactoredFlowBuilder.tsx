@@ -16,7 +16,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 
 import { Button } from '@/components/ui/button';
-import { Save, Minimize2, Maximize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, Eye } from 'lucide-react';
+import { Save, Minimize2, Maximize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, Eye, ArrowDownUp, ArrowRightLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { apiClient } from '@/lib/apiClient';
@@ -51,6 +51,7 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
     const [editingNode, setEditingNode] = useState<{ id: string; type: 'button' | 'input' | 'ai' } | null>(null);
     const [isLocked, setIsLocked] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
+    const [layoutOrientation, setLayoutOrientation] = useState<'horizontal' | 'vertical'>('horizontal');
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
     const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
     const { toast } = useToast();
@@ -269,6 +270,106 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
         }
     };
 
+    // Auto-layout nodes in hierarchical format
+    const applyHierarchicalLayout = useCallback((orientation: 'horizontal' | 'vertical') => {
+        if (!reactFlowInstance || nodes.length === 0) return;
+
+        // Simple hierarchical layout algorithm
+        const nodeWidth = 280;
+        const nodeHeight = 150;
+        const horizontalSpacing = 100;
+        const verticalSpacing = 100;
+
+        // Find entry node (node with no incoming edges)
+        const entryNode = nodes.find(node => {
+            return !edges.some(edge => edge.target === node.id);
+        }) || nodes[0];
+
+        // Build adjacency list for graph traversal
+        const adjacencyList: Record<string, string[]> = {};
+        nodes.forEach(node => {
+            adjacencyList[node.id] = [];
+        });
+        edges.forEach(edge => {
+            if (adjacencyList[edge.source]) {
+                adjacencyList[edge.source].push(edge.target);
+            }
+        });
+
+        // BFS to assign levels
+        const levels: Record<string, number> = {};
+        const queue: Array<{ id: string; level: number }> = [{ id: entryNode.id, level: 0 }];
+        const visited = new Set<string>();
+
+        while (queue.length > 0) {
+            const { id, level } = queue.shift()!;
+            if (visited.has(id)) continue;
+            visited.add(id);
+            levels[id] = level;
+
+            adjacencyList[id]?.forEach(childId => {
+                if (!visited.has(childId)) {
+                    queue.push({ id: childId, level: level + 1 });
+                }
+            });
+        }
+
+        // Group nodes by level
+        const nodesByLevel: Record<number, string[]> = {};
+        Object.entries(levels).forEach(([nodeId, level]) => {
+            if (!nodesByLevel[level]) {
+                nodesByLevel[level] = [];
+            }
+            nodesByLevel[level].push(nodeId);
+        });
+
+        // Position nodes
+        const updatedNodes = nodes.map(node => {
+            const level = levels[node.id] ?? 0;
+            const nodesInLevel = nodesByLevel[level] || [node.id];
+            const indexInLevel = nodesInLevel.indexOf(node.id);
+
+            let x, y;
+            if (orientation === 'vertical') {
+                // Vertical layout: nodes flow from top to bottom
+                y = level * (nodeHeight + verticalSpacing);
+                // Center nodes horizontally based on how many are in this level
+                const levelWidth = nodesInLevel.length * (nodeWidth + horizontalSpacing);
+                x = (indexInLevel * (nodeWidth + horizontalSpacing)) - (levelWidth / 2) + (nodeWidth / 2) + 400;
+            } else {
+                // Horizontal layout: nodes flow from left to right
+                x = level * (nodeWidth + horizontalSpacing);
+                // Center nodes vertically based on how many are in this level
+                const levelHeight = nodesInLevel.length * (nodeHeight + verticalSpacing);
+                y = (indexInLevel * (nodeHeight + verticalSpacing)) - (levelHeight / 2) + (nodeHeight / 2) + 300;
+            }
+
+            return {
+                ...node,
+                position: { x, y },
+            };
+        });
+
+        setNodes(updatedNodes);
+
+        // Fit view after layout
+        setTimeout(() => {
+            reactFlowInstance.fitView({ padding: 0.2, duration: 400 });
+        }, 50);
+
+        toast({
+            title: 'Layout Applied',
+            description: `Nodes arranged in ${orientation} hierarchical layout`,
+        });
+    }, [nodes, edges, reactFlowInstance, setNodes, toast]);
+
+    // Toggle layout orientation
+    const toggleLayoutOrientation = () => {
+        const newOrientation = layoutOrientation === 'horizontal' ? 'vertical' : 'horizontal';
+        setLayoutOrientation(newOrientation);
+        applyHierarchicalLayout(newOrientation);
+    };
+
     return (
         <div
             className={`${isFullScreen ? 'fixed inset-0 z-50' : 'relative'
@@ -281,6 +382,19 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
                     <h2 className="text-base font-semibold text-slate-200">Flow Builder</h2>
                     <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded">
                         {nodes.length} nodes • {edges.length} connections
+                    </span>
+                    <span className="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded flex items-center gap-1.5">
+                        {layoutOrientation === 'vertical' ? (
+                            <>
+                                <ArrowDownUp className="h-3 w-3" />
+                                Vertical Layout
+                            </>
+                        ) : (
+                            <>
+                                <ArrowRightLeft className="h-3 w-3" />
+                                Horizontal Layout
+                            </>
+                        )}
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -393,10 +507,22 @@ function RefactoredFlowBuilderInner({ workspaceId, isFullScreen, onToggleFullScr
                                 </button>
                                 <div className="w-px h-6 bg-slate-700" />
                                 <button
+                                    onClick={toggleLayoutOrientation}
+                                    className="p-2 hover:bg-slate-700 rounded transition-colors text-slate-300 hover:text-white"
+                                    title={layoutOrientation === 'vertical' ? 'Switch to Horizontal Layout' : 'Switch to Vertical Layout'}
+                                >
+                                    {layoutOrientation === 'vertical' ? (
+                                        <ArrowRightLeft className="h-4 w-4" />
+                                    ) : (
+                                        <ArrowDownUp className="h-4 w-4" />
+                                    )}
+                                </button>
+                                <div className="w-px h-6 bg-slate-700" />
+                                <button
                                     onClick={() => setIsLocked(!isLocked)}
                                     className={`p-2 rounded transition-colors ${isLocked
-                                            ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
-                                            : 'hover:bg-slate-700 text-slate-300 hover:text-white'
+                                        ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
+                                        : 'hover:bg-slate-700 text-slate-300 hover:text-white'
                                         }`}
                                     title={isLocked ? 'Unlock Canvas' : 'Lock Canvas'}
                                 >

@@ -25,7 +25,6 @@ import {
     FileText
 } from 'lucide-react';
 import AgentFlowBuilder from '@/components/flow/AgentFlowBuilder';
-import CreationModeModal from '@/components/flow/CreationModeModal';
 
 interface FlowAgent {
     id: string;
@@ -148,15 +147,6 @@ const AgentsGrid = React.memo<{
                                     >
                                         {agent.isActive ? 'Active' : 'Inactive'}
                                     </Badge>
-                                    <Badge
-                                        variant="outline"
-                                        className={agent.configuration?.agentType === 'agent'
-                                            ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                                            : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                                        }
-                                    >
-                                        {agent.configuration?.agentType === 'agent' ? 'Agent' : 'Assistant Agent'}
-                                    </Badge>
                                 </div>
                                 <span className="text-xs text-slate-500">
                                     {new Date(agent.createdAt).toLocaleDateString()}
@@ -224,8 +214,6 @@ export default function FlowAgentsPage() {
         return () => clearTimeout(timer);
     }, [searchTerm]);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
-    const [showCreationModeModal, setShowCreationModeModal] = useState(false);
-    const [creationMode, setCreationMode] = useState<'assistant' | 'agent' | null>(null);
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [showSettingsDialog, setShowSettingsDialog] = useState(false);
     const [showFlowBuilder, setShowFlowBuilder] = useState(false);
@@ -296,7 +284,7 @@ export default function FlowAgentsPage() {
                 name: '',
                 description: '',
                 isActive: true,
-                configuration: { promptInstructions: '' }
+                configuration: { promptInstructions: '', agentType: 'assistant' }
             });
             toast({
                 title: "Success",
@@ -414,19 +402,6 @@ export default function FlowAgentsPage() {
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
         setPage(1); // Reset to first page on search
-    };
-
-    const handleCreationModeSelect = (mode: 'assistant' | 'agent') => {
-        setCreationMode(mode);
-        setShowCreationModeModal(false);
-        setEditingAgent({
-            ...editingAgent,
-            configuration: {
-                ...editingAgent.configuration,
-                agentType: mode
-            }
-        });
-        setShowCreateDialog(true);
     };
 
     const handlePromptInstructionsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -575,12 +550,20 @@ export default function FlowAgentsPage() {
             {/* Header */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">Builder</h1>
-                    <p className="text-slate-400 mt-1">Build Assistants or Agents with a powerful visual workflow builder.</p>
+                    <h1 className="text-3xl font-bold text-white">Flow</h1>
+                    <p className="text-slate-400 mt-1">Build conversational flows with a powerful visual workflow builder.</p>
                 </div>
                 <Button
                     className="bg-indigo-600 hover:bg-indigo-700"
-                    onClick={() => setShowCreationModeModal(true)}
+                    onClick={() => {
+                        setEditingAgent({
+                            name: '',
+                            description: '',
+                            isActive: true,
+                            configuration: { promptInstructions: '', agentType: 'assistant' }
+                        });
+                        setShowCreateDialog(true);
+                    }}
                 >
                     <Plus className="h-4 w-4 mr-2" />
                     Create
@@ -798,13 +781,6 @@ export default function FlowAgentsPage() {
                     </form>
                 </DialogContent>
             </Dialog>
-
-            {/* Creation Mode Modal */}
-            <CreationModeModal
-                isOpen={showCreationModeModal}
-                onClose={() => setShowCreationModeModal(false)}
-                onSelectMode={handleCreationModeSelect}
-            />
         </div>
     );
 }

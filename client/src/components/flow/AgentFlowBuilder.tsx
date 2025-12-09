@@ -15,7 +15,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 
 import { Button } from '@/components/ui/button';
-import { Save, Minimize2, Maximize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, Eye, StickyNote, Clock } from 'lucide-react';
+import { Save, Minimize2, Maximize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, Eye, StickyNote, Clock, ArrowDownUp, ArrowRightLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { apiClient } from '@/lib/apiClient';
@@ -78,16 +78,16 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
     const [showPreview, setShowPreview] = useState(false);
     const [showConditionDrawer, setShowConditionDrawer] = useState(false);
     const [editingConditionNodeId, setEditingConditionNodeId] = useState<string | null>(null);
-    const [agentType, setAgentType] = useState<'agent' | 'assistant' | null>(null);
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
     const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+    const [layoutOrientation, setLayoutOrientation] = useState<'horizontal' | 'vertical'>('horizontal');
     const { toast } = useToast();
     const { user } = useAuth();
 
     const onConnect = useCallback(
         (params: Connection) => {
             console.log('[API LIBRARY DEBUG] New connection params:', params);
-            
+
             // Determine edge style based on connection type
             let edgeStyle = { stroke: '#4b5563', strokeWidth: 2 };
             let animated = true;
@@ -104,9 +104,9 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                 animated,
                 style: edgeStyle
             };
-            
+
             console.log('[API LIBRARY DEBUG] New edge being added:', newEdge);
-            
+
             setEdges((eds) => addEdge(newEdge, eds));
         },
         [setEdges]
@@ -251,12 +251,12 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
             const event = e as CustomEvent;
             const { nodeId } = event.detail;
 
-            // Check if node is required (Agent mode)
+            // Check if node is required
             const nodeToDelete = nodes.find(n => n.id === nodeId);
             if (nodeToDelete?.data?.isRequired) {
                 toast({
                     title: 'Cannot Delete',
-                    description: 'This node is required in Agent mode and cannot be deleted.',
+                    description: 'This node is required and cannot be deleted.',
                     variant: 'destructive'
                 });
                 return;
@@ -387,97 +387,18 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                 const response = await apiClient.get(`/api/flow-agents/${agentId}`);
                 if (response.ok) {
                     const data = await response.json();
-                    const fetchedAgentType = data.configuration?.agentType;
-                    setAgentType(fetchedAgentType);
 
                     if (data.flowData && reactFlowInstance) {
                         const { nodes: loadedNodes, edges: loadedEdges } = data.flowData;
                         if (loadedNodes?.length > 0) {
                             setNodes(loadedNodes);
                             setEdges(loadedEdges || []);
-                        } else if (fetchedAgentType === 'agent') {
-                            // For new Agent-type flows, create pre-loaded required nodes
-                            createAgentRequiredNodes();
                         }
-                    } else if (fetchedAgentType === 'agent') {
-                        // No flow data yet for Agent type - create required nodes
-                        createAgentRequiredNodes();
                     }
                 }
             } catch (error) {
                 console.error('Failed to load flow:', error);
             }
-        };
-
-        const createAgentRequiredNodes = () => {
-            const languageModelNode: Node = {
-                id: 'ai-required',
-                type: 'ai',
-                position: { x: 100, y: 250 },
-                data: {
-                    label: 'Language Model',
-                    model: 'meta-llama/llama-3.3-8b-instruct:free',
-                    maxTokens: 300,
-                    temperature: 0.7,
-                    systemPrompt: '',
-                    isRequired: true,
-                },
-            };
-
-            const agentNode: Node = {
-                id: 'agent-required',
-                type: 'agent',
-                position: { x: 500, y: 250 },
-                data: {
-                    label: 'Agent',
-                    isRequired: true,
-                    configuration: {
-                        button: { enabled: false, description: '' },
-                        card: { enabled: false, description: '' },
-                        carousel: { enabled: false, description: '' },
-                        webSearch: { enabled: false, description: '' },
-                        path: { enabled: false, subAgents: [] },
-                    },
-                },
-            };
-
-            const engineNode: Node = {
-                id: 'engine-required',
-                type: 'engine',
-                position: { x: 900, y: 250 },
-                data: {
-                    label: 'Engine',
-                    isRequired: true,
-                },
-            };
-
-            // Create required connections: Language Model → Agent → Engine
-            const edge1: Edge = {
-                id: 'lm-to-agent',
-                source: 'ai-required',
-                target: 'agent-required',
-                targetHandle: 'language-model',
-                type: 'smoothstep',
-                animated: true,
-                style: { stroke: '#6366f1', strokeWidth: 2 },
-            };
-
-            const edge2: Edge = {
-                id: 'agent-to-engine',
-                source: 'agent-required',
-                target: 'engine-required',
-                type: 'smoothstep',
-                animated: true,
-                style: { stroke: '#f97316', strokeWidth: 2 },
-            };
-
-            setNodes([languageModelNode, agentNode, engineNode]);
-            setEdges([edge1, edge2]);
-
-            toast({
-                title: 'Agent Flow Initialized',
-                description: 'Required nodes have been created. Language Model → Agent → Engine',
-            });
         };
 
         if (agentId && reactFlowInstance) {
@@ -489,7 +410,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
         if (!reactFlowInstance) return;
 
         const flow = reactFlowInstance.toObject();
-        
+
         // Debug: Log all edges with their sourceHandle values
         console.log('[SAVE FLOW DEBUG] === Edges being saved ===');
         flow.edges.forEach((edge: any, idx: number) => {
@@ -502,7 +423,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
             });
         });
         console.log('[SAVE FLOW DEBUG] === End edges ===');
-        
+
         try {
             const response = await apiClient.patch(`/api/flow-agents/${agentId}/flow`, {
                 flowData: flow
@@ -644,6 +565,106 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
         });
     };
 
+    // Auto-layout nodes in hierarchical format
+    const applyHierarchicalLayout = useCallback((orientation: 'horizontal' | 'vertical') => {
+        if (!reactFlowInstance || nodes.length === 0) return;
+
+        // Simple hierarchical layout algorithm
+        const nodeWidth = 280;
+        const nodeHeight = 150;
+        const horizontalSpacing = 200;
+        const verticalSpacing = 250;
+
+        // Find entry node (node with no incoming edges)
+        const entryNode = nodes.find(node => {
+            return !edges.some(edge => edge.target === node.id);
+        }) || nodes[0];
+
+        // Build adjacency list for graph traversal
+        const adjacencyList: Record<string, string[]> = {};
+        nodes.forEach(node => {
+            adjacencyList[node.id] = [];
+        });
+        edges.forEach(edge => {
+            if (adjacencyList[edge.source]) {
+                adjacencyList[edge.source].push(edge.target);
+            }
+        });
+
+        // BFS to assign levels
+        const levels: Record<string, number> = {};
+        const queue: Array<{ id: string; level: number }> = [{ id: entryNode.id, level: 0 }];
+        const visited = new Set<string>();
+
+        while (queue.length > 0) {
+            const { id, level } = queue.shift()!;
+            if (visited.has(id)) continue;
+            visited.add(id);
+            levels[id] = level;
+
+            adjacencyList[id]?.forEach(childId => {
+                if (!visited.has(childId)) {
+                    queue.push({ id: childId, level: level + 1 });
+                }
+            });
+        }
+
+        // Group nodes by level
+        const nodesByLevel: Record<number, string[]> = {};
+        Object.entries(levels).forEach(([nodeId, level]) => {
+            if (!nodesByLevel[level]) {
+                nodesByLevel[level] = [];
+            }
+            nodesByLevel[level].push(nodeId);
+        });
+
+        // Position nodes
+        const updatedNodes = nodes.map(node => {
+            const level = levels[node.id] ?? 0;
+            const nodesInLevel = nodesByLevel[level] || [node.id];
+            const indexInLevel = nodesInLevel.indexOf(node.id);
+
+            let x, y;
+            if (orientation === 'vertical') {
+                // Vertical layout: nodes flow from top to bottom
+                y = level * (nodeHeight + verticalSpacing);
+                // Center nodes horizontally based on how many are in this level
+                const levelWidth = nodesInLevel.length * (nodeWidth + horizontalSpacing);
+                x = (indexInLevel * (nodeWidth + horizontalSpacing)) - (levelWidth / 2) + (nodeWidth / 2) + 400;
+            } else {
+                // Horizontal layout: nodes flow from left to right
+                x = level * (nodeWidth + horizontalSpacing);
+                // Center nodes vertically based on how many are in this level
+                const levelHeight = nodesInLevel.length * (nodeHeight + verticalSpacing);
+                y = (indexInLevel * (nodeHeight + verticalSpacing)) - (levelHeight / 2) + (nodeHeight / 2) + 900;
+            }
+
+            return {
+                ...node,
+                position: { x, y },
+            };
+        });
+
+        setNodes(updatedNodes);
+
+        // Fit view after layout
+        setTimeout(() => {
+            reactFlowInstance.fitView({ padding: 0.2, duration: 400 });
+        }, 50);
+
+        toast({
+            title: 'Layout Applied',
+            description: `Nodes arranged in ${orientation} hierarchical layout`,
+        });
+    }, [nodes, edges, reactFlowInstance, setNodes, toast]);
+
+    // Toggle layout orientation
+    const toggleLayoutOrientation = () => {
+        const newOrientation = layoutOrientation === 'horizontal' ? 'vertical' : 'horizontal';
+        setLayoutOrientation(newOrientation);
+        applyHierarchicalLayout(newOrientation);
+    };
+
     return (
         <div
             className={`${isFullScreen ? 'fixed inset-0 z-50' : 'relative'
@@ -656,6 +677,19 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                     <h2 className="text-base font-semibold text-slate-100">Flow Builder</h2>
                     <span className="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">
                         {nodes.length} nodes • {edges.length} connections
+                    </span>
+                    <span className="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded flex items-center gap-1.5">
+                        {layoutOrientation === 'vertical' ? (
+                            <>
+                                <ArrowDownUp className="h-3 w-3" />
+                                Vertical Layout
+                            </>
+                        ) : (
+                            <>
+                                <ArrowRightLeft className="h-3 w-3" />
+                                Horizontal Layout
+                            </>
+                        )}
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -700,47 +734,31 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                         <h3 className="text-sm font-semibold text-slate-100 mb-4">Node Types</h3>
 
                         <div className="space-y-3">
-                            {agentType === 'agent' ? (
-                                // Agent Mode: Show only Integration nodes (API Library and Knowledge Base) and Agent node
-                                <>
-                                    <div>
-                                        <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Integration</h4>
-                                        <div className="space-y-1">
-                                            <ComponentItem label="API Library" type="apiLibrary" />
-                                            <ComponentItem label="Knowledge Base" type="knowledgeBase" />
-                                        </div>
-                                    </div>
-                                </>
-                            ) : (
-                                // Assistant Mode: Show all nodes
-                                <>
-                                    <div>
-                                        <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Input/Output</h4>
-                                        <div className="space-y-1">
-                                            <ComponentItem label="Interactive Node" type="button" />
-                                            <ComponentItem label="Interactive List" type="interactiveList" />
-                                            <ComponentItem label="Input Node" type="input" />
-                                            <ComponentItem label="Message" type="simpleMessage" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Processing</h4>
-                                        <div className="space-y-1">
-                                            <ComponentItem label="Language Model" type="ai" />
-                                            <ComponentItem label="Engine" type="engine" />
-                                            <ComponentItem label="Agent" type="agentSelector" comingSoon />
-                                            <ComponentItem label="Condition" type="condition" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Integration</h4>
-                                        <div className="space-y-1">
-                                            <ComponentItem label="API Library" type="apiLibrary" />
-                                            <ComponentItem label="Knowledge Base" type="knowledgeBase" />
-                                        </div>
-                                    </div>
-                                </>
-                            )}
+                            <div>
+                                <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Input/Output</h4>
+                                <div className="space-y-1">
+                                    <ComponentItem label="Interactive Node" type="button" />
+                                    <ComponentItem label="Interactive List" type="interactiveList" />
+                                    <ComponentItem label="Input Node" type="input" />
+                                    <ComponentItem label="Message" type="simpleMessage" />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Processing</h4>
+                                <div className="space-y-1">
+                                    <ComponentItem label="Language Model" type="ai" />
+                                    <ComponentItem label="Engine" type="engine" />
+                                    <ComponentItem label="Agent" type="agentSelector" comingSoon />
+                                    <ComponentItem label="Condition" type="condition" />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Integration</h4>
+                                <div className="space-y-1">
+                                    <ComponentItem label="API Library" type="apiLibrary" />
+                                    <ComponentItem label="Knowledge Base" type="knowledgeBase" />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -794,6 +812,18 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                                 >
                                     <Maximize className="h-4 w-4" />
                                 </button>
+                                <div className="w-px h-6 bg-slate-700" />
+                                <button
+                                    onClick={toggleLayoutOrientation}
+                                    className="p-2 hover:bg-slate-700 rounded transition-colors text-slate-300 hover:text-white"
+                                    title={layoutOrientation === 'vertical' ? 'Switch to Horizontal Layout' : 'Switch to Vertical Layout'}
+                                >
+                                    {layoutOrientation === 'vertical' ? (
+                                        <ArrowRightLeft className="h-4 w-4" />
+                                    ) : (
+                                        <ArrowDownUp className="h-4 w-4" />
+                                    )}
+                                </button>
                                 <button
                                     onClick={handleAddNote}
                                     className="p-2 hover:bg-slate-700 rounded transition-colors text-slate-300 hover:text-white"
@@ -826,7 +856,6 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                     nodeData={nodes.find((n) => n.id === editingNode.id)?.data}
                     onClose={() => setEditingNode(null)}
                     onSave={handleSaveNodeConfig}
-                    agentType={agentType}
                 />
             )}
 
