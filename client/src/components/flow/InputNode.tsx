@@ -184,7 +184,7 @@ export default function InputNode({ id, data, selected }: NodeProps<InputNodeDat
 
                 {/* Body */}
                 {!isMinimized && (
-                    <div className="p-4 space-y-3.5">
+                    <div className="p-4 space-y-3.5" style={{ maxWidth: "350px" }}>
                         {/* Input Type */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
@@ -227,8 +227,8 @@ export default function InputNode({ id, data, selected }: NodeProps<InputNodeDat
                                         </TooltipContent>
                                     </Tooltip>
                                 </div>
-                                <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-gray-600/50 rounded-lg px-3.5 py-2.5 text-sm text-slate-300 shadow-inner leading-relaxed">
-                                    <div dangerouslySetInnerHTML={{ __html: data.placeholder }} />
+                                <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-gray-600/50 rounded-lg px-3.5 py-2.5 text-sm text-slate-300 shadow-inner leading-relaxed break-words overflow-wrap-anywhere">
+                                    <div className="break-words whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: data.placeholder }} />
                                 </div>
                             </div>
                         )}

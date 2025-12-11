@@ -217,18 +217,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                                                                 headerText: '',
                                                                 buttonListTitle: 'Options',
                                                                 sections: [
-                                                                    {
-                                                                        id: `section-${Date.now()}`,
-                                                                        sectionName: 'Section 1',
-                                                                        buttons: [
-                                                                            {
-                                                                                id: `btn-${Date.now()}`,
-                                                                                label: 'Button 1',
-                                                                                actionType: 'connect_to_node',
-                                                                                actionValue: '',
-                                                                            }
-                                                                        ],
-                                                                    }
+
                                                                 ],
                                                                 footer: '',
                                                             }

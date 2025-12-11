@@ -243,8 +243,8 @@ export default function InteractiveListNode({ id, data, selected }: NodeProps<In
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
-                            <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-gray-600/50 rounded-lg px-3.5 py-3 text-sm text-slate-200 shadow-inner min-h-[60px] leading-relaxed">
-                                <div dangerouslySetInnerHTML={{ __html: data.message || '<span class="text-slate-500 italic">Click to edit message...</span>' }} />
+                            <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-gray-600/50 rounded-lg px-3.5 py-3 text-sm text-slate-200 shadow-inner min-h-[60px] max-h-[120px] overflow-y-auto leading-relaxed break-words">
+                                <div className="break-words whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: data.message || '<span class="text-slate-500 italic">Click to edit message...</span>' }} />
                             </div>
                         </div>
 

@@ -125,7 +125,21 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
 
     useEffect(() => {
         if (nodeData) {
-            setConfig({ ...nodeData });
+            // Initialize config with nodeData
+            const initialConfig = { ...nodeData };
+
+            // Ensure sections are properly set for Interactive List
+            if (nodeType === 'interactiveList') {
+                // If sections don't exist or are empty, create default section with one button
+                if (!nodeData.sections || nodeData.sections.length === 0) {
+                    initialConfig.sections = []
+                } else {
+                    initialConfig.sections = nodeData.sections;
+                }
+            }
+
+            setConfig(initialConfig);
+
             // Initialize selected documents from saved config
             if (nodeType === 'knowledgeBase' && nodeData.selectedDocuments) {
                 const savedFilenames = nodeData.selectedDocuments.map((doc: any) => doc.filename);
