@@ -107,7 +107,7 @@ export default function ChatBot() {
             const response = await fetch('/api/v1/chat/create', {
                 method: 'POST',
                 headers: {
-                    'authorization': 'Bearer nxs-aXkDVM7aAVNVuVcYa6FqoLDD98fHIwOF4VVX-tkcHgs',
+                    'authorization': 'Bearer nxs-hGd_LjjgbNteg8_QRU5QKqleFSnrZ6p-8Id4YwHeVyY',
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
