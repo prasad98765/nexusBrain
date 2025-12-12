@@ -141,7 +141,7 @@ export default function Layout() {
               setActive("orchestration-engine");
               navigate("/nexus/orchestration-engine");
             }}
-            title="Orchestration Engine"
+            title="AIDOS"
           >
             <Network
               className={`h-5 w-5 ${active === "orchestration-engine"

@@ -22,9 +22,14 @@ import {
     Settings,
     ChevronLeft,
     ChevronRight,
-    FileText
+    FileText,
+    Rocket
 } from 'lucide-react';
 import AgentFlowBuilder from '@/components/flow/AgentFlowBuilder';
+
+// 🚀 FEATURE FLAG: Set to false to show "Coming Soon" page
+// Set to true for development to access the full feature
+const ENABLE_AGENTIC_FLOWS = false;
 
 interface FlowAgent {
     id: string;
@@ -204,6 +209,70 @@ export default function FlowAgentsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [page, setPage] = useState(1);
+
+    // 🎯 Show Coming Soon page if feature is disabled
+    if (!ENABLE_AGENTIC_FLOWS) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
+                <div className="max-w-2xl w-full text-center space-y-8">
+                    {/* Icon */}
+                    <div className="flex justify-center">
+                        <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center animate-pulse">
+                            <Workflow className="h-12 w-12 text-white" />
+                        </div>
+                    </div>
+
+                    {/* Title */}
+                    <div className="space-y-4">
+                        <h1 className="text-4xl md:text-5xl font-bold text-white">
+                            Agentic Flows
+                        </h1>
+                        <div className="inline-block px-6 py-2 bg-gradient-to-r from-cyan-500/20 to-indigo-500/20 border border-cyan-500/30 rounded-full">
+                            <span className="text-cyan-400 font-semibold text-lg">Coming Soon</span>
+                        </div>
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-xl text-slate-300 leading-relaxed">
+                        Build powerful conversational flows with our visual workflow builder. Create complex multi-step interactions with drag-and-drop simplicity.
+                    </p>
+
+                    {/* Features List */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left mt-8">
+                        {[
+                            'Visual Flow Builder',
+                            'Drag-and-Drop Interface',
+                            'Multi-Step Conversations',
+                            'Custom Logic & Conditions',
+                            'AI Integration',
+                            'Real-time Testing'
+                        ].map((feature, i) => (
+                            <div key={i} className="flex items-center gap-3 bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+                                <div className="w-2 h-2 bg-cyan-400 rounded-full" />
+                                <span className="text-slate-300">{feature}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* CTA */}
+                    <div className="pt-8">
+                        <Button
+                            className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 px-8 py-6 text-lg"
+                            onClick={() => window.location.href = '/nexus'}
+                        >
+                            <Rocket className="h-5 w-5 mr-2" />
+                            Back to Dashboard
+                        </Button>
+                    </div>
+
+                    {/* Footer Note */}
+                    <p className="text-sm text-slate-500 mt-8">
+                        This feature is currently under development and will be available soon.
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     // Debounce search term to prevent focus loss
     useEffect(() => {
