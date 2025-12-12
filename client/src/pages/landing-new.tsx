@@ -100,9 +100,12 @@ const HeroSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.8, delay: 0.2 }}
-                    className="hero-content text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight"
+                    className="hero-content text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight min-h-[4rem] sm:min-h-[5rem] md:min-h-[6rem] lg:min-h-[8rem]"
                 >
-                    <span className="block mb-4 text-white">{typedText}<span className="animate-pulse">|</span></span>
+                    <span className="block mb-4 text-white inline-block">
+                        {typedText}
+                        <span className="inline-block w-[0.6em] text-center animate-pulse">|</span>
+                    </span>
                     {/* <span className="block bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
                         Intelligent Automation Across Every Channel
                     </span> */}
@@ -112,7 +115,7 @@ const HeroSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.8, delay: 0.4 }}
-                    className="hero-content text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed"
+                    className="hero-content text-base sm:text-lg md:text-xl leading-relaxed text-slate-300 max-w-3xl mx-auto"
                 >
                     AIDOS (AI Distributed Operating System) powers Assistants, Agents, and Workflows — enabling businesses to automate real tasks across multiple channels.
                 </motion.p>
@@ -121,7 +124,7 @@ const HeroSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.8, delay: 0.6 }}
-                    className="hero-content text-lg text-slate-400 max-w-2xl mx-auto"
+                    className="hero-content text-sm sm:text-base md:text-lg text-slate-400 max-w-2xl mx-auto"
                 >
                     The only platform that thinks, plans, and orchestrates actions across your entire business ecosystem — from website to WhatsApp, email to voice.
                 </motion.p>
@@ -130,7 +133,7 @@ const HeroSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.8, delay: 0.8 }}
-                    className="hero-content text-xl text-cyan-300 max-w-3xl mx-auto font-semibold"
+                    className="hero-content text-base sm:text-lg md:text-xl text-cyan-300 max-w-3xl mx-auto font-semibold"
                 >
                     The only AI OS that thinks, plans, and executes your business operations across every channel.
                 </motion.p>
@@ -163,18 +166,18 @@ const HeroSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
                 </motion.div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-3 gap-8 mt-16 max-w-3xl mx-auto">
+                <div className="grid grid-cols-3 gap-4 sm:gap-6 md:gap-8 mt-12 sm:mt-16 max-w-3xl mx-auto">
                     <div className="text-center">
-                        <div className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">AI OS</div>
-                        <div className="text-slate-400 text-sm mt-2">Business Operating System</div>
+                        <div className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">AI OS</div>
+                        <div className="text-slate-400 text-xs sm:text-sm mt-1 sm:mt-2">Business Operating System</div>
                     </div>
                     <div className="text-center">
                         {/* <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Multi-Channel</div>
                         <div className="text-slate-400 text-sm mt-2">Web, WhatsApp, Voice & More</div> */}
                     </div>
                     <div className="text-center">
-                        <div className="text-4xl font-bold bg-gradient-to-r from-pink-400 to-cyan-400 bg-clip-text text-transparent">400+</div>
-                        <div className="text-slate-400 text-sm mt-2">AI Models Available</div>
+                        <div className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-pink-400 to-cyan-400 bg-clip-text text-transparent">400+</div>
+                        <div className="text-slate-400 text-xs sm:text-sm mt-1 sm:mt-2">AI Models Available</div>
                     </div>
                 </div>
 
