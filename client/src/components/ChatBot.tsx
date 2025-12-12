@@ -28,6 +28,25 @@ export default function ChatBot() {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    // Check for preview mode in URL and auto-open bot
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const isPreviewMode = urlParams.get('preview') === 'true';
+        
+        if (isPreviewMode) {
+            // Auto-open the bot
+            setIsOpen(true);
+            // Auto-start the conversation after a small delay
+            setTimeout(() => {
+                setHasStarted(true);
+                setMessages([{
+                    role: 'bot',
+                    content: "💬 Hi there! I'm AIDOS, and I'm here to help you with anything you need. What's on your mind today?"
+                }]);
+            }, 500); // Small delay for smooth animation
+        }
+    }, []); // Run only once on mount
+
     // Reset chat when bot is closed (end session)
     const handleClose = () => {
         // Abort any ongoing requests
@@ -51,10 +70,13 @@ export default function ChatBot() {
     // Open bot and show initial message
     const handleOpen = () => {
         setIsOpen(true);
-        setMessages([{
-            role: 'system',
-            content: 'This bot does not maintain any session. If you start again, it will be treated as a new session.'
-        }]);
+        // Only show system message if not already started
+        if (!hasStarted) {
+            setMessages([{
+                role: 'system',
+                content: 'This bot does not maintain any session. If you start again, it will be treated as a new session.'
+            }]);
+        }
     };
 
     // Start the conversation
@@ -62,7 +84,7 @@ export default function ChatBot() {
         setHasStarted(true);
         setMessages([{
             role: 'bot',
-            content: '💬 Welcome to Nexus AI Hub! What can we help you with today?'
+            content: "💬 Hi there! I'm AIDOS, and I'm here to help you with anything you need. What's on your mind today?"
         }]);
     };
 
@@ -237,8 +259,8 @@ export default function ChatBot() {
 
             {/* Chat Window */}
             {isOpen && (
-                <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-2rem)] sm:w-[410px] max-w-[95vw] h-[calc(100vh-2rem)] sm:h-[600px] max-h-[82vh] z-50 animate-fade-in-scale">
-                    <Card className="h-full flex flex-col bg-slate-900/95 backdrop-blur-xl border-slate-700/50 shadow-2xl">
+                <div className="fixed top-4 left-4 right-4 bottom-4 sm:bottom-6 sm:right-6 sm:top-auto sm:left-auto sm:inset-auto w-auto sm:w-[410px] h-auto sm:h-[600px] sm:max-h-[82vh] z-50 animate-fade-in-scale">
+                    <Card className="h-full flex flex-col bg-slate-900/95 backdrop-blur-xl border-slate-700/50 shadow-2xl rounded-xl">
                         {/* Header */}
                         <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-4 border-b border-slate-700/50 bg-gradient-to-r from-indigo-500/10 to-purple-500/10">
                             <div className="flex items-center gap-2 sm:gap-3">

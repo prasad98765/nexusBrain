@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
+import { motion, useInView } from 'framer-motion';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
     Sparkles, Zap, ArrowRight, Database, Network, Bot, Globe,
     Mail, CheckCircle, Upload, RefreshCw, MessageSquare, Share2,
@@ -14,30 +17,61 @@ import {
     Target,
     TrendingUp,
     ExternalLink,
-    Palette
+    Palette,
+    Brain,
+    Workflow,
+    Cpu,
+    Phone,
+    Chrome,
+    Send,
+    Calendar,
+    Lightbulb,
+    GitBranch,
+    Boxes,
+    Play
 } from 'lucide-react';
 import '../styles/landing-animations.css';
 import ChatBot from '@/components/ChatBot';
 import { useIsMobile } from '@/hooks/use-mobile';
+import NeuralAidosCanvas from '@/components/NeuralAidosCanvas';
+
+// Register GSAP plugins
+gsap.registerPlugin(ScrollTrigger);
 
 // Modular Components
 const HeroSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
     const [typedText, setTypedText] = useState('');
     const [typeIndex, setTypeIndex] = useState(0);
-    const heroText = "Connect. Build. Scale. With AI.";
-    const isMobile = useIsMobile()
+    const heroText = "Your Business AI Operating System";
+    const isMobile = useIsMobile();
+    const heroRef = useRef(null);
+
     useEffect(() => {
         if (typeIndex < heroText.length) {
             const timeout = setTimeout(() => {
                 setTypedText(prev => prev + heroText[typeIndex]);
                 setTypeIndex(prev => prev + 1);
-            }, 100);
+            }, 80);
             return () => clearTimeout(timeout);
         }
     }, [typeIndex]);
 
+    useEffect(() => {
+        const ctx = gsap.context(() => {
+            gsap.from('.hero-content', {
+                opacity: 0,
+                y: 50,
+                duration: 1,
+                ease: 'power3.out',
+                stagger: 0.2
+            });
+        }, heroRef);
+
+        return () => ctx.revert();
+    }, []);
+
     return (
-        <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 py-15 overflow-hidden">
+        <section ref={heroRef} className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 py-15 overflow-hidden">
             {/* Animated Neural Network Background */}
             <div className="absolute inset-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950" />
@@ -51,57 +85,96 @@ const HeroSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
             </div>
 
             <div className="max-w-6xl mx-auto text-center space-y-8 z-10">
-                <div style={{ marginTop: isMobile ? '1rem' : '' }} className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/30 rounded-full mb-6">
-                    <Sparkles className="h-4 w-4 text-yellow-400" />
-                    <span className="text-sm text-indigo-300">AI-Powered Developer Platform</span>
-                </div>
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                    style={{ marginTop: isMobile ? '1rem' : '' }}
+                    className="hero-content inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/30 rounded-full mb-6"
+                >
+                    <Brain className="h-4 w-4 text-cyan-400" />
+                    <span className="text-sm text-indigo-300">Powered by AIDOS (Orchestrator)</span>
+                </motion.div>
 
-                <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
-                    <span className="block mb-4 text-white">AI Search Engine for</span>
-                    <span className="block bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                        Your Website.
-                    </span>
-                </h1>
+                <motion.h1
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.8, delay: 0.2 }}
+                    className="hero-content text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight"
+                >
+                    <span className="block mb-4 text-white">{typedText}<span className="animate-pulse">|</span></span>
+                    {/* <span className="block bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                        Intelligent Automation Across Every Channel
+                    </span> */}
+                </motion.h1>
 
-                <p className="text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed animate-fade-in-up animation-delay-300">
-                    {typedText}<span className="animate-pulse">|</span>
-                </p>
+                <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8, delay: 0.4 }}
+                    className="hero-content text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed"
+                >
+                    AIDOS (AI Distributed Operating System) powers Assistants, Agents, and Workflows — enabling businesses to automate real tasks across multiple channels.
+                </motion.p>
 
-                <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-                    Transform your website with an intelligent AI-powered search engine. Let your visitors find answers instantly using natural language — powered by 400+ LLM models and your own data.
-                </p>
+                <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8, delay: 0.6 }}
+                    className="hero-content text-lg text-slate-400 max-w-2xl mx-auto"
+                >
+                    The only platform that thinks, plans, and orchestrates actions across your entire business ecosystem — from website to WhatsApp, email to voice.
+                </motion.p>
 
-                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-                    <Button
-                        onClick={onGetStarted}
-                        className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-indigo-500/50 transform hover:scale-105 transition-all duration-300"
-                    >
-                        <Sparkles className="h-5 w-5 mr-2" />
-                        Try Now
-                    </Button>
-                    <Button
-                        variant="outline"
-                        onClick={() => document.getElementById('what-is')?.scrollIntoView({ behavior: 'smooth' })}
-                        className="border-2 border-indigo-400/50 text-indigo-300 hover:bg-indigo-500/10 px-8 py-6 text-lg font-semibold rounded-xl"
-                    >
-                        Explore Features
-                        <ArrowRight className="h-5 w-5 ml-2" />
-                    </Button>
-                </div>
+                <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8, delay: 0.8 }}
+                    className="hero-content text-xl text-cyan-300 max-w-3xl mx-auto font-semibold"
+                >
+                    The only AI OS that thinks, plans, and executes your business operations across every channel.
+                </motion.p>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.8 }}
+                    className="hero-content flex flex-col sm:flex-row gap-4 justify-center items-center pt-4"
+                >
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button
+                            onClick={onGetStarted}
+                            className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-indigo-500/50 transform transition-all duration-300"
+                        >
+                            <Rocket className="h-5 w-5 mr-2" />
+                            Get Early Access
+                        </Button>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button
+                            variant="outline"
+                            onClick={() => document.getElementById('what-is-aidos')?.scrollIntoView({ behavior: 'smooth' })}
+                            className="border-2 border-indigo-400/50 text-indigo-300 hover:bg-indigo-500/10 px-8 py-6 text-lg font-semibold rounded-xl"
+                        >
+                            Discover AIDOS (Orchestrator)
+                            <ArrowRight className="h-5 w-5 ml-2" />
+                        </Button>
+                    </motion.div>
+                </motion.div>
 
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-8 mt-16 max-w-3xl mx-auto">
                     <div className="text-center">
-                        <div className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">5min</div>
-                        <div className="text-slate-400 text-sm mt-2">Setup Time</div>
+                        <div className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">AI OS</div>
+                        <div className="text-slate-400 text-sm mt-2">Business Operating System</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">99.9%</div>
-                        <div className="text-slate-400 text-sm mt-2">Uptime</div>
+                        {/* <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Multi-Channel</div>
+                        <div className="text-slate-400 text-sm mt-2">Web, WhatsApp, Voice & More</div> */}
                     </div>
                     <div className="text-center">
                         <div className="text-4xl font-bold bg-gradient-to-r from-pink-400 to-cyan-400 bg-clip-text text-transparent">400+</div>
-                        <div className="text-slate-400 text-sm mt-2">AI Models</div>
+                        <div className="text-slate-400 text-sm mt-2">AI Models Available</div>
                     </div>
                 </div>
 
@@ -132,6 +205,49 @@ const LLMLogosCarousel = () => {
                 ))}
             </div>
         </div>
+    );
+};
+
+// Social Proof Section Component
+const SocialProofSection = () => {
+    const providers = [
+        { name: 'OpenAI', color: 'from-green-500/20 to-emerald-500/20', borderColor: 'border-green-500/30', textColor: 'text-green-400' },
+        { name: 'Anthropic', color: 'from-orange-500/20 to-amber-500/20', borderColor: 'border-orange-500/30', textColor: 'text-orange-400' },
+        { name: 'Google Gemini', color: 'from-blue-500/20 to-cyan-500/20', borderColor: 'border-blue-500/30', textColor: 'text-blue-400' },
+        { name: 'Mistral', color: 'from-purple-500/20 to-pink-500/20', borderColor: 'border-purple-500/30', textColor: 'text-purple-400' },
+        { name: 'Meta Llama', color: 'from-indigo-500/20 to-violet-500/20', borderColor: 'border-indigo-500/30', textColor: 'text-indigo-400' }
+    ];
+
+    const sectionRef = useRef(null);
+    const isInView = useInView(sectionRef, { once: true, amount: 0.3 });
+
+    return (
+        <section ref={sectionRef} className="py-16 px-4 sm:px-6 bg-slate-900/50">
+            <div className="max-w-6xl mx-auto text-center">
+                <motion.p
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.6 }}
+                    className="text-sm text-slate-500 uppercase tracking-wider mb-8"
+                >
+                    Powered by industry-leading AI providers
+                </motion.p>
+                <div className="flex flex-wrap justify-center items-center gap-6">
+                    {providers.map((provider, i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={isInView ? { opacity: 1, scale: 1 } : {}}
+                            transition={{ duration: 0.5, delay: i * 0.1 }}
+                            whileHover={{ scale: 1.1, y: -5 }}
+                            className={`bg-gradient-to-br ${provider.color} border ${provider.borderColor} rounded-xl px-6 py-4 hover:shadow-lg transition-all duration-300`}
+                        >
+                            <span className={`${provider.textColor} font-semibold text-base`}>{provider.name}</span>
+                        </motion.div>
+                    ))}
+                </div>
+            </div>
+        </section>
     );
 };
 
@@ -183,161 +299,231 @@ const CachingAnimation = () => (
     </div>
 );
 
-// What is AI Search Engine Section
-const WhatIsAISearchSection = () => (
-    <section id="what-is" className="py-20 px-4 sm:px-6 bg-slate-800/30">
-        <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                {/* Left: Text Content */}
-                <div className="space-y-6">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/30 rounded-full">
-                        <Sparkles className="h-4 w-4 text-yellow-400" />
-                        <span className="text-sm text-indigo-300">AI-Powered Search</span>
-                    </div>
-                    <h2 className="text-4xl md:text-5xl font-bold text-white">
-                        What is Our <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">AI Search Engine?</span>
-                    </h2>
-                    <p className="text-lg text-slate-300 leading-relaxed">
-                        Our AI Search Engine is a next-generation search solution that seamlessly integrates with your website, 
-                        enabling your users to search through your content, documents, FAQs, and knowledge base using natural language.
-                    </p>
-                    <div className="space-y-4">
-                        <div className="flex items-start gap-3">
-                            <CheckCircle className="h-6 w-6 text-green-400 flex-shrink-0 mt-1" />
-                            <div>
-                                <h4 className="text-white font-semibold mb-1">Context-Aware Intelligence</h4>
-                                <p className="text-slate-400">Unlike traditional search bots, our AI understands context and intent, delivering accurate, relevant answers every time.</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <CheckCircle className="h-6 w-6 text-green-400 flex-shrink-0 mt-1" />
-                            <div>
-                                <h4 className="text-white font-semibold mb-1">Powered by Your Data</h4>
-                                <p className="text-slate-400">Train the AI with your own documents, PDFs, FAQs, and content to provide precise answers specific to your business.</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <CheckCircle className="h-6 w-6 text-green-400 flex-shrink-0 mt-1" />
-                            <div>
-                                <h4 className="text-white font-semibold mb-1">Easy Integration</h4>
-                                <p className="text-slate-400">Embed our AI Search Engine on any website with a simple iframe script — no complex coding required.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+// What is AIDOS Section
+const WhatIsAIDOSSection = () => {
+    const sectionRef = useRef(null);
+    const isInView = useInView(sectionRef, { once: true, amount: 0.3 });
 
-                {/* Right: Visual/Diagram */}
-                <div className="relative">
-                    <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 rounded-2xl p-8 backdrop-blur-sm">
-                        <div className="space-y-6">
-                            {/* Search Input Preview */}
-                            <div className="bg-slate-900/80 rounded-lg p-4 border border-slate-700">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
-                                        <Bot className="h-4 w-4 text-white" />
+    useEffect(() => {
+        if (sectionRef.current) {
+            gsap.fromTo(
+                sectionRef.current,
+                { opacity: 0, y: 100 },
+                {
+                    opacity: 1,
+                    y: 0,
+                    duration: 1,
+                    ease: 'power3.out',
+                    scrollTrigger: {
+                        trigger: sectionRef.current,
+                        start: 'top 80%',
+                        end: 'top 20%',
+                        toggleActions: 'play none none none'
+                    }
+                }
+            );
+        }
+    }, []);
+
+    return (
+        <section ref={sectionRef} id="what-is-aidos" className="py-20 px-4 sm:px-6 bg-slate-800/30">
+            <div className="max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    {/* Left: Text Content */}
+                    <motion.div
+                        initial={{ opacity: 0, x: -50 }}
+                        animate={isInView ? { opacity: 1, x: 0 } : {}}
+                        transition={{ duration: 0.8 }}
+                        className="space-y-6"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={isInView ? { opacity: 1, scale: 1 } : {}}
+                            transition={{ duration: 0.6, delay: 0.2 }}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500/10 border border-cyan-500/30 rounded-full"
+                        >
+                            <Brain className="h-4 w-4 text-cyan-400" />
+                            <span className="text-sm text-cyan-300">AIDOS (Orchestrator)</span>
+                        </motion.div>
+                        <motion.h2
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={isInView ? { opacity: 1, y: 0 } : {}}
+                            transition={{ duration: 0.6, delay: 0.3 }}
+                            className="text-4xl md:text-5xl font-bold text-white"
+                        >
+                            What is <span className="bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">AIDOS (Orchestrator)?</span>
+                        </motion.h2>
+                        <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={isInView ? { opacity: 1 } : {}}
+                            transition={{ duration: 0.6, delay: 0.4 }}
+                            className="text-lg text-slate-300 leading-relaxed"
+                        >
+                            AIDOS (AI Distributed Operating System) is the intelligent core of Nexus AI Hub. It's not just a chatbot or agent framework — it's a complete Business AI Operating System.
+                        </motion.p>
+                        <div className="space-y-4">
+                            {[
+                                { icon: Lightbulb, color: 'cyan', title: 'Understands Goals', desc: 'AIDOS (Orchestrator) comprehends complex business objectives and user intent across natural language inputs.' },
+                                { icon: GitBranch, color: 'purple', title: 'Plans & Chooses Paths', desc: 'Intelligently breaks down tasks and selects the optimal execution strategy for each scenario.' },
+                                { icon: Network, color: 'indigo', title: 'Coordinates Everything', desc: 'Orchestrates Assistants, Agents, Workflows, Tools, RAG, and memory layers to execute tasks end-to-end.' }
+                            ].map((item, i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={isInView ? { opacity: 1, x: 0 } : {}}
+                                    transition={{ duration: 0.6, delay: 0.5 + i * 0.1 }}
+                                    className="flex items-start gap-3"
+                                >
+                                    <div className={`w-10 h-10 bg-gradient-to-br from-${item.color}-500/20 to-indigo-500/20 rounded-lg flex items-center justify-center flex-shrink-0`}>
+                                        <item.icon className={`h-5 w-5 text-${item.color}-400`} />
                                     </div>
-                                    <span className="text-sm text-slate-300 font-medium">AI Search Assistant</span>
-                                </div>
-                                <div className="bg-slate-800 rounded-lg p-3 mb-3">
-                                    <p className="text-sm text-slate-400 italic">"What are your return policies?"</p>
-                                </div>
-                                <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-3">
-                                    <p className="text-sm text-slate-300">Our return policy allows you to return items within 30 days of purchase...</p>
-                                </div>
-                            </div>
-                            
-                            {/* Features Grid */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="bg-slate-900/80 rounded-lg p-4 border border-slate-700 text-center">
-                                    <Zap className="h-6 w-6 text-yellow-400 mx-auto mb-2" />
-                                    <p className="text-xs text-slate-400">Instant Answers</p>
-                                </div>
-                                <div className="bg-slate-900/80 rounded-lg p-4 border border-slate-700 text-center">
-                                    <Database className="h-6 w-6 text-blue-400 mx-auto mb-2" />
-                                    <p className="text-xs text-slate-400">Your Data</p>
-                                </div>
-                                <div className="bg-slate-900/80 rounded-lg p-4 border border-slate-700 text-center">
-                                    <Sparkles className="h-6 w-6 text-purple-400 mx-auto mb-2" />
-                                    <p className="text-xs text-slate-400">AI-Powered</p>
-                                </div>
-                                <div className="bg-slate-900/80 rounded-lg p-4 border border-slate-700 text-center">
-                                    <Globe className="h-6 w-6 text-green-400 mx-auto mb-2" />
-                                    <p className="text-xs text-slate-400">Web Ready</p>
-                                </div>
-                            </div>
+                                    <div>
+                                        <h4 className="text-white font-semibold mb-1">{item.title}</h4>
+                                        <p className="text-slate-400">{item.desc}</p>
+                                    </div>
+                                </motion.div>
+                            ))}
                         </div>
-                    </div>
-                    
-                    {/* Floating Badge */}
-                    <div className="absolute -top-4 -right-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full px-6 py-3 shadow-lg">
-                        <p className="text-white font-semibold text-sm">400+ LLMs</p>
-                    </div>
+                    </motion.div>
+
+                    {/* Right: 3D Neural Canvas */}
+                    <motion.div
+                        initial={{ opacity: 0, x: 50 }}
+                        animate={isInView ? { opacity: 1, x: 0 } : {}}
+                        transition={{ duration: 0.8, delay: 0.3 }}
+                        className="relative"
+                    >
+                        <div className="relative">
+                            <NeuralAidosCanvas />
+
+                            {/* Floating Badge */}
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0 }}
+                                animate={isInView ? { opacity: 1, scale: 1 } : {}}
+                                transition={{ duration: 0.6, delay: 0.8, type: 'spring' }}
+                                className="absolute -top-4 -right-4 bg-gradient-to-r from-cyan-500 to-indigo-600 rounded-full px-6 py-3 shadow-lg"
+                            >
+                                <p className="text-white font-semibold text-sm">AI OS</p>
+                            </motion.div>
+                        </div>
+                    </motion.div>
                 </div>
             </div>
-        </div>
-    </section>
-);
+        </section>
+    );
+};
 
-// Key Features Section
-const KeyFeaturesSection = () => {
-    const features = [
+// Customer Touchpoints Section
+const CustomerTouchpointsSection = () => {
+    const sectionRef = useRef(null);
+    const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
+
+    const touchpoints = [
         {
-            icon: Database,
-            title: "AI-Powered Contextual Search",
-            description: "Leverage advanced LLM technology to understand user intent and deliver precise, context-aware answers from your knowledge base.",
+            icon: Chrome,
+            title: "Website",
+            description: "AIDOS Search Engine (Live Now)",
+            status: "Available",
+            color: "from-green-500 to-emerald-600"
+        },
+        {
+            icon: MessageCircle,
+            title: "WhatsApp",
+            description: "WhatsApp AI Assistants",
+            status: "Coming Soon",
             color: "from-indigo-500 to-purple-600"
         },
         {
-            icon: Palette,
-            title: "Customizable Themes & Branding",
-            description: "Fully customize colors, fonts, logos, and styling to match your brand identity — make the AI search engine truly yours.",
+            icon: Phone,
+            title: "Voice",
+            description: "AI Voice Bots",
+            status: "Coming Soon",
             color: "from-purple-500 to-pink-600"
         },
         {
-            icon: Zap,
-            title: "Lightning-Fast with Caching",
-            description: "Dual-layer caching (semantic + exact match) ensures instant responses for frequently asked questions and common queries.",
+            icon: Mail,
+            title: "Email",
+            description: "Email AI Assistants",
+            status: "Coming Soon",
             color: "from-pink-500 to-red-600"
         },
         {
-            icon: Code2,
-            title: "Easy Embed via Iframe",
-            description: "Copy a simple iframe script and paste it anywhere on your website — no complex integration or backend changes needed.",
+            icon: Contact,
+            title: "CRM",
+            description: "Contact Management",
+            status: "Coming Soon",
+            color: "from-red-500 to-orange-600"
+        },
+        {
+            icon: Sparkles,
+            title: "Custom GPT",
+            description: "Build Your Own GPT",
+            status: "Coming Soon",
+            color: "from-orange-500 to-yellow-600"
+        },
+        {
+            icon: Globe,
+            title: "Mobile",
+            description: "iOS & Android Apps",
+            status: "Coming Soon",
+            color: "from-yellow-500 to-green-600"
+        },
+        {
+            icon: Calendar,
+            title: "Scheduler",
+            description: "Time-based Automations",
+            status: "Coming Soon",
             color: "from-cyan-500 to-blue-600"
         }
     ];
 
     return (
-        <section id="key-features" className="py-20 px-4 sm:px-6">
+        <section ref={sectionRef} id="touchpoints" className="py-20 px-4 sm:px-6">
             <div className="max-w-7xl mx-auto">
-                <div className="text-center mb-16">
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.6 }}
+                    className="text-center mb-16"
+                >
                     <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                        <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                            Key Features
+                        <span className="bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">
+                            Meet Your Customers Everywhere
                         </span>
                     </h2>
                     <p className="text-xl text-slate-400 max-w-3xl mx-auto">
-                        Everything you need to deliver intelligent search experiences on your website
+                        AIDOS (Orchestrator)-powered assistants work across every channel where your customers are
                     </p>
-                </div>
+                </motion.div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {features.map((feature, i) => (
-                        <Card 
-                            key={i} 
-                            className="bg-slate-800/50 border-slate-700/50 hover:border-indigo-500/50 transition-all duration-300 group"
-                            style={{ animationDelay: `${i * 100}ms` }}
+                    {touchpoints.map((touchpoint, i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ opacity: 0, y: 50 }}
+                            animate={isInView ? { opacity: 1, y: 0 } : {}}
+                            transition={{ duration: 0.5, delay: i * 0.1 }}
+                            whileHover={{ scale: 1.05, y: -5 }}
                         >
-                            <CardContent className="p-6 text-center space-y-4">
-                                <div className={`w-16 h-16 bg-gradient-to-br ${feature.color} rounded-2xl flex items-center justify-center mx-auto group-hover:scale-110 transition-transform shadow-lg`}>
-                                    <feature.icon className="h-8 w-8 text-white" />
-                                </div>
-                                <h3 className="text-lg font-bold text-white">{feature.title}</h3>
-                                <p className="text-sm text-slate-400 leading-relaxed">
-                                    {feature.description}
-                                </p>
-                            </CardContent>
-                        </Card>
+                            <Card className="bg-slate-800/50 border-slate-700/50 hover:border-cyan-500/50 transition-all duration-300 group h-full">
+                                <CardContent className="p-6 text-center space-y-4">
+                                    <motion.div
+                                        whileHover={{ rotate: 360 }}
+                                        transition={{ duration: 0.6 }}
+                                        className={`w-16 h-16 bg-gradient-to-br ${touchpoint.color} rounded-2xl flex items-center justify-center mx-auto group-hover:scale-110 transition-transform shadow-lg`}
+                                    >
+                                        <touchpoint.icon className="h-8 w-8 text-white" />
+                                    </motion.div>
+                                    <h3 className="text-lg font-bold text-white">{touchpoint.title}</h3>
+                                    <p className="text-sm text-slate-400 leading-relaxed">
+                                        {touchpoint.description}
+                                    </p>
+                                    <Badge className={touchpoint.status === "Available" ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"}>
+                                        {touchpoint.status}
+                                    </Badge>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
                     ))}
                 </div>
             </div>
@@ -345,8 +531,139 @@ const KeyFeaturesSection = () => {
     );
 };
 
-// How It Works Section
-const HowItWorksSection = () => {
+// Assistant Experience Section
+const AssistantExperienceSection = () => {
+    const sectionRef = useRef(null);
+    const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
+
+    useEffect(() => {
+        if (sectionRef.current) {
+            gsap.fromTo(
+                sectionRef.current,
+                { opacity: 0, y: 80 },
+                {
+                    opacity: 1,
+                    y: 0,
+                    duration: 1,
+                    ease: 'power3.out',
+                    scrollTrigger: {
+                        trigger: sectionRef.current,
+                        start: 'top 80%',
+                        end: 'top 20%',
+                        toggleActions: 'play none none none'
+                    }
+                }
+            );
+        }
+    }, []);
+
+    return (
+        <section ref={sectionRef} id="assistant-experience" className="py-20 px-4 sm:px-6 bg-slate-800/30">
+            <div className="max-w-7xl mx-auto">
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.6 }}
+                    className="text-center mb-16"
+                >
+                    <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
+                        Rich <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Assistant Experiences</span>
+                    </h2>
+                    <p className="text-xl text-slate-400 max-w-3xl mx-auto">
+                        Nexus AI Hub provides beautiful, intelligent interfaces that your users love to interact with
+                    </p>
+                </motion.div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {[
+                        {
+                            icon: MessageSquare,
+                            title: "Conversational UI",
+                            description: "Natural, human-like conversations with voice and text support for seamless interactions.",
+                            color: "from-indigo-500 to-purple-600"
+                        },
+                        {
+                            icon: Lightbulb,
+                            title: "Smart Suggestions",
+                            description: "Contextual recommendations and command shortcuts to help users get things done faster.",
+                            color: "from-purple-500 to-pink-600"
+                        },
+                        {
+                            icon: Target,
+                            title: "Goal-Based Input",
+                            description: "Users describe what they want to achieve, and AIDOS (Orchestrator) figures out how to make it happen.",
+                            color: "from-pink-500 to-cyan-600"
+                        }
+                    ].map((item, i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ opacity: 0, y: 50 }}
+                            animate={isInView ? { opacity: 1, y: 0 } : {}}
+                            transition={{ duration: 0.6, delay: i * 0.15 }}
+                            whileHover={{ scale: 1.05, y: -5 }}
+                            className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-8 hover:border-indigo-500/50 transition-all"
+                        >
+                            <motion.div
+                                whileHover={{ rotate: 360 }}
+                                transition={{ duration: 0.6 }}
+                                className={`w-14 h-14 bg-gradient-to-br ${item.color} rounded-xl flex items-center justify-center mb-4`}
+                            >
+                                <item.icon className="h-7 w-7 text-white" />
+                            </motion.div>
+                            <h3 className="text-xl font-bold text-white mb-3">{item.title}</h3>
+                            <p className="text-slate-400 leading-relaxed">
+                                {item.description}
+                            </p>
+                        </motion.div>
+                    ))}
+                </div>
+
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={isInView ? { opacity: 1, scale: 1 } : {}}
+                    transition={{ duration: 0.6, delay: 0.5 }}
+                    className="mt-12 text-center"
+                >
+                    <div className="inline-block bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 rounded-xl p-6">
+                        <p className="text-lg text-slate-300 mb-2">
+                            <span className="font-semibold text-white">Assistants</span> provide the experience.
+                        </p>
+                        <p className="text-lg text-slate-300">
+                            <span className="font-semibold text-cyan-400">AIDOS (Orchestrator)</span> handles the execution.
+                        </p>
+                    </div>
+                </motion.div>
+            </div>
+        </section>
+    );
+};
+
+// How AIDOS Works Section
+const HowAIDOSWorksSection = () => {
+    const sectionRef = useRef(null);
+    const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
+
+    useEffect(() => {
+        if (sectionRef.current) {
+            gsap.fromTo(
+                sectionRef.current,
+                { opacity: 0, scale: 0.95 },
+                {
+                    opacity: 1,
+                    scale: 1,
+                    duration: 1,
+                    ease: 'power3.out',
+                    scrollTrigger: {
+                        trigger: sectionRef.current,
+                        start: 'top 80%',
+                        end: 'top 20%',
+                        toggleActions: 'play none none none'
+                    }
+                }
+            );
+        }
+    }, []);
+
     const steps = [
         {
             number: 1,
@@ -372,16 +689,21 @@ const HowItWorksSection = () => {
     ];
 
     return (
-        <section id="how-it-works" className="py-20 px-4 sm:px-6 bg-slate-800/30">
+        <section ref={sectionRef} id="how-it-works" className="py-20 px-4 sm:px-6 bg-slate-800/30">
             <div className="max-w-7xl mx-auto">
-                <div className="text-center mb-16">
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.6 }}
+                    className="text-center mb-16"
+                >
                     <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
                         How It <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Works</span>
                     </h2>
                     <p className="text-xl text-slate-400 max-w-2xl mx-auto">
                         Get your AI Search Engine up and running in just 3 simple steps
                     </p>
-                </div>
+                </motion.div>
 
                 <div className="relative">
                     {/* Connection Lines (Desktop) */}
@@ -389,25 +711,37 @@ const HowItWorksSection = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 relative">
                         {steps.map((step, i) => (
-                            <div 
-                                key={i} 
-                                className="relative animate-fade-in-up"
-                                style={{ animationDelay: `${i * 200}ms` }}
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: 60 }}
+                                animate={isInView ? { opacity: 1, y: 0 } : {}}
+                                transition={{ duration: 0.6, delay: i * 0.2 }}
+                                whileHover={{ y: -10 }}
+                                className="relative"
                             >
                                 <Card className="bg-slate-800/50 border-slate-700/50 hover:border-indigo-500/50 transition-all duration-300 group h-full">
                                     <CardContent className="p-8 text-center space-y-4">
                                         {/* Step Number Badge */}
-                                        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0 }}
+                                            animate={isInView ? { opacity: 1, scale: 1 } : {}}
+                                            transition={{ duration: 0.5, delay: i * 0.2 + 0.3, type: 'spring' }}
+                                            className="absolute -top-4 left-1/2 transform -translate-x-1/2"
+                                        >
                                             <div className={`w-12 h-12 bg-gradient-to-br ${step.color} rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
                                                 <span className="text-white font-bold text-lg">{step.number}</span>
                                             </div>
-                                        </div>
+                                        </motion.div>
 
                                         {/* Icon */}
                                         <div className="pt-6">
-                                            <div className="w-20 h-20 bg-slate-900/50 border border-slate-700 rounded-2xl flex items-center justify-center mx-auto group-hover:border-indigo-500/50 transition-all">
+                                            <motion.div
+                                                whileHover={{ rotate: 360 }}
+                                                transition={{ duration: 0.6 }}
+                                                className="w-20 h-20 bg-slate-900/50 border border-slate-700 rounded-2xl flex items-center justify-center mx-auto group-hover:border-indigo-500/50 transition-all"
+                                            >
                                                 <step.icon className="h-10 w-10 text-indigo-400" />
-                                            </div>
+                                            </motion.div>
                                         </div>
 
                                         {/* Content */}
@@ -424,26 +758,550 @@ const HowItWorksSection = () => {
                                         )}
                                     </CardContent>
                                 </Card>
-                            </div>
+                            </motion.div>
                         ))}
                     </div>
                 </div>
 
                 {/* CTA */}
-                <div className="text-center mt-12">
-                    <Button
-                        onClick={() => window.location.href = '/auth'}
-                        size="lg"
-                        className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 px-8 py-6 text-lg"
-                    >
-                        <Rocket className="h-5 w-5 mr-2" />
-                        Start Building Now
-                    </Button>
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.6, delay: 0.8 }}
+                    className="text-center mt-12"
+                >
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button
+                            onClick={() => window.location.href = '/auth'}
+                            size="lg"
+                            className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 px-8 py-6 text-lg"
+                        >
+                            <Rocket className="h-5 w-5 mr-2" />
+                            Start Building Now
+                        </Button>
+                    </motion.div>
+                </motion.div>
+            </div>
+        </section>
+    );
+};
+
+// Execution Layers Section
+const ExecutionLayersSection = () => {
+    const sectionRef = useRef(null);
+    const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
+
+    useEffect(() => {
+        if (sectionRef.current) {
+            gsap.fromTo(
+                sectionRef.current,
+                { opacity: 0, y: 100 },
+                {
+                    opacity: 1,
+                    y: 0,
+                    duration: 1,
+                    ease: 'power3.out',
+                    scrollTrigger: {
+                        trigger: sectionRef.current,
+                        start: 'top 80%',
+                        end: 'top 20%',
+                        toggleActions: 'play none none none'
+                    }
+                }
+            );
+        }
+    }, []);
+
+    return (
+        <section ref={sectionRef} id="execution-layers" className="py-20 px-4 sm:px-6 bg-slate-800/30">
+            <div className="max-w-7xl mx-auto">
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.6 }}
+                    className="text-center mb-16"
+                >
+                    <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
+                        The <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Execution Layers</span>
+                    </h2>
+                    <p className="text-xl text-slate-400 max-w-3xl mx-auto">
+                        Three powerful layers work together to execute your business logic
+                    </p>
+                </motion.div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {[
+                        {
+                            icon: Cpu,
+                            title: "Specialized Agents",
+                            description: "AI workers with defined tasks, tools, and logic. Each agent is an expert in its domain.",
+                            items: ["Search Agent", "Booking Agent", "Data Agent"],
+                            color: "from-indigo-500 to-purple-600",
+                            itemColor: "indigo"
+                        },
+                        {
+                            icon: Workflow,
+                            title: "Business Flows",
+                            description: "Multi-step workflows for complex business processes like booking, payments, onboarding.",
+                            items: ["Lead Processing", "Order Fulfillment", "Customer Support"],
+                            color: "from-purple-500 to-pink-600",
+                            itemColor: "purple"
+                        },
+                        {
+                            icon: Boxes,
+                            title: "Capability Fabric",
+                            description: "Tools, RAG, memory layers, integrations, databases, and APIs working as a unified system.",
+                            items: ["Knowledge Base (RAG)", "API Integrations", "Memory & Context"],
+                            color: "from-pink-500 to-cyan-600",
+                            itemColor: "pink"
+                        }
+                    ].map((layer, i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={isInView ? { opacity: 1, scale: 1 } : {}}
+                            transition={{ duration: 0.6, delay: i * 0.2, type: 'spring' }}
+                            whileHover={{ scale: 1.05, y: -10 }}
+                        >
+                            <Card className="bg-slate-800/50 border-slate-700/50 hover:border-indigo-500/50 transition-all group h-full">
+                                <CardContent className="p-8">
+                                    <motion.div
+                                        whileHover={{ rotate: 360 }}
+                                        transition={{ duration: 0.6 }}
+                                        className={`w-16 h-16 bg-gradient-to-br ${layer.color} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}
+                                    >
+                                        <layer.icon className="h-8 w-8 text-white" />
+                                    </motion.div>
+                                    <h3 className="text-2xl font-bold text-white mb-4">{layer.title}</h3>
+                                    <p className="text-slate-400 leading-relaxed mb-4">
+                                        {layer.description}
+                                    </p>
+                                    <ul className="space-y-2 text-sm text-slate-500">
+                                        {layer.items.map((item, idx) => (
+                                            <motion.li
+                                                key={idx}
+                                                initial={{ opacity: 0, x: -20 }}
+                                                animate={isInView ? { opacity: 1, x: 0 } : {}}
+                                                transition={{ duration: 0.4, delay: i * 0.2 + idx * 0.1 + 0.3 }}
+                                                className="flex items-center gap-2"
+                                            >
+                                                <CheckCircle className={`h-4 w-4 text-${layer.itemColor}-400`} />
+                                                {item}
+                                            </motion.li>
+                                        ))}
+                                    </ul>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+                    ))}
                 </div>
             </div>
         </section>
     );
 };
+
+// Real Example Section
+const RealExampleSection = () => {
+    const sectionRef = useRef(null);
+    const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
+
+    useEffect(() => {
+        if (sectionRef.current) {
+            gsap.fromTo(
+                sectionRef.current,
+                { opacity: 0, y: 80 },
+                {
+                    opacity: 1,
+                    y: 0,
+                    duration: 1,
+                    ease: 'power3.out',
+                    scrollTrigger: {
+                        trigger: sectionRef.current,
+                        start: 'top 80%',
+                        end: 'top 20%',
+                        toggleActions: 'play none none none'
+                    }
+                }
+            );
+        }
+    }, []);
+
+    return (
+        <section ref={sectionRef} id="real-example" className="py-20 px-4 sm:px-6">
+            <div className="max-w-5xl mx-auto">
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.6 }}
+                    className="text-center mb-16"
+                >
+                    <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
+                        See It <span className="bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">In Action</span>
+                    </h2>
+                    <p className="text-xl text-slate-400">
+                        A real-world example: Hotel booking made effortless
+                    </p>
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={isInView ? { opacity: 1, scale: 1 } : {}}
+                    transition={{ duration: 0.8, delay: 0.2 }}
+                    whileHover={{ scale: 1.02 }}
+                >
+                    <Card className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-cyan-500/30">
+                        <CardContent className="p-8 md:p-12">
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={isInView ? { opacity: 1, y: 0 } : {}}
+                                transition={{ duration: 0.6, delay: 0.4 }}
+                                className="mb-8"
+                            >
+                                <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/30 rounded-full mb-4">
+                                    <Users className="h-4 w-4 text-indigo-400" />
+                                    <span className="text-sm text-indigo-300">User Request</span>
+                                </div>
+                                <div className="bg-slate-900/50 border border-slate-700 rounded-xl p-6">
+                                    <p className="text-xl text-white italic">
+                                        "Find a hotel under ₹5000 in Goa and book it."
+                                    </p>
+                                </div>
+                            </motion.div>
+
+                            <div className="space-y-6">
+                                {[
+                                    {
+                                        number: 1,
+                                        title: "Assistant Interprets",
+                                        description: "The user's natural language request is understood and parsed for intent and parameters.",
+                                        color: "from-indigo-500 to-purple-600"
+                                    },
+                                    {
+                                        number: 2,
+                                        title: "AIDOS (Orchestrator) Plans",
+                                        description: "Orchestrator creates a plan: Search hotels → Filter by price → Get availability → Complete booking.",
+                                        color: "from-purple-500 to-pink-600"
+                                    },
+                                    {
+                                        number: 3,
+                                        title: "Agents Execute",
+                                        description: "Search Agent fetches hotels, Booking Agent checks availability and processes the reservation.",
+                                        color: "from-pink-500 to-cyan-600"
+                                    },
+                                    {
+                                        number: 4,
+                                        title: "Result Delivered",
+                                        description: "\"I found a beautiful hotel in Goa for ₹4,500/night. Your booking is confirmed for [dates]. Confirmation sent to your email!\"",
+                                        color: "from-cyan-500 to-green-600"
+                                    }
+                                ].map((step, i) => (
+                                    <motion.div
+                                        key={i}
+                                        initial={{ opacity: 0, x: -30 }}
+                                        animate={isInView ? { opacity: 1, x: 0 } : {}}
+                                        transition={{ duration: 0.5, delay: 0.5 + i * 0.15 }}
+                                        whileHover={{ x: 10 }}
+                                        className="flex gap-4"
+                                    >
+                                        <motion.div
+                                            whileHover={{ scale: 1.1 }}
+                                            className={`flex-shrink-0 w-10 h-10 bg-gradient-to-br ${step.color} rounded-full flex items-center justify-center`}
+                                        >
+                                            <span className="text-white font-bold">{step.number}</span>
+                                        </motion.div>
+                                        <div>
+                                            <h4 className="text-white font-semibold mb-2">{step.title}</h4>
+                                            <p className="text-slate-400">{step.description}</p>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={isInView ? { opacity: 1, scale: 1 } : {}}
+                                transition={{ duration: 0.6, delay: 1.2, type: 'spring' }}
+                                className="mt-8 text-center"
+                            >
+                                <Badge className="bg-gradient-to-r from-cyan-500/20 to-indigo-500/20 text-cyan-300 border-cyan-500/30 text-lg px-6 py-2">
+                                    <Sparkles className="h-4 w-4 mr-2 inline" />
+                                    Magical. Effortless. Intelligent.
+                                </Badge>
+                            </motion.div>
+                        </CardContent>
+                    </Card>
+                </motion.div>
+            </div>
+        </section>
+    );
+};
+
+// Differentiator Section
+const DifferentiatorSection = () => {
+    const sectionRef = useRef(null);
+    const isInView = useInView(sectionRef, { once: true, amount: 0.3 });
+
+    return (
+        <section ref={sectionRef} className="py-20 px-4 sm:px-6">
+            <div className="max-w-5xl mx-auto text-center">
+                <motion.h2
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.6 }}
+                    className="text-4xl md:text-5xl font-bold mb-6 text-white"
+                >
+                    More Than Chatbots. <span className="bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">More Than Agents.</span>
+                </motion.h2>
+                <motion.p
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                    className="text-xl text-slate-300 max-w-4xl mx-auto leading-relaxed"
+                >
+                    Where other platforms help you build conversations, <span className="font-semibold text-cyan-400">AIDOS (Orchestrator)</span> runs your entire business logic end-to-end.
+                </motion.p>
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={isInView ? { opacity: 1, scale: 1 } : {}}
+                    transition={{ duration: 0.6, delay: 0.4 }}
+                    className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6"
+                >
+                    {[
+                        { label: 'Others', value: 'Chat Interfaces', color: 'slate' },
+                        { label: 'AIDOS', value: 'Complete Execution', color: 'cyan' },
+                        { label: 'Result', value: 'Real Business Value', color: 'indigo' }
+                    ].map((item, i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={isInView ? { opacity: 1, y: 0 } : {}}
+                            transition={{ duration: 0.5, delay: 0.5 + i * 0.1 }}
+                            className={`bg-${item.color}-500/10 border border-${item.color}-500/30 rounded-xl p-6`}
+                        >
+                            <p className="text-sm text-slate-400 mb-2">{item.label}</p>
+                            <p className={`text-lg font-semibold text-${item.color}-300`}>{item.value}</p>
+                        </motion.div>
+                    ))}
+                </motion.div>
+            </div>
+        </section>
+    );
+};
+
+// Why Unique Section
+const WhyUniqueSection = () => {
+    const sectionRef = useRef(null);
+    const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
+
+    useEffect(() => {
+        if (sectionRef.current) {
+            gsap.fromTo(
+                sectionRef.current,
+                { opacity: 0, y: 80 },
+                {
+                    opacity: 1,
+                    y: 0,
+                    duration: 1,
+                    ease: 'power3.out',
+                    scrollTrigger: {
+                        trigger: sectionRef.current,
+                        start: 'top 80%',
+                        end: 'top 20%',
+                        toggleActions: 'play none none none'
+                    }
+                }
+            );
+        }
+    }, []);
+
+    const uniqueFeatures = [
+        { icon: Cpu, title: "True Business AI OS", description: "Not just chatbots or agent frameworks — a complete operating system for AI-powered business automation." },
+        { icon: Network, title: "Multi-Channel by Design", description: "Built from the ground up to work seamlessly across website, WhatsApp, voice, email, and more." },
+        { icon: Boxes, title: "Reusable Blueprints", description: "Pre-built business flows and agent templates that you can customize and deploy instantly." },
+        { icon: GitBranch, title: "Parallel Execution", description: "Multi-agent coordination and parallel reasoning for faster, smarter task completion." },
+        { icon: Zap, title: "Easy Onboarding", description: "Get started in minutes with intuitive interfaces and smart defaults — no AI expertise required." },
+        { icon: TrendingUp, title: "Future-Proof Architecture", description: "Built to evolve with AI advancements, supporting new models and capabilities as they emerge." }
+    ];
+
+    return (
+        <section ref={sectionRef} id="why-unique" className="py-20 px-4 sm:px-6 bg-slate-800/30">
+            <div className="max-w-7xl mx-auto">
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.6 }}
+                    className="text-center mb-16"
+                >
+                    <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
+                        Why Nexus AI Hub is <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Unique</span>
+                    </h2>
+                    <p className="text-xl text-slate-400 max-w-3xl mx-auto">
+                        The only platform that delivers a complete Business AI Operating System
+                    </p>
+                </motion.div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {uniqueFeatures.map((feature, i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ opacity: 0, y: 50 }}
+                            animate={isInView ? { opacity: 1, y: 0 } : {}}
+                            transition={{ duration: 0.6, delay: i * 0.1 }}
+                            whileHover={{ scale: 1.05, y: -5 }}
+                            className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-8 hover:border-indigo-500/50 transition-all"
+                        >
+                            <motion.div
+                                whileHover={{ rotate: 360 }}
+                                transition={{ duration: 0.6 }}
+                                className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center mb-4"
+                            >
+                                <feature.icon className="h-7 w-7 text-white" />
+                            </motion.div>
+                            <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
+                            <p className="text-slate-400 leading-relaxed">{feature.description}</p>
+                        </motion.div>
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
+};
+
+// Future Roadmap Section  
+const FutureRoadmapSection = () => {
+    const sectionRef = useRef(null);
+    const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
+
+    useEffect(() => {
+        if (sectionRef.current) {
+            gsap.fromTo(
+                sectionRef.current,
+                { opacity: 0, y: 80 },
+                {
+                    opacity: 1,
+                    y: 0,
+                    duration: 1,
+                    ease: 'power3.out',
+                    scrollTrigger: {
+                        trigger: sectionRef.current,
+                        start: 'top 80%',
+                        end: 'top 20%',
+                        toggleActions: 'play none none none'
+                    }
+                }
+            );
+        }
+    }, []);
+
+    const roadmapFeatures = [
+        { icon: MessageCircle, title: "WhatsApp AI", description: "AI assistants for WhatsApp Business" },
+        { icon: Phone, title: "Voice Bots", description: "Intelligent voice-based automation" },
+        { icon: Mail, title: "Email Agents", description: "Smart email management & responses" },
+        { icon: Calendar, title: "Scheduler Automation", description: "Time-based intelligent workflows" },
+        { icon: Sparkles, title: "Custom GPT", description: "Build and deploy custom GPT models" },
+        { icon: FileText, title: "Blueprint Library", description: "Pre-built business automation templates" },
+        { icon: Globe, title: "Multi-Channel Workspace", description: "Unified dashboard for all channels" },
+        { icon: Workflow, title: "Visual Orchestration", description: "Drag-and-drop workflow builder" }
+    ];
+
+    return (
+        <section ref={sectionRef} id="roadmap" className="py-20 px-4 sm:px-6">
+            <div className="max-w-7xl mx-auto">
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.6 }}
+                    className="text-center mb-16"
+                >
+                    <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
+                        Future <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Roadmap</span>
+                    </h2>
+                    <p className="text-xl text-slate-400">
+                        Exciting capabilities coming soon to AIDOS (Orchestrator)
+                    </p>
+                </motion.div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {roadmapFeatures.map((feature, i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                            animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
+                            transition={{ duration: 0.5, delay: i * 0.08, type: 'spring' }}
+                            whileHover={{ scale: 1.05, y: -5 }}
+                        >
+                            <Card className="bg-slate-800/50 border-slate-700/50 hover:border-cyan-500/50 transition-all group h-full">
+                                <CardContent className="p-6 text-center">
+                                    <motion.div
+                                        whileHover={{ rotate: 360, scale: 1.1 }}
+                                        transition={{ duration: 0.6 }}
+                                        className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform"
+                                    >
+                                        <feature.icon className="h-6 w-6 text-white" />
+                                    </motion.div>
+                                    <h3 className="text-lg font-bold text-white mb-2">{feature.title}</h3>
+                                    <p className="text-sm text-slate-400">{feature.description}</p>
+                                    <Badge className="mt-3 bg-cyan-500/20 text-cyan-400 border-cyan-500/30">Coming Soon</Badge>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
+};
+
+// Final CTA Section
+const FinalCTASection = ({ onGetStarted }: { onGetStarted: () => void }) => (
+    <section className="py-20 px-4 sm:px-6 bg-gradient-to-br from-indigo-900/30 to-purple-900/30">
+        <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
+                Become an AI-Powered Business <span className="bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">Today</span>
+            </h2>
+            <p className="text-xl text-slate-300 mb-8">
+                Join the future of intelligent automation. Let AIDOS transform how your business operates across every channel.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button
+                    onClick={onGetStarted}
+                    size="lg"
+                    className="bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-600 hover:to-indigo-700 px-12 py-6 text-lg"
+                >
+                    <Rocket className="h-5 w-5 mr-2" />
+                    Get Early Access
+                </Button>
+                <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-2 border-white/30 text-white hover:bg-white/10 px-12 py-6 text-lg"
+                    onClick={() => window.open('/docs/api-reference', '_blank')}
+                >
+                    View Documentation
+                </Button>
+            </div>
+
+            {/* Trust Badges */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
+                <div className="text-center">
+                    <Users className="h-8 w-8 text-cyan-400 mx-auto mb-2" />
+                    <div className="text-white font-semibold">For Everyone</div>
+                    <div className="text-sm text-slate-400">Startups to Enterprises</div>
+                </div>
+                <div className="text-center">
+                    <Building className="h-8 w-8 text-indigo-400 mx-auto mb-2" />
+                    <div className="text-white font-semibold">Business Ready</div>
+                    <div className="text-sm text-slate-400">Secure & Scalable</div>
+                </div>
+                <div className="text-center">
+                    <CheckCircle className="h-8 w-8 text-green-400 mx-auto mb-2" />
+                    <div className="text-white font-semibold">Start Free</div>
+                    <div className="text-sm text-slate-400">No Credit Card Required</div>
+                </div>
+            </div>
+        </div>
+    </section>
+);
 
 // Main Landing Page Component
 export default function LandingNew() {
@@ -601,10 +1459,10 @@ export default function LandingNew() {
                         </div>
 
                         <nav className="hidden md:flex items-center gap-6">
-                            <a href="#what-is" className="text-slate-300 hover:text-white transition-colors">What Is It</a>
-                            <a href="#key-features" className="text-slate-300 hover:text-white transition-colors">Key Features</a>
-                            <a href="#how-it-works" className="text-slate-300 hover:text-white transition-colors">How It Works</a>
-                            <a href="#coming-soon" className="text-slate-300 hover:text-white transition-colors">Coming Soon</a>
+                            <a href="#what-is-aidos" className="text-slate-300 hover:text-white transition-colors">What is AIDOS</a>
+                            <a href="#touchpoints" className="text-slate-300 hover:text-white transition-colors">Channels</a>
+                            <a href="#how-aidos-works" className="text-slate-300 hover:text-white transition-colors">How It Works</a>
+                            <a href="#roadmap" className="text-slate-300 hover:text-white transition-colors">Roadmap</a>
                             <a onClick={() => { window.location.href = '/About/AI'; }} style={{ cursor: 'pointer' }} className="text-slate-300 hover:text-slate-100 transition-colors">About AI</a>
                         </nav>
 
@@ -646,10 +1504,10 @@ export default function LandingNew() {
 
                 {mobileMenuOpen && (
                     <div className="md:hidden bg-slate-800 border-t border-slate-700 px-4 py-4 space-y-3">
-                        <a href="#what-is" className="block text-slate-300 hover:text-white">What Is It</a>
-                        <a href="#key-features" className="block text-slate-300 hover:text-white">Key Features</a>
-                        <a href="#how-it-works" className="block text-slate-300 hover:text-white">How It Works</a>
-                        <a href="#coming-soon" className="block text-slate-300 hover:text-white">Coming Soon</a>
+                        <a href="#what-is-aidos" className="block text-slate-300 hover:text-white">What is AIDOS</a>
+                        <a href="#touchpoints" className="block text-slate-300 hover:text-white">Channels</a>
+                        <a href="#how-aidos-works" className="block text-slate-300 hover:text-white">How It Works</a>
+                        <a href="#roadmap" className="block text-slate-300 hover:text-white">Roadmap</a>
                         <a onClick={() => { window.location.href = '/About/AI'; }} style={{ cursor: 'pointer' }} className="block text-slate-300 hover:text-white">About AI</a>
                     </div>
                 )}
@@ -661,327 +1519,38 @@ export default function LandingNew() {
             {/* LLM Logos Carousel */}
             <LLMLogosCarousel />
 
-            {/* What is AI Search Engine Section */}
-            <WhatIsAISearchSection />
+            {/* Social Proof Section */}
+            <SocialProofSection />
 
-            {/* Key Features Section */}
-            <KeyFeaturesSection />
+            {/* What is AIDOS Section */}
+            <WhatIsAIDOSSection />
 
-            {/* How It Works Section */}
-            <HowItWorksSection />
+            {/* Customer Touchpoints Section */}
+            <CustomerTouchpointsSection />
 
-            {/* Core Features */}
-            <section id="features" className="py-20 px-4 sm:px-6">
-                <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-16">
-                        <h2 className="text-5xl font-bold mb-6">
-                            <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                                Core Platform Highlights
-                            </span>
-                        </h2>
-                        <p className="text-xl text-slate-400 max-w-3xl mx-auto">
-                            Everything you need to build powerful AI applications
-                        </p>
-                    </div>
+            {/* Assistant Experience Section */}
+            <AssistantExperienceSection />
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {coreFeatures.map((feature, i) => (
-                            <div key={i} className="animate-fade-in-up" style={{ animationDelay: `${i * 100}ms` }}>
-                                <FeatureCard {...feature} />
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
+            {/* How AIDOS Works Section */}
+            <HowAIDOSWorksSection />
 
-            {/* Coming Soon - Slider */}
-            <section id="coming-soon" className="py-20 px-4 sm:px-6 bg-slate-800/30">
-                <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-16">
-                        <h2 className="text-5xl font-bold mb-6 text-white">
-                            What's <span className="bg-gradient-to-r from-pink-400 to-cyan-400 bg-clip-text text-transparent">Coming Soon</span>
-                        </h2>
-                        <p className="text-xl text-slate-400">
-                            Exciting new features in development
-                        </p>
-                    </div>
+            {/* Execution Layers Section */}
+            <ExecutionLayersSection />
 
-                    {/* Slider Container */}
-                    <div className="relative">
-                        {/* Slider Content */}
-                        <div className="overflow-hidden">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {getCurrentFeatures().map((feature, i) => (
-                                    <Card
-                                        key={i}
-                                        className="bg-slate-800/50 border-slate-700/50 hover:border-pink-500/50 transition-all duration-300 group animate-fade-in-scale"
-                                        style={{ animationDelay: `${i * 100}ms` }}
-                                    >
-                                        <CardContent className="p-8 h-full flex flex-col">
-                                            <div className={`w-16 h-16 bg-gradient-to-br ${feature.color} rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-lg`}>
-                                                <feature.icon className="h-8 w-8 text-white" />
-                                            </div>
-                                            <h3 className="text-xl font-bold text-white mb-3 text-center">{feature.title}</h3>
-                                            <p className="text-slate-400 text-sm leading-relaxed mb-4 flex-grow text-center">
-                                                {feature.description}
-                                            </p>
-                                            <Badge className="bg-pink-500/20 text-pink-400 border-pink-500/30 mx-auto">
-                                                {feature.badge}
-                                            </Badge>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </div>
-                        </div>
+            {/* Real Example Section */}
+            <RealExampleSection />
 
-                        {/* Navigation Buttons */}
-                        {totalSlides > 1 && (
-                            <>
-                                <button
-                                    onClick={prevSlide}
-                                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-pink-500/50 rounded-full p-3 transition-all shadow-lg z-10"
-                                    aria-label="Previous slide"
-                                >
-                                    <ChevronLeft className="h-6 w-6 text-slate-300" />
-                                </button>
-                                <button
-                                    onClick={nextSlide}
-                                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-pink-500/50 rounded-full p-3 transition-all shadow-lg z-10"
-                                    aria-label="Next slide"
-                                >
-                                    <ChevronRight className="h-6 w-6 text-slate-300" />
-                                </button>
-                            </>
-                        )}
+            {/* Differentiator Section */}
+            <DifferentiatorSection />
 
-                        {/* Slide Indicators */}
-                        {totalSlides > 1 && (
-                            <div className="flex justify-center gap-2 mt-8">
-                                {Array.from({ length: totalSlides }).map((_, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => setCurrentSlide(index)}
-                                        className={`h-2 rounded-full transition-all duration-300 ${index === currentSlide
-                                            ? 'w-8 bg-gradient-to-r from-pink-500 to-cyan-500'
-                                            : 'w-2 bg-slate-600 hover:bg-slate-500'
-                                            }`}
-                                        aria-label={`Go to slide ${index + 1}`}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </div>
+            {/* Why Unique Section */}
+            <WhyUniqueSection />
 
-                    {/* Auto-scroll hint */}
-                    <div className="text-center mt-8">
-                        <p className="text-sm text-slate-500">
-                            {totalSlides > 1 ? `${currentSlide + 1} / ${totalSlides}` : ''}
-                        </p>
-                    </div>
-                </div>
-            </section>
-            <section id="why-choose" className="py-20 px-4 sm:px-6">
-                <div className="max-w-7xl mx-auto">
-                    <div className="text-center space-y-6 mb-16">
-                        <h2 className="text-4xl md:text-5xl font-bold text-white animate-fade-in-up">
-                            Why Choose <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Nexus AI Hub</span>
-                        </h2>
-                        <p className="text-xl text-slate-400 max-w-3xl mx-auto animate-fade-in-up animation-delay-200">
-                            The ultimate AI-powered platform designed for everyone
-                        </p>
-                    </div>
+            {/* Future Roadmap Section */}
+            <FutureRoadmapSection />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        <div className="text-center space-y-4 animate-fade-in-scale">
-                            <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto hover-glow">
-                                <Globe className="h-8 w-8 text-white" />
-                            </div>
-                            <h3 className="text-xl font-semibold text-white">All-in-One Hub</h3>
-                            <p className="text-slate-400">
-                                No need to jump between tools. Everything you need in a single, unified platform.
-                            </p>
-                        </div>
-
-                        <div className="text-center space-y-4 animate-fade-in-scale animation-delay-200">
-                            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto hover-glow">
-                                <Network className="h-8 w-8 text-white" />
-                            </div>
-                            <h3 className="text-xl font-semibold text-white">LLM Integration</h3>
-                            <p className="text-slate-400">
-                                Direct access to 400+ LLM models from top providers like OpenAI, Anthropic, Google, and more through a single unified API.
-                            </p>
-                        </div>
-
-                        <div className="text-center space-y-4 animate-fade-in-scale animation-delay-400">
-                            <div className="w-16 h-16 bg-gradient-to-r from-pink-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto hover-glow">
-                                <TrendingUp className="h-8 w-8 text-white" />
-                            </div>
-                            <h3 className="text-xl font-semibold text-white">Future-Proof</h3>
-                            <p className="text-slate-400">
-                                New AI tools and features added regularly to keep you ahead of the curve.
-                            </p>
-                        </div>
-
-                        <div className="text-center space-y-4 animate-fade-in-scale animation-delay-600">
-                            <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto hover-glow">
-                                <Target className="h-8 w-8 text-white" />
-                            </div>
-                            <h3 className="text-xl font-semibold text-white">Easy to Use</h3>
-                            <p className="text-slate-400">
-                                Simple, clean, intuitive interface designed for effortless productivity.
-                            </p>
-                        </div>
-
-                        <div className="text-center space-y-4 animate-fade-in-scale animation-delay-800">
-                            <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-yellow-600 rounded-2xl flex items-center justify-center mx-auto hover-glow">
-                                <Users className="h-8 w-8 text-white" />
-                            </div>
-                            <h3 className="text-xl font-semibold text-white">For Everyone</h3>
-                            <p className="text-slate-400">
-                                Students, professionals, creators, and businesses – built for all use cases.
-                            </p>
-                        </div>
-
-                        <div className="text-center space-y-4 animate-fade-in-scale animation-delay-1000">
-                            <div className="w-16 h-16 bg-gradient-to-r from-yellow-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto hover-glow">
-                                <Shield className="h-8 w-8 text-white" />
-                            </div>
-                            <h3 className="text-xl font-semibold text-white">Secure & Reliable</h3>
-                            <p className="text-slate-400">
-                                Enterprise-grade security with 99.9% uptime for peace of mind.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            {/* Connect With Us */}
-            {/* <section id="connect" className="py-20 px-4 sm:px-6">
-                <div className="max-w-4xl mx-auto">
-                    <div className="text-center mb-12">
-                        <h2 className="text-5xl font-bold mb-6 text-white">
-                            Let's Build the Future of AI <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Together</span>
-                        </h2>
-                        <p className="text-xl text-slate-400">
-                            Connect with us to get updates, access early features, or collaborate on custom AI integrations.
-                        </p>
-                    </div>
-
-                    <Card className="bg-slate-800/50 border-slate-700/50">
-                        <CardContent className="p-8">
-                            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-300 mb-2">Name</label>
-                                        <Input
-                                            placeholder="Your name"
-                                            className="bg-slate-900/50 border-slate-700 text-white"
-                                            value={formData.name}
-                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-300 mb-2">Email</label>
-                                        <Input
-                                            type="email"
-                                            placeholder="your@email.com"
-                                            className="bg-slate-900/50 border-slate-700 text-white"
-                                            value={formData.email}
-                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Message</label>
-                                    <Textarea
-                                        placeholder="Tell us about your project or questions..."
-                                        className="bg-slate-900/50 border-slate-700 text-white min-h-32"
-                                        value={formData.message}
-                                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                                    />
-                                </div>
-                                <div className="flex gap-4">
-                                    <Button
-                                        type="submit"
-                                        className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
-                                    >
-                                        <Mail className="h-4 w-4 mr-2" />
-                                        Send Message
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="flex-1 border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/10"
-                                    >
-                                        <CheckCircle className="h-4 w-4 mr-2" />
-                                        Get Updates
-                                    </Button>
-                                </div>
-                            </form>
-
-                            <div className="mt-8 pt-8 border-t border-slate-700/50">
-                                <div className="flex items-center justify-center gap-6">
-                                    <a href="#" className="text-slate-400 hover:text-indigo-400 transition-colors">
-                                        <Github className="h-6 w-6" />
-                                    </a>
-                                    <a href="#" className="text-slate-400 hover:text-cyan-400 transition-colors">
-                                        <Twitter className="h-6 w-6" />
-                                    </a>
-                                    <a href="#" className="text-slate-400 hover:text-blue-400 transition-colors">
-                                        <Linkedin className="h-6 w-6" />
-                                    </a>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            </section> */}
-
-            {/* CTA Section */}
-            <section className="py-20 px-4 sm:px-6 bg-gradient-to-br from-indigo-900/30 to-purple-900/30">
-                <div className="max-w-4xl mx-auto text-center">
-                    <h2 className="text-5xl font-bold mb-6 text-white">
-                        🌟 Join the Future of AI – Today
-                    </h2>
-                    <p className="text-xl text-slate-300 mb-8">
-                        Don't let productivity slip away. Start using the most comprehensive AI platform today and transform how you work.                    </p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Button
-                            onClick={handleGetStarted}
-                            size="lg"
-                            className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 px-12 py-6 text-lg"
-                        >
-                            <Rocket className="h-5 w-5 mr-2" />
-                            Get Early Access
-                        </Button>
-                        <Button
-                            size="lg"
-                            variant="outline"
-                            className="border-2 border-white/30 text-white hover:bg-white/10 px-12 py-6 text-lg"
-                        >
-                            View Documentation
-                        </Button>
-                    </div>
-
-                    {/* Trust Badges */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
-                        <div className="text-center">
-                            <Users className="h-8 w-8 text-indigo-400 mx-auto mb-2" />
-                            <div className="text-white font-semibold">For Everyone</div>
-                            <div className="text-sm text-slate-400">Students to Enterprises</div>
-                        </div>
-                        <div className="text-center">
-                            <Building className="h-8 w-8 text-purple-400 mx-auto mb-2" />
-                            <div className="text-white font-semibold">Enterprise Ready</div>
-                            <div className="text-sm text-slate-400">Secure & Scalable</div>
-                        </div>
-                        <div className="text-center">
-                            <CheckCircle className="h-8 w-8 text-green-400 mx-auto mb-2" />
-                            <div className="text-white font-semibold">100% Free Start</div>
-                            <div className="text-sm text-slate-400">No Credit Card</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            {/* Final CTA */}
+            <FinalCTASection onGetStarted={handleGetStarted} />
 
             {/* Footer */}
             <footer className="bg-slate-800/90 border-t border-slate-700/50 py-12 px-4 sm:px-6">
