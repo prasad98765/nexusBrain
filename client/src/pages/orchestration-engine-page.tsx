@@ -6,7 +6,7 @@ export default function OrchestrationEnginePage() {
             {/* Header */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">Orchestration Engine</h1>
+                    <h1 className="text-3xl font-bold text-white">AIDOS ( Orchestration Engine )</h1>
                     <p className="text-slate-400 mt-1">Central control system for managing agents and flows</p>
                 </div>
             </div>
@@ -18,7 +18,7 @@ export default function OrchestrationEnginePage() {
                         <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-500/20">
                             <Network className="h-10 w-10 text-white" />
                         </div>
-                        <h2 className="text-3xl font-bold text-white mb-3">Orchestration Engine</h2>
+                        <h2 className="text-3xl font-bold text-white mb-3">AIDOS ( Orchestration Engine )</h2>
                         <p className="text-slate-300 text-lg mb-2">
                             Coming Soon
                         </p>
@@ -89,7 +89,7 @@ export default function OrchestrationEnginePage() {
                     {/* Additional Info */}
                     <div className="mt-8 p-4 bg-orange-500/5 border border-orange-500/20 rounded-lg">
                         <p className="text-sm text-slate-300 text-center">
-                            <span className="font-semibold text-orange-400">Note:</span> The Orchestration Engine will serve as the central hub,
+                            <span className="font-semibold text-orange-400">Note:</span> The AIDOS ( Orchestration Engine ) will serve as the central hub,
                             connecting your agents and flows to create powerful automation workflows.
                         </p>
                     </div>
