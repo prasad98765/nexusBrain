@@ -200,7 +200,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                                                                         logicOperator: undefined,
                                                                     }
                                                                 ],
-                                                                groupLogicOperator: undefined,
+                                                                groupLogicOperator: "OR",
                                                             }
                                                         ],
                                                     }

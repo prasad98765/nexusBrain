@@ -451,6 +451,8 @@ def get_api_runs(api_id):
             'duration_ms': run.duration_ms,
             'retry_count': run.retry_count,
             'error_message': run.error_message,
+            'request_data': run.request_data,
+            'response_data': run.response_data,
             'created_at': run.created_at.isoformat()
         } for run in runs]
     }), 200

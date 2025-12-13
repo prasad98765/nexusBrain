@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Plus, Trash2, Filter, AlertCircle, PlayCircle, Check, Layers, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -70,6 +70,32 @@ export default function ConditionConfigDrawer({
     const [openDropdowns, setOpenDropdowns] = useState<{ [key: string]: boolean }>({});
     const dropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
     const { toast } = useToast();
+
+    // Auto-save function wrapped in useCallback to prevent re-creating on every render
+    // const autoSave = useCallback(() => {
+    //     // Only save if we have at least one group with valid data
+    //     const hasContent = conditionGroups.some(group =>
+    //         group.conditions.length > 0 &&
+    //         group.conditions.some(c => c.variable || c.value.length > 0)
+    //     );
+
+    //     if (hasContent) {
+    //         // Auto-save without validation or toast
+    //         onSave({ conditionGroups, hasDefaultOutput });
+    //     }
+    // }, [conditionGroups, hasDefaultOutput, onSave]);
+
+    // // Auto-save when conditions or hasDefaultOutput change
+    // useEffect(() => {
+    //     if (isOpen && conditionGroups.length > 0) {
+    //         // Debounce auto-save to avoid too many saves
+    //         const timeoutId = setTimeout(() => {
+    //             autoSave();
+    //         }, 500); // 500ms debounce
+
+    //         return () => clearTimeout(timeoutId);
+    //     }
+    // }, [conditionGroups, hasDefaultOutput, isOpen, autoSave]);
 
     useEffect(() => {
         if (isOpen) {
@@ -297,24 +323,15 @@ export default function ConditionConfigDrawer({
         });
     };
 
-    const handleSave = () => {
-        const { isValid, errors } = validateConditions();
+    const handleClose = () => {
+        // Save before closing if there's content
+        const hasContent = conditionGroups.length > 0 && conditionGroups.some(group =>
+            group.conditions.length > 0
+        );
 
-        if (!isValid) {
-            toast({
-                title: 'Validation Error',
-                description: errors[0],
-                variant: 'destructive',
-            });
-            return;
+        if (hasContent) {
+            onSave({ conditionGroups, hasDefaultOutput });
         }
-
-        // Save in group-based format with default output setting
-        onSave({ conditionGroups, hasDefaultOutput });
-        toast({
-            title: 'Success',
-            description: 'Condition groups saved successfully',
-        });
         onClose();
     };
 
@@ -380,8 +397,12 @@ export default function ConditionConfigDrawer({
     const totalConditions = conditionGroups.reduce((sum, group) => sum + group.conditions.length, 0);
 
     return (
-        <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto bg-slate-900 border-slate-700">
+        <Sheet open={isOpen} onOpenChange={(open) => {
+            if (!open) {
+                handleClose();
+            }
+        }}>
+            <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto bg-slate-900 border-slate-700" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
                 <SheetHeader>
                     <SheetTitle className="text-slate-100 flex items-center gap-2">
                         <Filter className="h-5 w-5 text-amber-400" />
@@ -689,10 +710,10 @@ export default function ConditionConfigDrawer({
                             </div>
                         ))}
                     </div>
-                    {/* Footer with Cancel and Save Changes Buttons */}
+                    {/* Footer with auto-save message */}
                     <div className="flex-shrink-0 p-3 border-t border-slate-700/50 bg-gradient-to-r from-slate-800 to-slate-900 backdrop-blur-sm">
                         <p className="text-xs text-slate-400 text-center italic">
-                            Changes are saved automatically. Click the Save button in the toolbar to persist your flow.
+                            ✓ Changes are saved automatically
                         </p>
                     </div>
                 </div>

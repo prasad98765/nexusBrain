@@ -1615,15 +1615,24 @@ def run_node(
             workspace_id = state.get('workspace_id')
             variable_key = get_variable_key_for_node(current_node_id, node_config, workspace_id)
             
+            # Check if user_input matches a button and use its value field if available
+            stored_value = user_input  # Default to label
+            for button in buttons:
+                if button.get('label') == user_input:
+                    # If button has a value field, use it; otherwise use label
+                    stored_value = button.get('value') if button.get('value') else button.get('label')
+                    logger.info(f"[BUTTON NODE] Matched button '{user_input}', storing value: {stored_value}")
+                    break
+            
             # Store against the variable name
-            user_data[variable_key] = user_input
-            logger.info(f"[BUTTON NODE] Stored button selection against variable: {variable_key}")
+            user_data[variable_key] = stored_value
+            logger.info(f"[BUTTON NODE] Stored button value against variable: {variable_key} = {stored_value}")
             
             # Only keep the raw action storage if no variable is configured (backward compatibility)
             # Check if a variable was configured by seeing if variable_key is different from node_id
             if variable_key == current_node_id:
                 # No variable configured, use fallback storage
-                user_data[f'{current_node_id}_action'] = user_input
+                user_data[f'{current_node_id}_action'] = stored_value
             
             lc_messages.append(HumanMessage(content=f"Selected: {user_input}"))
         
@@ -1800,13 +1809,24 @@ def run_node(
             workspace_id = state.get('workspace_id')
             variable_key = get_variable_key_for_node(current_node_id, node_config, workspace_id)
             
+            # Check if user_input matches a button and use its value field if available
+            stored_value = user_input  # Default to label
+            # Flatten buttons from all sections to find match
+            for section in sections:
+                for button in section.get('buttons', []):
+                    if button.get('label') == user_input:
+                        # If button has a value field, use it; otherwise use label
+                        stored_value = button.get('value') if button.get('value') else button.get('label')
+                        logger.info(f"[INTERACTIVE LIST NODE] Matched button '{user_input}', storing value: {stored_value}")
+                        break
+            
             # Store against the variable name
-            user_data[variable_key] = user_input
-            logger.info(f"[INTERACTIVE LIST NODE] Stored button selection against variable: {variable_key}")
+            user_data[variable_key] = stored_value
+            logger.info(f"[INTERACTIVE LIST NODE] Stored button value against variable: {variable_key} = {stored_value}")
             
             # Backward compatibility fallback
             if variable_key == current_node_id:
-                user_data[f'{current_node_id}_action'] = user_input
+                user_data[f'{current_node_id}_action'] = stored_value
             
             lc_messages.append(HumanMessage(content=f"Selected: {user_input}"))
         

@@ -12,6 +12,7 @@ import {
 interface ButtonConfig {
     id: string;
     label: string;
+    value?: string;  // Value to store in variable (defaults to label if not set)
     actionType: 'connect_to_node' | 'call_number' | 'send_email' | 'open_url';
     actionValue?: string;
 }

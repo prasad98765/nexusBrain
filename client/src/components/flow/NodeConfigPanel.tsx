@@ -1114,21 +1114,52 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Input
-                                                value={btn.label}
-                                                onChange={(e) => {
-                                                    const updated = config.buttons.map((b: any) =>
-                                                        b.id === btn.id ? { ...b, label: e.target.value } : b
-                                                    );
-                                                    setConfig({ ...config, buttons: updated });
-                                                }}
-                                                placeholder="Button label"
-                                                maxLength={INTERACTIVE_NODE_LIMITS.BUTTON_TITLE_MAX_LENGTH}
-                                                className="bg-slate-800 border-slate-600/50 text-slate-200 text-sm hover:border-slate-500 focus:border-blue-500 transition-colors"
-                                            />
-                                            <span className={`text-xs ${getCounterColor((btn.label || '').length, INTERACTIVE_NODE_LIMITS.BUTTON_TITLE_MAX_LENGTH)}`}>
-                                                {(btn.label || '').length}/{INTERACTIVE_NODE_LIMITS.BUTTON_TITLE_MAX_LENGTH}
-                                            </span>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-xs text-slate-400">Display Text</Label>
+                                                <Input
+                                                    value={btn.label}
+                                                    onChange={(e) => {
+                                                        const updated = config.buttons.map((b: any) =>
+                                                            b.id === btn.id ? { ...b, label: e.target.value } : b
+                                                        );
+                                                        setConfig({ ...config, buttons: updated });
+                                                    }}
+                                                    placeholder="Button text shown to user"
+                                                    maxLength={INTERACTIVE_NODE_LIMITS.BUTTON_TITLE_MAX_LENGTH}
+                                                    className="bg-slate-800 border-slate-600/50 text-slate-200 text-sm hover:border-slate-500 focus:border-blue-500 transition-colors"
+                                                />
+                                                <span className={`text-xs ${getCounterColor((btn.label || '').length, INTERACTIVE_NODE_LIMITS.BUTTON_TITLE_MAX_LENGTH)}`}>
+                                                    {(btn.label || '').length}/{INTERACTIVE_NODE_LIMITS.BUTTON_TITLE_MAX_LENGTH}
+                                                </span>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <div className="flex items-center justify-between">
+                                                    <Label className="text-xs text-slate-400">Value (Optional)</Label>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Info className="h-3 w-3 text-slate-500 cursor-help" />
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs max-w-[200px]">
+                                                            <p>Value stored in variable when clicked. If empty, uses display text.</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </div>
+                                                <Input
+                                                    value={btn.value || ''}
+                                                    onChange={(e) => {
+                                                        const updated = config.buttons.map((b: any) =>
+                                                            b.id === btn.id ? { ...b, value: e.target.value } : b
+                                                        );
+                                                        setConfig({ ...config, buttons: updated });
+                                                    }}
+                                                    placeholder="Value to store (defaults to display text)"
+                                                    maxLength={INTERACTIVE_NODE_LIMITS.BUTTON_TITLE_MAX_LENGTH}
+                                                    className="bg-slate-800 border-slate-600/50 text-slate-200 text-sm hover:border-slate-500 focus:border-blue-500 transition-colors"
+                                                />
+                                                <span className="text-xs text-slate-500 italic">
+                                                    {btn.value ? `Will store: "${btn.value}"` : `Will store: "${btn.label || 'button text'}"`}
+                                                </span>
+                                            </div>
                                         </div>
 
                                         <Select
@@ -1445,24 +1476,58 @@ export default function NodeConfigPanel({ nodeId, nodeType, nodeData, onClose, o
                                                                 </div>
 
                                                                 <div className="space-y-2">
-                                                                    <Input
-                                                                        value={btn.label}
-                                                                        onChange={(e) => {
-                                                                            const updatedButtons = section.buttons.map((b: any) =>
-                                                                                b.id === btn.id ? { ...b, label: e.target.value } : b
-                                                                            );
-                                                                            const updated = config.sections.map((s: any) =>
-                                                                                s.id === section.id ? { ...s, buttons: updatedButtons } : s
-                                                                            );
-                                                                            setConfig({ ...config, sections: updated });
-                                                                        }}
-                                                                        placeholder="Button label"
-                                                                        maxLength={INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH}
-                                                                        className="bg-slate-800 border-slate-600/50 text-slate-200 text-xs hover:border-slate-500 focus:border-purple-500 transition-colors"
-                                                                    />
-                                                                    <span className={`text-xs ${getCounterColor((btn.label || '').length, INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH)}`}>
-                                                                        {(btn.label || '').length}/{INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH}
-                                                                    </span>
+                                                                    <div className="space-y-1.5">
+                                                                        <Label className="text-xs text-slate-400">Display Text</Label>
+                                                                        <Input
+                                                                            value={btn.label}
+                                                                            onChange={(e) => {
+                                                                                const updatedButtons = section.buttons.map((b: any) =>
+                                                                                    b.id === btn.id ? { ...b, label: e.target.value } : b
+                                                                                );
+                                                                                const updated = config.sections.map((s: any) =>
+                                                                                    s.id === section.id ? { ...s, buttons: updatedButtons } : s
+                                                                                );
+                                                                                setConfig({ ...config, sections: updated });
+                                                                            }}
+                                                                            placeholder="Button text shown to user"
+                                                                            maxLength={INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH}
+                                                                            className="bg-slate-800 border-slate-600/50 text-slate-200 text-xs hover:border-slate-500 focus:border-purple-500 transition-colors"
+                                                                        />
+                                                                        <span className={`text-xs ${getCounterColor((btn.label || '').length, INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH)}`}>
+                                                                            {(btn.label || '').length}/{INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="space-y-1.5">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <Label className="text-xs text-slate-400">Value (Optional)</Label>
+                                                                            <Tooltip>
+                                                                                <TooltipTrigger asChild>
+                                                                                    <Info className="h-3 w-3 text-slate-500 cursor-help" />
+                                                                                </TooltipTrigger>
+                                                                                <TooltipContent side="left" className="bg-slate-900 border-slate-700 text-xs max-w-[200px]">
+                                                                                    <p>Value stored in variable when clicked. If empty, uses display text.</p>
+                                                                                </TooltipContent>
+                                                                            </Tooltip>
+                                                                        </div>
+                                                                        <Input
+                                                                            value={btn.value || ''}
+                                                                            onChange={(e) => {
+                                                                                const updatedButtons = section.buttons.map((b: any) =>
+                                                                                    b.id === btn.id ? { ...b, value: e.target.value } : b
+                                                                                );
+                                                                                const updated = config.sections.map((s: any) =>
+                                                                                    s.id === section.id ? { ...s, buttons: updatedButtons } : s
+                                                                                );
+                                                                                setConfig({ ...config, sections: updated });
+                                                                            }}
+                                                                            placeholder="Value to store (defaults to display text)"
+                                                                            maxLength={INTERACTIVE_LIST_LIMITS.BUTTON_TITLE_MAX_LENGTH}
+                                                                            className="bg-slate-800 border-slate-600/50 text-slate-200 text-xs hover:border-slate-500 focus:border-purple-500 transition-colors"
+                                                                        />
+                                                                        <span className="text-xs text-slate-500 italic">
+                                                                            {btn.value ? `Will store: "${btn.value}"` : `Will store: "${btn.label || 'button text'}"`}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
 
                                                                 <Select
