@@ -735,8 +735,8 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                             <div>
                                 <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Processing</h4>
                                 <div className="space-y-1">
-                                    <ComponentItem label="Language Model" type="ai" />
-                                    <ComponentItem label="Engine" type="engine" />
+                                    {/* <ComponentItem label="Language Model" type="ai" /> */}
+                                    <ComponentItem label="AIDOS" type="engine" />
                                     <ComponentItem label="Agent" type="agentSelector" comingSoon />
                                     <ComponentItem label="Condition" type="condition" />
                                 </div>
@@ -745,7 +745,7 @@ function AgentFlowBuilderInner({ agentId, isFullScreen, onToggleFullScreen }: Ag
                                 <h4 className="text-xs font-medium text-slate-400 uppercase mb-2 px-2">Integration</h4>
                                 <div className="space-y-1">
                                     <ComponentItem label="API Library" type="apiLibrary" />
-                                    <ComponentItem label="Knowledge Base" type="knowledgeBase" />
+                                    {/* <ComponentItem label="Knowledge Base" type="knowledgeBase" /> */}
                                 </div>
                             </div>
                         </div>

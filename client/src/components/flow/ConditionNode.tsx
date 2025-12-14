@@ -8,12 +8,17 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 
+export interface ConditionValue {
+    text: string;  // The display value
+    isVariable: boolean;  // Flag indicating if this is a variable reference
+}
+
 export interface ConditionRule {
     id: string;
     variable: string;
     operator: 'equals' | 'not_equals' | 'contains' | 'not_contains' | 'is_empty' | 'is_not_empty' | 'greater_than' | 'less_than';
-    value: string[];
-    valueType: 'static' | 'variable';
+    value: ConditionValue[];  // Array of value objects with metadata
+    valueType: 'static' | 'variable';  // Deprecated: kept for backward compatibility
     logicOperator?: 'AND' | 'OR'; // Logic operator to apply BEFORE this condition
 }
 

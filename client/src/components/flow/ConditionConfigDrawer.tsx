@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Plus, Trash2, Filter, AlertCircle, PlayCircle, Check, Layers, ChevronDown } from 'lucide-react';
+import { X, Plus, Trash2, Filter, AlertCircle, PlayCircle, Check, Layers, ChevronDown, ChevronRight, ChevronUp, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/lib/apiClient';
-import { ConditionRule, ConditionGroup } from './ConditionNode';
+import { ConditionRule, ConditionGroup, ConditionValue } from './ConditionNode';
 import {
     Sheet,
     SheetContent,
@@ -68,6 +68,8 @@ export default function ConditionConfigDrawer({
     const [showTestPreview, setShowTestPreview] = useState(false);
     const [searchInputs, setSearchInputs] = useState<{ [key: string]: string }>({});
     const [openDropdowns, setOpenDropdowns] = useState<{ [key: string]: boolean }>({});
+    const [expandedGroups, setExpandedGroups] = useState<{ [key: string]: boolean }>({});
+    const [expandedConditions, setExpandedConditions] = useState<{ [key: string]: boolean }>({});
     const dropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
     const { toast } = useToast();
 
@@ -118,6 +120,28 @@ export default function ConditionConfigDrawer({
 
             // Initialize default output state
             setHasDefaultOutput(initialHasDefaultOutput || false);
+
+            // Initialize all groups and conditions as expanded by default
+            const groupExpansions: { [key: string]: boolean } = {};
+            const conditionExpansions: { [key: string]: boolean } = {};
+
+            if (initialConditionGroups && initialConditionGroups.length > 0) {
+                initialConditionGroups.forEach(group => {
+                    groupExpansions[group.id] = true;
+                    group.conditions.forEach(condition => {
+                        conditionExpansions[condition.id] = true;
+                    });
+                });
+            } else if (legacyConditions && legacyConditions.length > 0) {
+                const groupId = `group-${Date.now()}`;
+                groupExpansions[groupId] = true;
+                legacyConditions.forEach(condition => {
+                    conditionExpansions[condition.id] = true;
+                });
+            }
+
+            setExpandedGroups(groupExpansions);
+            setExpandedConditions(conditionExpansions);
         }
     }, [isOpen, legacyConditions, initialConditionGroups, initialHasDefaultOutput]);
 
@@ -180,7 +204,14 @@ export default function ConditionConfigDrawer({
             });
             return;
         }
-        setConditionGroups([...conditionGroups, createNewGroup()]);
+        const newGroup = createNewGroup();
+        setConditionGroups([...conditionGroups, newGroup]);
+        // Expand the new group by default
+        setExpandedGroups(prev => ({ ...prev, [newGroup.id]: true }));
+        // Expand the first condition in the new group
+        if (newGroup.conditions.length > 0) {
+            setExpandedConditions(prev => ({ ...prev, [newGroup.conditions[0].id]: true }));
+        }
     };
 
     const removeGroup = (groupId: string) => {
@@ -198,11 +229,14 @@ export default function ConditionConfigDrawer({
             return;
         }
 
+        const newCondition = createNewCondition(false);
         setConditionGroups(conditionGroups.map(group =>
             group.id === groupId
-                ? { ...group, conditions: [...group.conditions, createNewCondition(false)] }
+                ? { ...group, conditions: [...group.conditions, newCondition] }
                 : group
         ));
+        // Expand the new condition by default
+        setExpandedConditions(prev => ({ ...prev, [newCondition.id]: true }));
     };
 
     const removeConditionFromGroup = (groupId: string, conditionId: string) => {
@@ -335,8 +369,13 @@ export default function ConditionConfigDrawer({
         onClose();
     };
 
-    const handleAddValue = (groupId: string, conditionId: string, newValue: string) => {
+    const handleAddValue = (groupId: string, conditionId: string, newValue: string, isVariable: boolean = false) => {
         if (!newValue.trim()) return;
+
+        const valueObject: ConditionValue = {
+            text: newValue.trim(),
+            isVariable: isVariable
+        };
 
         setConditionGroups(conditionGroups.map(group =>
             group.id === groupId
@@ -344,7 +383,7 @@ export default function ConditionConfigDrawer({
                     ...group,
                     conditions: group.conditions.map(condition =>
                         condition.id === conditionId
-                            ? { ...condition, value: [...condition.value, newValue.trim()] }
+                            ? { ...condition, value: [...condition.value, valueObject] }
                             : condition
                     )
                 }
@@ -394,6 +433,33 @@ export default function ConditionConfigDrawer({
         setOpenDropdowns(prev => ({ ...prev, [key]: true }));
     };
 
+    const toggleGroupExpansion = (groupId: string) => {
+        setExpandedGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
+    };
+
+    const toggleConditionExpansion = (conditionId: string) => {
+        setExpandedConditions(prev => ({ ...prev, [conditionId]: !prev[conditionId] }));
+    };
+
+    const expandAllGroups = () => {
+        const allExpanded: { [key: string]: boolean } = {};
+        conditionGroups.forEach(group => {
+            allExpanded[group.id] = true;
+            group.conditions.forEach(condition => {
+                setExpandedConditions(prev => ({ ...prev, [condition.id]: true }));
+            });
+        });
+        setExpandedGroups(allExpanded);
+    };
+
+    const collapseAllGroups = () => {
+        const allCollapsed: { [key: string]: boolean } = {};
+        conditionGroups.forEach(group => {
+            allCollapsed[group.id] = false;
+        });
+        setExpandedGroups(allCollapsed);
+    };
+
     const totalConditions = conditionGroups.reduce((sum, group) => sum + group.conditions.length, 0);
 
     return (
@@ -439,15 +505,39 @@ export default function ConditionConfigDrawer({
                                 {totalConditions} / 10
                             </Badge>
                         </div>
-                        <Button
-                            onClick={addGroup}
-                            disabled={totalConditions >= 10}
-                            size="sm"
-                            className="bg-amber-500 hover:bg-amber-600 text-white"
-                        >
-                            <Plus className="h-4 w-4 mr-1" />
-                            Add Group
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            {conditionGroups.length > 0 && (
+                                <>
+                                    <Button
+                                        onClick={expandAllGroups}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 px-2 text-xs hover:bg-slate-700 text-slate-400"
+                                    >
+                                        <Maximize2 className="h-3 w-3 mr-1" />
+                                        Expand All
+                                    </Button>
+                                    <Button
+                                        onClick={collapseAllGroups}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 px-2 text-xs hover:bg-slate-700 text-slate-400"
+                                    >
+                                        <Minimize2 className="h-3 w-3 mr-1" />
+                                        Collapse All
+                                    </Button>
+                                </>
+                            )}
+                            <Button
+                                onClick={addGroup}
+                                disabled={totalConditions >= 10}
+                                size="sm"
+                                className="bg-amber-500 hover:bg-amber-600 text-white"
+                            >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add Group
+                            </Button>
+                        </div>
                     </div>
 
                     {/* Condition Groups */}
@@ -455,258 +545,289 @@ export default function ConditionConfigDrawer({
                         {conditionGroups.map((group, groupIdx) => (
                             <div
                                 key={group.id}
-                                className="p-4 bg-slate-800/40 rounded-lg border-2 border-slate-700 space-y-3"
+                                className="bg-slate-800/40 rounded-lg border-2 border-slate-700 overflow-hidden"
                             >
-                                {/* Group Header with Logic Operator Toggle */}
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => toggleGroupLogicOperator(group.id)}
-                                            className={`px-3 py-1 text-xs font-bold rounded transition-all ${group.groupLogicOperator === 'AND'
-                                                ? 'bg-amber-500/30 text-amber-300 border-2 border-amber-500/50 hover:bg-amber-500/40'
-                                                : 'bg-purple-500/30 text-purple-300 border-2 border-purple-500/50 hover:bg-purple-500/40'
-                                                }`}
-                                        >
-                                            {group.groupLogicOperator || 'AND'}
-                                        </button>
+                                {/* Group Header with Logic Operator Toggle - Always Visible */}
+                                <div className="p-4 bg-slate-800/60">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 flex-1">
+                                            <button
+                                                onClick={() => toggleGroupExpansion(group.id)}
+                                                className="p-1 hover:bg-slate-700 rounded transition-colors"
+                                            >
+                                                {expandedGroups[group.id] ? (
+                                                    <ChevronDown className="h-4 w-4 text-slate-400" />
+                                                ) : (
+                                                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                                                )}
+                                            </button>
 
-                                        <Layers className="h-4 w-4 text-slate-400" />
-                                        <span className="text-sm font-bold text-slate-200">
-                                            Group {groupIdx + 1}
-                                        </span>
-                                        <Badge variant="outline" className="text-xs">
-                                            {group.conditions.length} condition{group.conditions.length > 1 ? 's' : ''}
-                                        </Badge>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => addConditionToGroup(group.id)}
-                                            disabled={totalConditions >= 10}
-                                            className="h-7 px-2 text-xs hover:bg-green-900/20 text-green-400"
-                                        >
-                                            <Plus className="h-3 w-3 mr-1" />
-                                            Add
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => removeGroup(group.id)}
-                                            className="h-7 w-7 p-0 hover:bg-red-900/20 text-red-400"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                            <button
+                                                onClick={() => toggleGroupLogicOperator(group.id)}
+                                                className={`px-3 py-1 text-xs font-bold rounded transition-all ${group.groupLogicOperator === 'AND'
+                                                    ? 'bg-amber-500/30 text-amber-300 border-2 border-amber-500/50 hover:bg-amber-500/40'
+                                                    : 'bg-purple-500/30 text-purple-300 border-2 border-purple-500/50 hover:bg-purple-500/40'
+                                                    }`}
+                                            >
+                                                {group.groupLogicOperator || 'AND'}
+                                            </button>
+
+                                            <Layers className="h-4 w-4 text-slate-400" />
+                                            <span className="text-sm font-bold text-slate-200">
+                                                Group {groupIdx + 1}
+                                            </span>
+                                            <Badge variant="outline" className="text-xs">
+                                                {group.conditions.length} condition{group.conditions.length > 1 ? 's' : ''}
+                                            </Badge>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => addConditionToGroup(group.id)}
+                                                disabled={totalConditions >= 10}
+                                                className="h-7 px-2 text-xs hover:bg-green-900/20 text-green-400"
+                                            >
+                                                <Plus className="h-3 w-3 mr-1" />
+                                                Add
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => removeGroup(group.id)}
+                                                className="h-7 w-7 p-0 hover:bg-red-900/20 text-red-400"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Conditions in Group */}
-                                <div className="space-y-2 pl-2">
-                                    {group.conditions.map((condition, condIdx) => (
-                                        <div
-                                            key={condition.id}
-                                            className="p-3 bg-slate-800/60 rounded-lg border border-slate-600 space-y-3"
-                                        >
-                                            {/* Condition Header */}
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    {condIdx > 0 && (
-                                                        <button
-                                                            onClick={() => toggleConditionLogicOperator(group.id, condition.id)}
-                                                            className={`px-2 py-0.5 text-xs font-semibold rounded transition-all ${condition.logicOperator === 'AND'
-                                                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30'
-                                                                : 'bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30'
-                                                                }`}
+                                {/* Conditions in Group - Collapsible */}
+                                {expandedGroups[group.id] && (
+                                    <div className="p-4 pt-0 space-y-2">
+                                        {group.conditions.map((condition, condIdx) => (
+                                            <div
+                                                key={condition.id}
+                                                className="bg-slate-800/60 rounded-lg border border-slate-600 overflow-hidden"
+                                            >
+                                                {/* Condition Header - Always Visible */}
+                                                <div className="p-3 bg-slate-800/40">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2 flex-1">
+                                                            <button
+                                                                onClick={() => toggleConditionExpansion(condition.id)}
+                                                                className="p-0.5 hover:bg-slate-700 rounded transition-colors"
+                                                            >
+                                                                {expandedConditions[condition.id] ? (
+                                                                    <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                                                                ) : (
+                                                                    <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                                                                )}
+                                                            </button>
+                                                            <span className="text-xs font-medium text-slate-400">
+                                                                Condition {condIdx + 1}
+                                                            </span>
+                                                            {/* Show summary when collapsed */}
+                                                            {!expandedConditions[condition.id] && condition.variable && (
+                                                                <span className="text-xs text-slate-500 ml-2">
+                                                                    {condition.variable} {condition.operator.replace('_', ' ')} {condition.value.map(v => v.text).join(', ')}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => removeConditionFromGroup(group.id, condition.id)}
+                                                            className="h-6 w-6 p-0 hover:bg-red-900/20 text-red-400"
                                                         >
-                                                            {condition.logicOperator || 'AND'}
-                                                        </button>
-                                                    )}
-                                                    <span className="text-xs font-medium text-slate-400">
-                                                        Condition {condIdx + 1}
-                                                    </span>
-                                                </div>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => removeConditionFromGroup(group.id, condition.id)}
-                                                    className="h-6 w-6 p-0 hover:bg-red-900/20 text-red-400"
-                                                >
-                                                    <X className="h-3 w-3" />
-                                                </Button>
-                                            </div>
-
-                                            {/* Variable Selection */}
-                                            <div className="space-y-1.5">
-                                                <Label className="text-xs text-slate-400">Variable</Label>
-                                                <Select
-                                                    value={condition.variable}
-                                                    onValueChange={(value) =>
-                                                        updateCondition(group.id, condition.id, 'variable', value)
-                                                    }
-                                                >
-                                                    <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-200">
-                                                        <SelectValue placeholder="Select variable" />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="bg-slate-800 border-slate-700">
-                                                        {variables.map((variable) => (
-                                                            <SelectItem
-                                                                key={variable.id}
-                                                                value={variable.name}
-                                                                className="text-slate-200"
-                                                            >
-                                                                {variable.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                {!condition.variable && (
-                                                    <p className="text-xs text-red-400 flex items-center gap-1">
-                                                        <AlertCircle className="h-3 w-3" />
-                                                        Variable is required
-                                                    </p>
-                                                )}
-                                            </div>
-
-                                            {/* Operator Selection */}
-                                            <div className="space-y-1.5">
-                                                <Label className="text-xs text-slate-400">Operator</Label>
-                                                <Select
-                                                    value={condition.operator}
-                                                    onValueChange={(value: any) =>
-                                                        updateCondition(group.id, condition.id, 'operator', value)
-                                                    }
-                                                >
-                                                    <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-200">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="bg-slate-800 border-slate-700">
-                                                        {OPERATORS.map((op) => (
-                                                            <SelectItem
-                                                                key={op.value}
-                                                                value={op.value}
-                                                                className="text-slate-200"
-                                                            >
-                                                                {op.label}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-
-                                            {/* Value Input */}
-                                            {condition.operator !== 'is_empty' && condition.operator !== 'is_not_empty' && ((
-                                                <div className="space-y-1.5">
-                                                    <Label className="text-xs text-slate-400">Value</Label>
-
-                                                    {/* Selected Values Display */}
-                                                    <div className="flex flex-wrap gap-2 min-h-[40px] p-2 bg-slate-800 border border-slate-700 rounded">
-                                                        {condition.value.map((val, valIdx) => (
-                                                            <Badge
-                                                                key={valIdx}
-                                                                variant="secondary"
-                                                                className="bg-amber-500/20 text-amber-300 border-amber-500/30"
-                                                            >
-                                                                {val}
-                                                                <button
-                                                                    onClick={() => handleRemoveValue(group.id, condition.id, valIdx)}
-                                                                    className="ml-1 hover:text-red-400"
-                                                                >
-                                                                    <X className="h-3 w-3" />
-                                                                </button>
-                                                            </Badge>
-                                                        ))}
+                                                            <X className="h-3 w-3" />
+                                                        </Button>
                                                     </div>
+                                                </div>
 
-                                                    {/* Searchable Dropdown */}
-                                                    <div
-                                                        className="relative"
-                                                        ref={el => dropdownRefs.current[`${group.id}-${condition.id}`] = el}
-                                                    >
-                                                        <div className="relative">
-                                                            <Input
-                                                                placeholder="Search or type to create..."
-                                                                value={searchInputs[`${group.id}-${condition.id}`] || ''}
-                                                                onChange={(e) => handleSearchChange(group.id, condition.id, e.target.value)}
-                                                                onFocus={() => toggleDropdown(group.id, condition.id)}
-                                                                className="bg-slate-800 border-slate-700 text-slate-200 pr-8"
-                                                            />
-                                                            <ChevronDown
-                                                                className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
-                                                            />
+                                                {/* Condition Details - Collapsible */}
+                                                {expandedConditions[condition.id] && (
+                                                    <div className="p-3 pt-0 space-y-3">
+
+                                                        {/* Variable Selection */}
+                                                        <div className="space-y-1.5">
+                                                            <Label className="text-xs text-slate-400">Variable</Label>
+                                                            <Select
+                                                                value={condition.variable}
+                                                                onValueChange={(value) =>
+                                                                    updateCondition(group.id, condition.id, 'variable', value)
+                                                                }
+                                                            >
+                                                                <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-200">
+                                                                    <SelectValue placeholder="Select variable" />
+                                                                </SelectTrigger>
+                                                                <SelectContent className="bg-slate-800 border-slate-700">
+                                                                    {variables.map((variable) => (
+                                                                        <SelectItem
+                                                                            key={variable.id}
+                                                                            value={variable.name}
+                                                                            className="text-slate-200"
+                                                                        >
+                                                                            {variable.name}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                            {!condition.variable && (
+                                                                <p className="text-xs text-red-400 flex items-center gap-1">
+                                                                    <AlertCircle className="h-3 w-3" />
+                                                                    Variable is required
+                                                                </p>
+                                                            )}
                                                         </div>
 
-                                                        {/* Dropdown Menu */}
-                                                        {openDropdowns[`${group.id}-${condition.id}`] && (
-                                                            <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                                                {(() => {
-                                                                    const filtered = getFilteredVariables(group.id, condition.id);
-                                                                    const searchTerm = searchInputs[`${group.id}-${condition.id}`] || '';
-                                                                    const exactMatch = variables.find(v => v.name.toLowerCase() === searchTerm.toLowerCase());
-                                                                    const showCreateOption = searchTerm && !exactMatch;
+                                                        {/* Operator Selection */}
+                                                        <div className="space-y-1.5">
+                                                            <Label className="text-xs text-slate-400">Operator</Label>
+                                                            <Select
+                                                                value={condition.operator}
+                                                                onValueChange={(value: any) =>
+                                                                    updateCondition(group.id, condition.id, 'operator', value)
+                                                                }
+                                                            >
+                                                                <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-200">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent className="bg-slate-800 border-slate-700">
+                                                                    {OPERATORS.map((op) => (
+                                                                        <SelectItem
+                                                                            key={op.value}
+                                                                            value={op.value}
+                                                                            className="text-slate-200"
+                                                                        >
+                                                                            {op.label}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
 
-                                                                    return (
-                                                                        <>
-                                                                            {/* Variable Options */}
-                                                                            {filtered.map((variable) => (
-                                                                                <div
-                                                                                    key={variable.id}
-                                                                                    onClick={() => handleAddValue(group.id, condition.id, variable.name)}
-                                                                                    className="px-4 py-2.5 hover:bg-slate-700 cursor-pointer transition-colors border-b border-slate-700/50 last:border-0"
-                                                                                >
-                                                                                    <div className="flex items-center justify-between">
-                                                                                        <span className="text-sm text-slate-200">{variable.name}</span>
-                                                                                        <span className="text-xs text-slate-500">System</span>
-                                                                                    </div>
-                                                                                </div>
-                                                                            ))}
+                                                        {/* Value Input */}
+                                                        {condition.operator !== 'is_empty' && condition.operator !== 'is_not_empty' && ((
+                                                            <div className="space-y-1.5">
+                                                                <Label className="text-xs text-slate-400">Value</Label>
 
-                                                                            {/* Create New Option */}
-                                                                            {showCreateOption && (
-                                                                                <div
-                                                                                    onClick={() => handleAddValue(group.id, condition.id, searchTerm)}
-                                                                                    className="px-4 py-2.5 hover:bg-slate-700 cursor-pointer transition-colors border-t border-slate-600"
-                                                                                >
-                                                                                    <span className="text-sm text-slate-200">
-                                                                                        Create "{searchTerm}"
-                                                                                    </span>
-                                                                                </div>
+                                                                {/* Selected Values Display */}
+                                                                <div className="flex flex-wrap gap-2 min-h-[40px] p-2 bg-slate-800 border border-slate-700 rounded">
+                                                                    {condition.value.map((val, valIdx) => (
+                                                                        <Badge
+                                                                            key={valIdx}
+                                                                            variant="secondary"
+                                                                            className={val.isVariable ? "bg-blue-500/20 text-blue-300 border-blue-500/30" : "bg-amber-500/20 text-amber-300 border-amber-500/30"}
+                                                                        >
+                                                                            {val.isVariable && (
+                                                                                <span className="text-xs mr-1">#</span>
                                                                             )}
+                                                                            {val.text}
+                                                                            <button
+                                                                                onClick={() => handleRemoveValue(group.id, condition.id, valIdx)}
+                                                                                className="ml-1 hover:text-red-400"
+                                                                            >
+                                                                                <X className="h-3 w-3" />
+                                                                            </button>
+                                                                        </Badge>
+                                                                    ))}
+                                                                </div>
 
-                                                                            {/* No Results */}
-                                                                            {filtered.length === 0 && !showCreateOption && (
-                                                                                <div className="px-4 py-2.5 text-sm text-slate-500 text-center">
-                                                                                    No variables found
-                                                                                </div>
-                                                                            )}
-                                                                        </>
-                                                                    );
-                                                                })()}
+                                                                {/* Searchable Dropdown */}
+                                                                <div
+                                                                    className="relative"
+                                                                    ref={el => dropdownRefs.current[`${group.id}-${condition.id}`] = el}
+                                                                >
+                                                                    <div className="relative">
+                                                                        <Input
+                                                                            placeholder="Search or type to create..."
+                                                                            value={searchInputs[`${group.id}-${condition.id}`] || ''}
+                                                                            onChange={(e) => handleSearchChange(group.id, condition.id, e.target.value)}
+                                                                            onFocus={() => toggleDropdown(group.id, condition.id)}
+                                                                            className="bg-slate-800 border-slate-700 text-slate-200 pr-8"
+                                                                        />
+                                                                        <ChevronDown
+                                                                            className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
+                                                                        />
+                                                                    </div>
+
+                                                                    {/* Dropdown Menu */}
+                                                                    {openDropdowns[`${group.id}-${condition.id}`] && (
+                                                                        <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                                                            {(() => {
+                                                                                const filtered = getFilteredVariables(group.id, condition.id);
+                                                                                const searchTerm = searchInputs[`${group.id}-${condition.id}`] || '';
+                                                                                const exactMatch = variables.find(v => v.name.toLowerCase() === searchTerm.toLowerCase());
+                                                                                const showCreateOption = searchTerm && !exactMatch;
+
+                                                                                return (
+                                                                                    <>
+                                                                                        {/* Variable Options */}
+                                                                                        {filtered.map((variable) => (
+                                                                                            <div
+                                                                                                key={variable.id}
+                                                                                                onClick={() => handleAddValue(group.id, condition.id, variable.name, true)}
+                                                                                                className="px-4 py-2.5 hover:bg-slate-700 cursor-pointer transition-colors border-b border-slate-700/50 last:border-0"
+                                                                                            >
+                                                                                                <div className="flex items-center justify-between">
+                                                                                                    <span className="text-sm text-slate-200"># {variable.name}</span>
+                                                                                                    <span className="text-xs text-blue-400">Variable</span>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        ))}
+
+                                                                                        {/* Create New Option */}
+                                                                                        {showCreateOption && (
+                                                                                            <div
+                                                                                                onClick={() => handleAddValue(group.id, condition.id, searchTerm, false)}
+                                                                                                className="px-4 py-2.5 hover:bg-slate-700 cursor-pointer transition-colors border-t border-slate-600"
+                                                                                            >
+                                                                                                <span className="text-sm text-slate-200">
+                                                                                                    Create "{searchTerm}"
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        )}
+
+                                                                                        {/* No Results */}
+                                                                                        {filtered.length === 0 && !showCreateOption && (
+                                                                                            <div className="px-4 py-2.5 text-sm text-slate-500 text-center">
+                                                                                                No variables found
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </>
+                                                                                );
+                                                                            })()}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                {condition.value.length === 0 && (
+                                                                    <p className="text-xs text-red-400 flex items-center gap-1">
+                                                                        <AlertCircle className="h-3 w-3" />
+                                                                        At least one value is required
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        ))}
+
+                                                        {/* Test Result */}
+                                                        {showTestPreview && testResults[condition.id] !== undefined && (
+                                                            <div className={`p-2 rounded text-xs flex items-center gap-2 ${testResults[condition.id]
+                                                                ? 'bg-green-500/10 text-green-400 border border-green-500/30'
+                                                                : 'bg-red-500/10 text-red-400 border border-red-500/30'
+                                                                }`}>
+                                                                <Check className="h-3.5 w-3.5" />
+                                                                Test Result: {testResults[condition.id] ? 'Passed' : 'Failed'}
                                                             </div>
                                                         )}
                                                     </div>
-
-                                                    {condition.value.length === 0 && (
-                                                        <p className="text-xs text-red-400 flex items-center gap-1">
-                                                            <AlertCircle className="h-3 w-3" />
-                                                            At least one value is required
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            ))}
-
-                                            {/* Test Result */}
-                                            {showTestPreview && testResults[condition.id] !== undefined && (
-                                                <div className={`p-2 rounded text-xs flex items-center gap-2 ${testResults[condition.id]
-                                                    ? 'bg-green-500/10 text-green-400 border border-green-500/30'
-                                                    : 'bg-red-500/10 text-red-400 border border-red-500/30'
-                                                    }`}>
-                                                    <Check className="h-3.5 w-3.5" />
-                                                    Test Result: {testResults[condition.id] ? 'Passed' : 'Failed'}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

@@ -773,7 +773,7 @@ def validate_input_value(
             if num_value < -999999999999.99 or num_value > 999999999999.99:
                 return {
                     'valid': False,
-                    'error': 'Please enter a valid number between -999999999999.99 and 999999999999.99',
+                    'error': 'Please enter a valid number',
                     'normalized_value': value
                 }
             
@@ -785,7 +785,7 @@ def validate_input_value(
         except ValueError:
             return {
                 'valid': False,
-                'error': 'Please enter a valid number between -999999999999.99 and 999999999999.99',
+                'error': 'Please enter a valid number',
                 'normalized_value': value
             }
     
@@ -865,7 +865,192 @@ def clamp_ai_parameters(temperature: float, max_tokens: int) -> tuple[float, int
 
 
 
-def find_next_node_id(current_node_id: str, edges: List[Dict[str, Any]], button_action: Optional[Dict[str, Any]] = None, api_status: Optional[str] = None) -> Optional[str]:
+def evaluate_condition_groups(
+    condition_groups: List[Dict[str, Any]],
+    user_data: Dict[str, Any],
+    flow_edges: List[Dict[str, Any]],
+    current_node_id: str,
+    target_group_index: Optional[int] = None
+) -> Optional[str]:
+    """
+    Evaluate condition groups and return the connected node ID for the first satisfied group.
+    
+    Logic:
+    - Process each group independently (or only the target group if specified)
+    - Within each group, evaluate all conditions using groupLogicOperator (AND/OR)
+    - For conditions with multiple values, ANY value match satisfies the condition
+    - For variable-type values, resolve from user_data
+    - Return the connected node ID for the first satisfied group
+    
+    Args:
+        condition_groups: List of condition group configurations (max 10 groups)
+        user_data: Current user data containing variable values
+        flow_edges: All edges in the flow for finding connected nodes
+        current_node_id: ID of the current condition node
+        target_group_index: Optional specific group index to evaluate (when routing from button)
+        
+    Returns:
+        Node ID to route to, or None if no group satisfied or hasDefaultOutput
+    """
+    logger.info(f"[CONDITION EVAL] Evaluating {len(condition_groups)} condition groups (target_group_index: {target_group_index})")
+    logger.info(f"[CONDITION EVAL] user_data keys available: {list(user_data.keys())}")
+    logger.info(f"[CONDITION EVAL] user_data values: {user_data}")
+    
+    # Limit to 10 groups maximum
+    condition_groups = condition_groups[:10]
+    
+    # If target_group_index is specified, only evaluate that group
+    if target_group_index is not None:
+        if 0 <= target_group_index < len(condition_groups):
+            logger.info(f"[CONDITION EVAL] Only evaluating Group {target_group_index} (button-triggered routing)")
+            groups_to_evaluate = [(target_group_index, condition_groups[target_group_index])]
+        else:
+            logger.warning(f"[CONDITION EVAL] Invalid target_group_index: {target_group_index}, evaluating all groups")
+            groups_to_evaluate = enumerate(condition_groups)
+    else:
+        # Evaluate all groups
+        groups_to_evaluate = enumerate(condition_groups)
+    
+    for group_idx, group in groups_to_evaluate:
+        logger.info(f"[CONDITION EVAL] Evaluating Group {group_idx + 1}")
+        
+        conditions = group.get('conditions', [])
+        group_logic_operator = group.get('groupLogicOperator', 'AND')
+        
+        if not conditions:
+            logger.warning(f"[CONDITION EVAL] Group {group_idx + 1} has no conditions, skipping")
+            continue
+        
+        # Evaluate all conditions in this group
+        condition_results = []
+        
+        for cond_idx, condition in enumerate(conditions):
+            variable_name = condition.get('variable', '')
+            operator = condition.get('operator', 'equals')
+            values = condition.get('value', [])  # Array of value objects
+            logic_operator = condition.get('logicOperator', 'AND')
+            
+            # Get the actual variable value from user_data
+            actual_value = user_data.get(variable_name)
+            logger.info(f"[CONDITION EVAL] Group {group_idx + 1}, Condition {cond_idx + 1}: {variable_name} {operator} {values}, actual={actual_value}")
+            
+            # Evaluate this condition
+            condition_satisfied = False
+            
+            # Handle empty/not empty operators
+            if operator == 'is_empty':
+                condition_satisfied = not actual_value or str(actual_value).strip() == ''
+            elif operator == 'is_not_empty':
+                condition_satisfied = actual_value and str(actual_value).strip() != ''
+            else:
+                # For other operators, check if ANY value matches
+                if not values:
+                    logger.warning(f"[CONDITION EVAL] No values provided for condition, evaluating as False")
+                    condition_satisfied = False
+                else:
+                    for value_obj in values:
+                        # Handle both old format (string) and new format (object with text and isVariable)
+                        if isinstance(value_obj, dict):
+                            value_text = value_obj.get('text', '')
+                            is_variable = value_obj.get('isVariable', False)
+                            
+                            # If it's a variable reference, resolve it from user_data
+                            if is_variable:
+                                compare_value = user_data.get(value_text)
+                                logger.info(f"[CONDITION EVAL] Value is VARIABLE: resolving '{value_text}' from user_data -> {compare_value}")
+                                if compare_value is None:
+                                    logger.warning(f"[CONDITION EVAL] Variable '{value_text}' not found in user_data: {list(user_data.keys())}")
+                            else:
+                                compare_value = value_text
+                                logger.info(f"[CONDITION EVAL] Value is STATIC: using literal value '{value_text}'")
+                        else:
+                            # Backward compatibility: treat as static string
+                            compare_value = value_obj
+                            logger.info(f"[CONDITION EVAL] Legacy format: using static value '{value_obj}'")
+                        
+                        # Convert to strings for comparison
+                        actual_str = str(actual_value).strip() if actual_value is not None else ''
+                        compare_str = str(compare_value).strip() if compare_value is not None else ''
+
+                        logger.info(f"[CONDITION EVAL] Comparing: actual_value='{actual_str}' {operator} compare_value='{compare_str}'")
+
+                        # Perform comparison based on operator
+                        if operator == 'equals':
+                            if actual_str == compare_str:
+                                condition_satisfied = True
+                                break
+                        elif operator == 'not_equals':
+                            if actual_str != compare_str:
+                                condition_satisfied = True
+                                break
+                        elif operator == 'contains':
+                            if compare_str.lower() in actual_str.lower():
+                                condition_satisfied = True
+                                break
+                        elif operator == 'not_contains':
+                            if compare_str.lower() not in actual_str.lower():
+                                condition_satisfied = True
+                                break
+                        elif operator == 'greater_than':
+                            try:
+                                if float(actual_str) > float(compare_str):
+                                    condition_satisfied = True
+                                    break
+                            except (ValueError, TypeError):
+                                pass
+                        elif operator == 'less_than':
+                            try:
+                                if float(actual_str) < float(compare_str):
+                                    condition_satisfied = True
+                                    break
+                            except (ValueError, TypeError):
+                                pass
+            
+            condition_results.append(condition_satisfied)
+            logger.info(f"[CONDITION EVAL] Condition {cond_idx + 1} result: {condition_satisfied}")
+        
+        # Evaluate group based on groupLogicOperator
+        # groupLogicOperator (OR/AND) controls how all conditions in the group are combined
+        if not condition_results:
+            group_satisfied = False
+        elif group_logic_operator == 'OR':
+            # OR: Group is satisfied if ANY condition is true
+            group_satisfied = any(condition_results)
+            logger.info(f"[CONDITION EVAL] Group {group_idx + 1} using OR logic: {condition_results} -> {group_satisfied}")
+        else:  # AND (default)
+            # AND: Group is satisfied only if ALL conditions are true
+            group_satisfied = all(condition_results)
+            logger.info(f"[CONDITION EVAL] Group {group_idx + 1} using AND logic: {condition_results} -> {group_satisfied}")
+        
+        logger.info(f"[CONDITION EVAL] Group {group_idx + 1} overall result: {group_satisfied}")
+        
+        # If this group is satisfied, find and return the connected node
+        if group_satisfied:
+            # Find the edge for this specific group output
+            output_handle_id = f"output-group-{group_idx}"
+            
+            for edge in flow_edges:
+                if edge.get('source') == current_node_id and edge.get('sourceHandle') == output_handle_id:
+                    target_node_id = edge.get('target')
+                    logger.info(f"[CONDITION EVAL] Group {group_idx + 1} satisfied! Routing to node: {target_node_id}")
+                    return target_node_id
+            
+            logger.warning(f"[CONDITION EVAL] Group {group_idx + 1} satisfied but no edge found for {output_handle_id}")
+    
+    # No group was satisfied, check for default output
+    logger.info(f"[CONDITION EVAL] No groups satisfied, checking for default output")
+    
+    for edge in flow_edges:
+        if edge.get('source') == current_node_id and edge.get('sourceHandle') == 'output-default':
+            default_node_id = edge.get('target')
+            logger.info(f"[CONDITION EVAL] Using default output, routing to: {default_node_id}")
+            return default_node_id
+    
+    logger.warning(f"[CONDITION EVAL] No groups satisfied and no default output configured")
+    return None
+
+
+def find_next_node_id(current_node_id: str, edges: List[Dict[str, Any]], button_action: Optional[Dict[str, Any]] = None, api_status: Optional[str] = None, condition_result: Optional[str] = None) -> Optional[str]:
     """
     Find the next node ID based on current node, edges, and optional button action or API status.
     Supports button-specific routing via button index and API Library success/failure routing.
@@ -2167,7 +2352,30 @@ def run_node(
     
     elif current_node_type == 'condition':
         # Condition node - evaluates conditions and routes
-        response = "Evaluating conditions..."
+        condition_groups = node_config.get('conditionGroups', [])
+        print("condition_groups",condition_groups)
+        if not condition_groups:
+            # Check for legacy format
+            legacy_conditions = node_config.get('conditions', [])
+            if legacy_conditions:
+                # Convert to group format for backward compatibility
+                condition_groups = [{
+                    'id': 'legacy-group',
+                    'conditions': legacy_conditions,
+                    'groupLogicOperator': None
+                }]
+        
+        if condition_groups:
+            # Evaluate conditions and get the next node
+            # We need access to flow_edges, so we'll store the result in state
+            # The actual routing will happen via next_node_id in state
+            response = f"Evaluating {len(condition_groups)} condition group(s)..."
+            
+            # Store condition groups in state for routing decision
+            state['condition_groups'] = condition_groups
+            state['awaiting_condition_eval'] = True
+        else:
+            response = "No conditions configured"
         
         ui_schema = {
             'type': 'processing',
@@ -2642,6 +2850,14 @@ def execute_single_node(
                         'conversation_id': conversation_id
                     }
                     
+                    # If the next node is a condition node, pass the button index as target_group_index
+                    if next_node.get('type') == 'condition':
+                        button_index = button_action.get('button_index')
+                        if button_index is not None:
+                            # Store button index in state so condition node knows which group to evaluate
+                            next_state['target_condition_group'] = button_index
+                            logger.info(f"[BUTTON ROUTING] Connected node is condition type, setting target_condition_group to {button_index}")
+                    
                     if next_node_executor and callable(next_node_executor):
                         next_result = next_node_executor(next_state)
                     else:
@@ -2661,8 +2877,35 @@ def execute_single_node(
                         logger.warning(f"[MEMORY CACHE] Could not save state: {save_err}")
                     
                     # Find next node after the connected node
-                    # IMPORTANT: Check if connected node is API Library and extract api_status
-                    if next_node.get('type') == 'apiLibrary':
+                    # IMPORTANT: Check if connected node is a Condition node and evaluate groups
+                    if next_node.get('type') == 'condition' and next_result.get('awaiting_condition_eval'):
+                        logger.info(f"[BUTTON ROUTING] Connected node is condition type, evaluating condition groups")
+                        
+                        condition_groups = next_result.get('condition_groups', [])
+                        user_data = next_result.get('user_data', {})
+                        target_condition_group = next_result.get('target_condition_group')  # Get button index we passed
+                        
+                        if condition_groups:
+                            logger.info(f"[BUTTON ROUTING -> CONDITION] Evaluating condition groups (target_group: {target_condition_group})")
+                            
+                            # Evaluate condition groups and get the connected node ID
+                            final_next_node_id = evaluate_condition_groups(
+                                condition_groups=condition_groups,
+                                user_data=user_data,
+                                flow_edges=flow_edges,
+                                current_node_id=next_node_id,
+                                target_group_index=target_condition_group
+                            )
+                            
+                            if final_next_node_id:
+                                logger.info(f"[BUTTON ROUTING -> CONDITION] Condition satisfied, next node: {final_next_node_id}")
+                            else:
+                                logger.warning(f"[BUTTON ROUTING -> CONDITION] No condition satisfied, flow will end")
+                        else:
+                            logger.warning(f"[BUTTON ROUTING -> CONDITION] No condition groups found")
+                            final_next_node_id = None
+                    # Check if connected node is API Library and extract api_status
+                    elif next_node.get('type') == 'apiLibrary':
                         api_success = next_result.get('ui_schema', {}).get('api_success')
                         if api_success is not None:
                             api_status = 'success' if api_success else 'failure'
@@ -2706,6 +2949,107 @@ def execute_single_node(
                     logger.warning(f"[BUTTON ROUTING] Connected node {next_node_id} not found in flow")
             else:
                 logger.warning(f"[BUTTON ROUTING] No edge found for button action, using default routing")
+        
+        node_type = current_node.get('type')
+        # Check if current node is a Condition node and evaluate condition groups
+        print("node_type",node_type,result)
+        if node_type == 'condition' and result.get('awaiting_condition_eval'):
+            logger.info(f"[CONDITION ROUTING] Detected condition node, evaluating condition groups")
+            
+            condition_groups = result.get('condition_groups', [])
+            user_data = result.get('user_data', {})
+            target_condition_group = result.get('target_condition_group')  # Get button index if provided
+            
+            if condition_groups:
+                logger.info(f"[CONDITION ROUTING] Found {len(condition_groups)} condition groups to evaluate (target_group: {target_condition_group})")
+                
+                # Evaluate condition groups and get the connected node ID
+                condition_next_node_id = evaluate_condition_groups(
+                    condition_groups=condition_groups,
+                    user_data=user_data,
+                    flow_edges=flow_edges,
+                    current_node_id=node_id,
+                    target_group_index=target_condition_group  # Pass the button index as target group
+                )
+                
+                if condition_next_node_id:
+                    logger.info(f"[CONDITION ROUTING] Condition satisfied, next node: {condition_next_node_id}")
+                    # Return immediately with just the next_node_id set
+                    # DO NOT execute the next node - let auto-execute handle it
+                    is_complete = False  # Flow is not complete, just routing
+                    
+                    return {
+                        'success': True,
+                        'current_node_id': node_id,
+                        'node_type': current_node.get('type'),
+                        'current_node': {
+                            'id': current_node.get('id'),
+                            'type': current_node.get('type'),
+                            'label': current_node.get('data', {}).get('label', '')
+                        },
+                        'next_node_id': condition_next_node_id,  # Set the determined next node
+                        'state': {
+                            'user_data': result.get('user_data', {}),
+                            'messages': result.get('messages', []),
+                            'workspace_id': workspace_id,
+                            'agent_id': agent_id,
+                            'conversation_id': conversation_id
+                        },
+                        'ui_schema': result.get('ui_schema', {}),
+                        'response': result.get('response', ''),
+                        'is_complete': is_complete,
+                        'thread_id': thread_id
+                    }
+                else:
+                    # No condition satisfied and no default output - flow ends
+                    logger.warning(f"[CONDITION ROUTING] No condition satisfied and no default output, flow will end")
+                    return {
+                        'success': True,
+                        'current_node_id': node_id,
+                        'node_type': current_node.get('type'),
+                        'current_node': {
+                            'id': current_node.get('id'),
+                            'type': current_node.get('type'),
+                            'label': current_node.get('data', {}).get('label', '')
+                        },
+                        'next_node_id': None,  # No next node - flow ends
+                        'state': {
+                            'user_data': result.get('user_data', {}),
+                            'messages': result.get('messages', []),
+                            'workspace_id': workspace_id,
+                            'agent_id': agent_id,
+                            'conversation_id': conversation_id
+                        },
+                        'ui_schema': result.get('ui_schema', {}),
+                        'response': result.get('response', ''),
+                        'is_complete': True,  # Mark as complete since no path exists
+                        'thread_id': thread_id
+                    }
+            else:
+                logger.warning(f"[CONDITION ROUTING] No condition groups found in state")
+                # No condition groups - end flow
+                return {
+                    'success': True,
+                    'current_node_id': node_id,
+                    'node_type': current_node.get('type'),
+                    'current_node': {
+                        'id': current_node.get('id'),
+                        'type': current_node.get('type'),
+                        'label': current_node.get('data', {}).get('label', '')
+                    },
+                    'next_node_id': None,
+                    'state': {
+                        'user_data': result.get('user_data', {}),
+                        'messages': result.get('messages', []),
+                        'workspace_id': workspace_id,
+                        'agent_id': agent_id,
+                        'conversation_id': conversation_id
+                    },
+                    'ui_schema': result.get('ui_schema', {}),
+                    'response': result.get('response', ''),
+                    'is_complete': True,
+                    'thread_id': thread_id
+                }
         
         # For non-connect_to_node actions or if connect failed, use default routing
         # Check if current node is API Library node and route based on success/failure
