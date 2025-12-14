@@ -29,7 +29,7 @@ import AgentFlowBuilder from '@/components/flow/AgentFlowBuilder';
 
 // 🚀 FEATURE FLAG: Set to false to show "Coming Soon" page
 // Set to true for development to access the full feature
-const ENABLE_AGENTIC_FLOWS = false;
+const ENABLE_AGENTIC_FLOWS = true;
 
 interface FlowAgent {
     id: string;

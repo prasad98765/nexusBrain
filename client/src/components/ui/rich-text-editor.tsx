@@ -228,6 +228,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                     min-height: 100px;
                 }
 
+                .rich-text-editor-wrapper .quill {
+                    height : 370px
+                }
+
                 .rich-text-editor-wrapper .ql-editor {
                     min-height: 100px;
                     color: rgb(226 232 240);

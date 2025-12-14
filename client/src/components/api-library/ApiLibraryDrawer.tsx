@@ -274,7 +274,7 @@ export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess, fu
             {/* Backdrop - Only show when open */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] animate-in fade-in duration-300"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[149] animate-in fade-in duration-300"
                     onClick={onClose}
                 />
             )}
@@ -282,13 +282,13 @@ export default function ApiLibraryDrawer({ isOpen, onClose, apiId, onSuccess, fu
             {/* Drawer - Traditional drawer with left margin */}
             <div
                 className={cn(
-                    "fixed top-0 right-0 bottom-0 bg-slate-900 shadow-2xl z-[101] flex flex-col",
+                    "fixed top-0 right-0 bottom-0 bg-slate-900 shadow-2xl z-[150] flex flex-col",
                     "transition-transform duration-300 ease-out",
                     isOpen ? "translate-x-0" : "translate-x-full"
                 )}
                 style={{
                     pointerEvents: isOpen ? 'auto' : 'none',
-                    width: fullWidth ? '300%' : 'calc(100% - 16rem)'
+                    width: fullWidth ? '100vw' : 'calc(100% - 16rem)'
                 }}
             >
                 {/* Header with Save/Cancel */}
