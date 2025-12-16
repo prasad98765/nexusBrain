@@ -362,7 +362,7 @@ function ApiLogsDrawer({ isOpen, onClose, apiId }: ApiLogsDrawerProps) {
 
     const fetchLogs = async () => {
         if (!apiId) return;
-        
+
         setLoading(true);
         try {
             const response = await apiClient.get(`/api/api-library/${apiId}/runs`);
@@ -377,7 +377,7 @@ function ApiLogsDrawer({ isOpen, onClose, apiId }: ApiLogsDrawerProps) {
 
     const fetchApiDetails = async () => {
         if (!apiId) return;
-        
+
         try {
             const response = await apiClient.get(`/api/api-library/${apiId}`);
             const data = await response.json();
@@ -420,14 +420,14 @@ function ApiLogsDrawer({ isOpen, onClose, apiId }: ApiLogsDrawerProps) {
     const { successCount, failedCount, filteredLogs } = useMemo(() => {
         const successCount = logs.filter(log => log.success).length;
         const failedCount = logs.filter(log => !log.success).length;
-        
+
         let filteredLogs = logs;
         if (statusFilter === 'success') {
             filteredLogs = logs.filter(log => log.success);
         } else if (statusFilter === 'failed') {
             filteredLogs = logs.filter(log => !log.success);
         }
-        
+
         return { successCount, failedCount, filteredLogs };
     }, [logs, statusFilter]);
 
@@ -436,11 +436,11 @@ function ApiLogsDrawer({ isOpen, onClose, apiId }: ApiLogsDrawerProps) {
     return (
         <div className="fixed inset-0 z-50">
             {/* Backdrop */}
-            <div 
+            <div
                 className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
                 onClick={onClose}
             />
-            
+
             {/* Drawer - Slide from right */}
             <div className="absolute right-0 top-0 h-full w-full max-w-3xl bg-card border-l shadow-2xl animate-slide-in-right flex flex-col">
                 {/* Header */}

@@ -2,10 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Zap } from "lucide-react";
-import ContactsTable from "@/components/contacts/ContactsTable";
-import SettingsPage from "@/pages/settings-page";
+// import SettingsPage from "@/pages/settings-page";
 import CustomizeAgent from "@/pages/customize-agent";
-import FlowBuilder from "@/pages/flow-builder";
+// import FlowBuilder from "@/pages/flow-builder";
 import AgentsPage from "@/pages/agents-page";
 
 export default function Home() {
@@ -88,21 +87,16 @@ export default function Home() {
             <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
           </div>
         </div>
-      ) : activeView === "contacts" ? (
-        <ContactsTable
-          workspaceId={user?.workspaceId || "default"}
-          onSettingsClick={() => setActiveView("settings")}
-        />
-      ) : activeView === "settings" ? (
-        <SettingsPage workspaceId={user?.workspaceId || "default"} />
+        // ) : activeView === "settings" ? (
+        //   <SettingsPage workspaceId={user?.workspaceId || "default"} />
       ) : activeView === "customize-agent" ? (
         <CustomizeAgent
           agentId={selectedAgentId || undefined}
           onBackClick={handleBackFromCustomize}
           onCreateFlow={handleCreateFlow}
         />
-      ) : activeView === "flow-builder" ? (
-        <FlowBuilder agentId={selectedAgentId || ""} onBackClick={handleBackFromFlow} />
+        // ) : activeView === "flow-builder" ? (
+        //   <FlowBuilder agentId={selectedAgentId || ""} onBackClick={handleBackFromFlow} />
       ) : activeView === "agents" ? (
         <AgentsPage />
       ) : null}
